@@ -12,6 +12,7 @@ Zawadzki (2004).
 
 import matplotlib.pyplot as plt
 import numpy as np
+import xarray as xr
 
 from pysteps.nowcasts.lagrangian_probability import forecast
 from pysteps.visualization import plot_precip_field
@@ -27,19 +28,48 @@ from pysteps.visualization import plot_precip_field
 # the strong loss of predictability with lead time of any extrapolation nowcast.
 
 # parameters
-precip = np.zeros((100, 100))
-precip[10:50, 10:50] = 1
-velocity = np.ones((2, *precip.shape))
-timesteps = [0, 2, 6, 12]
+precip = xr.DataArray(
+    np.zeros((100, 100), dtype=float),
+    dims=("y", "x"),
+    coords={"y": np.arange(100), "x": np.arange(100)},
+    name="synthetic_precip",
+)
+precip.loc[dict(y=slice(10, 49), x=slice(10, 49))] = 1.0
+
+# constant unit velocity field (1 px/step in x AND y)
+motion = xr.Dataset(
+    data_vars=dict(
+        velocity_x=(["y", "x"], np.ones_like(precip.values)),
+        velocity_y=(["y", "x"], np.ones_like(precip.values)),
+    ),
+    coords=precip.coords,
+)
+
+# assemble the single-time input dataset required by forecast()
+timesteps = [1, 2, 6, 12]   # start at 1 (t0+1, t0+2, ...)
 thr = 0.5
 slope = 1  # pixels / timestep
 
-# compute probability forecast
-out = forecast(precip, velocity, timesteps, thr, slope=slope)
+toy_time0 = np.datetime64("2000-01-01T00:00")
+toy_ds = xr.Dataset(
+    data_vars={
+        "precip_intensity": (("time", "y", "x"), precip.values[None, ...]),
+        "velocity_x": (("y", "x"), motion["velocity_x"].values),
+        "velocity_y": (("y", "x"), motion["velocity_y"].values),
+    },
+    coords={"time": [toy_time0], "y": precip["y"], "x": precip["x"]},
+    attrs={"precip_var": "precip_intensity"},
+)
+# REQUIRED by extrapolation.convert_output_to_xarray_dataset: seconds per step
+toy_ds["time"].attrs["stepsize"] = 60  # 1 minute per step in the toy example
+
+# compute probability forecast 
+out = forecast(toy_ds, timesteps, thr, slope=slope)
+
 # plot
-for n, frame in enumerate(out):
+for n in range(out.sizes["time"]):
     plt.subplot(2, 2, n + 1)
-    plt.imshow(frame, interpolation="nearest", vmin=0, vmax=1)
+    plt.imshow(out["precip_intensity"].isel(time=n).values, interpolation="nearest", vmin=0, vmax=1)
     plt.title(f"t={timesteps[n]}")
     plt.xticks([])
     plt.yticks([])
@@ -55,47 +85,55 @@ plt.show()
 # kilometers.
 
 from datetime import datetime
-
-from pysteps import io, rcparams, utils
+from pysteps import io, rcparams
+from pysteps.utils import conversion
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.verification import reldiag_init, reldiag_accum, plot_reldiag
 
 # data source
-source = rcparams.data_sources["mch"]
 root = rcparams.data_sources["mch"]["root_path"]
 fmt = rcparams.data_sources["mch"]["path_fmt"]
 pattern = rcparams.data_sources["mch"]["fn_pattern"]
 ext = rcparams.data_sources["mch"]["fn_ext"]
-timestep = rcparams.data_sources["mch"]["timestep"]
+timestep = rcparams.data_sources["mch"]["timestep"]  # minutes per native step
 importer_name = rcparams.data_sources["mch"]["importer"]
 importer_kwargs = rcparams.data_sources["mch"]["importer_kwargs"]
 
-# read precip field
+# read precip field: last 3 frames ending at t0 (for motion estimation)
 date = datetime.strptime("201607112100", "%Y%m%d%H%M")
-fns = io.find_by_date(date, root, fmt, pattern, ext, timestep, num_prev_files=2)
+fns = io.archive.find_by_date(date, root, fmt, pattern, ext, timestep, num_prev_files=2)
 importer = io.get_method(importer_name, "importer")
-precip, __, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-precip, metadata = utils.to_rainrate(precip, metadata)
-# precip[np.isnan(precip)] = 0
+ds_in = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# motion
-motion = dense_lucaskanade(precip)
+# convert to rain rate
+ds_in = conversion.to_rainrate(ds_in)
+ds_in.attrs.setdefault("precip_var", "precip_intensity")
+precip_var = ds_in.attrs["precip_var"]
+
+# ensure 'stepsize' (seconds) on the time coordinate
+ds_in["time"].attrs.setdefault("stepsize", int(timestep) * 60)
+
+# estimate motion on the 3-frame dataset (adds velocity_x/velocity_y)
+ds_with_vel = dense_lucaskanade(ds_in)
+
+# build the single-time dataset for forecast: keep time dim of size 1
+ds0 = ds_with_vel.isel(time=[-1])  # NOT isel(time=-1), we must keep the time dimension
+# carry over stepsize (safeguard)
+ds0["time"].attrs.setdefault("stepsize", int(timestep) * 60)
 
 # parameters
 nleadtimes = 6
 thr = 1  # mm / h
-slope = 1 * timestep  # km / min
+slope = 1 * timestep  # km / min → pixels per step if ~1 km/pixel
 
 # compute probability forecast
 extrap_kwargs = dict(allow_nonfinite_values=True)
-fct = forecast(
-    precip[-1], motion, nleadtimes, thr, slope=slope, extrap_kwargs=extrap_kwargs
-)
+fct = forecast(ds0, nleadtimes, thr, slope=slope)
 
-# plot
-for n, frame in enumerate(fct):
+# plot raw probability maps
+for n in range(fct.sizes["time"]):
     plt.subplot(2, 3, n + 1)
-    plt.imshow(frame, interpolation="nearest", vmin=0, vmax=1)
+    plt.imshow(fct[precip_var].isel(time=n).values, interpolation="nearest", vmin=0, vmax=1)
     plt.xticks([])
     plt.yticks([])
 plt.show()
@@ -104,10 +142,19 @@ plt.show()
 # Let's plot one single leadtime in more detail using the pysteps visualization
 # functionality.
 
+# Build geodata for plotting
+metadata = {
+    "projection": ds_in.attrs.get("projection", None),
+    "x1": float(ds_in["x"].values[0]),
+    "x2": float(ds_in["x"].values[-1]),
+    "y1": float(ds_in["y"].values[0]),
+    "y2": float(ds_in["y"].values[-1]),
+    "yorigin": "lower",
+}
+
 plt.close()
-# Plot the field of probabilities
 plot_precip_field(
-    fct[2],
+    fct[precip_var].isel(time=2).values,
     geodata=metadata,
     ptype="prob",
     probthr=thr,
@@ -120,29 +167,28 @@ plt.show()
 # ------------
 
 # verifying observations
-importer = io.get_method(importer_name, "importer")
-fns = io.find_by_date(
-    date, root, fmt, pattern, ext, timestep, num_next_files=nleadtimes
-)
-obs, __, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-obs, metadata = utils.to_rainrate(obs, metadata)
-obs[np.isnan(obs)] = 0
+fns = io.archive.find_by_date(date, root, fmt, pattern, ext, timestep,
+                              num_next_files=nleadtimes)
+ds_obs = io.read_timeseries(fns, importer, **importer_kwargs)
+ds_obs = conversion.to_rainrate(ds_obs)
+ds_obs.attrs.setdefault("precip_var", precip_var)
+obs = ds_obs[precip_var]
+
+# Align obs to forecast lead times (skip t0)
+n_fc = fct.sizes["time"]
+# safe slice in case ds_obs has exactly n_fc+1 frames
+obs = obs.isel(time=slice(1, 1 + n_fc))
+
+# Now shapes match: (n_fc, y, x)
+fct_np = fct[precip_var].values
+obs_np = np.nan_to_num(obs.values, nan=0.0)
 
 # reliability diagram
 reldiag = reldiag_init(thr)
-reldiag_accum(reldiag, fct, obs[1:])
+reldiag_accum(reldiag, fct_np, obs_np)
 fig, ax = plt.subplots()
 plot_reldiag(reldiag, ax)
 ax.set_title("Reliability diagram")
 plt.show()
-
-
-###############################################################################
-# References
-# ----------
-# Germann, U. and I. Zawadzki, 2004:
-# Scale Dependence of the Predictability of Precipitation from Continental
-# Radar Images. Part II: Probability Forecasts.
-# Journal of Applied Meteorology, 43(1), 74-89.
 
 # sphinx_gallery_thumbnail_number = 3
