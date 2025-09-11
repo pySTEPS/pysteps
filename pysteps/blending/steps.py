@@ -1819,7 +1819,7 @@ class StepsBlendingNowcaster:
             self.__state.precip_models_cascades_timestep.shape,
         )
         print(
-            "Shape of the matched nowcast input:", self.__state.precip_nowcast_cascades
+            "Shape of the matched nowcast input:", self.__state.precip_nowcast_cascades.shape
         )
 
     def __determine_skill_for_current_timestep(self, t):
