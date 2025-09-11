@@ -38,7 +38,7 @@ def test_io_import_bom_rf3_metadata(variable, expected, tolerance):
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
     rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
     filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
-    precip, _, metadata = pysteps.io.import_bom_rf3(filename)
+    dataset = pysteps.io.import_bom_rf3(filename)
     smart_assert(metadata[variable], expected, tolerance)
     assert precip.shape == (512, 512)
 
