@@ -86,7 +86,6 @@ test_attrs = [
     ),
     (precip_dataarray.attrs["accutime"], None, None),
     (precip_dataarray.attrs["units"], "mm/h", None),
-    (precip_dataarray.attrs["transform"], None, None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
 ]
 

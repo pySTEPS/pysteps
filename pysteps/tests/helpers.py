@@ -42,12 +42,14 @@ def assert_dataset_equivalent(dataset1: xr.Dataset, dataset2: xr.Dataset) -> Non
         dataset2[precip_var].attrs["zerovalue"],
     )
     assert dataset1[precip_var].attrs["units"] == dataset2[precip_var].attrs["units"]
-    assert (
-        dataset1[precip_var].attrs["transform"]
-        == dataset2[precip_var].attrs["transform"]
-        or dataset1[precip_var].attrs["transform"] is None
-        and dataset2[precip_var].attrs["transform"] is None
-    )
+    if (
+        "transform" in dataset1[precip_var].attrs
+        or "transform" in dataset2[precip_var].attrs
+    ):
+        assert (
+            dataset1[precip_var].attrs["transform"]
+            == dataset2[precip_var].attrs["transform"]
+        )
     if (
         "accutime" in dataset1[precip_var].attrs
         or "accutime" in dataset2[precip_var].attrs

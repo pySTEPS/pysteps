@@ -92,7 +92,7 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
 
-    if metadata["transform"] is not None:
+    if "transform" in metadata:
         if metadata["transform"] == "dB":
             dataset = transformation.dB_transform(dataset, inverse=True)
 
@@ -182,7 +182,7 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
 
-    if metadata["transform"] is not None:
+    if "transform" in metadata:
         if metadata["transform"] == "dB":
             dataset = transformation.dB_transform(dataset, inverse=True)
 
@@ -202,7 +202,7 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
     metadata = dataset[precip_var].attrs
     precip_data = dataset[precip_var].values
 
-    if metadata["units"] == "mm" and metadata["transform"] is None:
+    if metadata["units"] == "mm" and "transform" not in metadata:
         pass
 
     elif metadata["units"] == "mm/h":
@@ -272,7 +272,7 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
 
-    if metadata["transform"] is not None:
+    if "transform" in metadata:
         if metadata["transform"] == "dB":
             dataset = transformation.dB_transform(dataset, inverse=True)
 

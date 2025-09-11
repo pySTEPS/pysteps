@@ -15,7 +15,6 @@ expected_proj1 = (
 )
 
 test_metadata_bom = [
-    ("transform", None, None),
     ("zerovalue", 0.0, 0.1),
     ("projection", expected_proj1, None),
     ("unit", "mm", None),

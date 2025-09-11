@@ -28,7 +28,6 @@ def test_io_import_mrms_grib():
         "xpixelsize": 0.01,
         "ypixelsize": 0.01,
         "unit": "mm/h",
-        "transform": None,
         "zerovalue": 0,
         "projection": "+proj=longlat  +ellps=IAU76",
         "yorigin": "upper",

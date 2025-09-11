@@ -85,6 +85,7 @@ def convert_input_to_xarray_dataset(
     quality: np.ndarray | None,
     metadata: dict[str, str | float | None],
     startdate: datetime | None = None,
+    timestep: int | None = None,
 ) -> xr.Dataset:
     """
     Read a precip, quality, metadata tuple as returned by the importers
@@ -94,15 +95,18 @@ def convert_input_to_xarray_dataset(
     Parameters
     ----------
     precip: array
-        2D array containing imported precipitation data.
+        ND array containing imported precipitation data.
     quality: array, None
-        2D array containing the quality values of the imported precipitation
+        ND array containing the quality values of the imported precipitation
         data, can be None.
     metadata: dict
         Metadata dictionary containing the attributes described in the
         documentation of :py:mod:`pysteps.io.importers`.
     startdate: datetime, None
         Datetime object containing the start date and time for the nowcast
+    timestep: int, None
+        The timestep in seconds between 2 consecutive fields, mandatory if
+        the precip has 3 or more dimensions
 
     Returns
     -------
@@ -122,6 +126,8 @@ def convert_input_to_xarray_dataset(
 
         if startdate is None:
             raise Exception("startdate missing")
+        if timestep is None:
+            raise Exception("timestep missing")
 
     elif precip.ndim == 3:
         timesteps, h, w = precip.shape
@@ -129,6 +135,8 @@ def convert_input_to_xarray_dataset(
 
         if startdate is None:
             raise Exception("startdate missing")
+        if timestep is None:
+            raise Exception("timestep missing")
 
     elif precip.ndim == 2:
         h, w = precip.shape
@@ -268,8 +276,12 @@ def convert_input_to_xarray_dataset(
 
         coords["time"] = (
             ["time"],
-            list(range(1, timesteps + 1, 1)),
-            {"long_name": "forecast time", "units": "seconds since %s" % startdate_str},
+            [
+                startdate + timedelta(seconds=float(second))
+                for second in np.arange(timesteps) * timestep
+            ],
+            {"long_name": "forecast time", "stepsize": timestep},
+            {"units": "seconds since %s" % startdate_str},
         )
     if grid_mapping_var_name is not None:
         coords[grid_mapping_name] = (

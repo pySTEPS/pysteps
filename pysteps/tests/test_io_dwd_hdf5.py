@@ -56,7 +56,6 @@ test_ry_attrs = [
     (precip_dataarray.attrs["accutime"], 5.0, 1e-10),
     (precip_dataset.time.attrs["stepsize"], 5.0, 1e-10),
     (precip_dataarray.attrs["units"], "mm/h", None),
-    (precip_dataarray.attrs["transform"], None, None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
     (precip_dataarray.attrs["threshold"], 0.12, 1e-6),
 ]
