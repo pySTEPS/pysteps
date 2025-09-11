@@ -82,7 +82,11 @@ except ImportError:
     NETCDF4_IMPORTED = False
 
 
-def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
+# XR: need to implement dtype and fillna once exporter is fixed as we need to
+# apply those transformation on precip_var, which is not known set in the currently openend file
+def import_netcdf_pysteps(
+    filename, dtype="double", fillna=np.nan, onerror="warn", **kwargs
+):
     """
     Read a nowcast or an ensemble of nowcasts from a NetCDF file conforming
     to the CF 1.7 specification.
@@ -94,12 +98,15 @@ def import_netcdf_pysteps(filename, onerror="warn", **kwargs):
     ----------
     filename: str
         Name of the file to import.
+    dtype: str
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna:
+        TODO:
     onerror: str
         Define the behavior if an exception is raised during the import.
         - "warn": Print an error message and return (None, None)
         - "raise": Raise an exception
-
-    {extra_kwargs_doc}
 
     Returns
     -------
