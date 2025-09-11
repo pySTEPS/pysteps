@@ -288,7 +288,7 @@ radar_precip_mmh, _ = converter(radar_precip, radar_metadata)
 fc_lagrangian_extrapolation_mmh, _ = converter(
     fc_lagrangian_extrapolation, radar_metadata_to_advect
 )
-nwp_precip_mmh, _ = converter(nwp_precip, nwp_metadata)
+nwp_precipfc_lagrangian_extrapolation_mmh_mmh, _ = converter(nwp_precip, nwp_metadata)
 
 
 ################################################################################
