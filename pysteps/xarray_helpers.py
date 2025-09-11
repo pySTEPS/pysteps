@@ -326,3 +326,90 @@ def convert_output_to_xarray_dataset(
         dataset[precip_var] = (["time", "y", "x"], output, metadata)
 
     return dataset
+
+
+def verify_xarray_dataset(dataset: xr.Dataset) -> bool:
+    """
+    Verify that the input xarray dataset contains all the required 
+    coordinate.
+
+    Paramaters
+    ----------
+    dataset: xr.Dataset
+        xarray dataset to be cheched.
+    
+    Returns
+    -------
+    bool:
+        True if the dataset contains the required coordinates and false otherwise.  
+    """
+    is_valid=True
+
+    condition_1=len(dataset.sizes)==2 and set(dataset.sizes)==set(['x','y'])
+    condition_2=len(dataset.sizes)==3 and set(dataset.sizes)==set(['x','y','time'])
+    condition_3=len(dataset.sizes)==4 and set(dataset.sizes)==set(['x','y','time','ens_number'])
+
+    variables_checklist=['precip_intensity','precip_accum','reflectivity']
+    attribute_checklist=['projection','institution','precip_var']
+    precip_var_checklist=['units','threshold','zerovalue']
+    coord_var_checklist=['units','stepsize']
+    velocity_checklist=['velocity_x','velocity_y' ] 
+
+    variables_names=list(dataset.variables.keys())
+
+    if not any([condition_1,condition_2,condition_3]):
+        print("input specification incorrect.\n"
+                f"Dimension mismatch "
+                "expected for (x,y) for 2 dimension,\n"
+                "(x,y,time) for three dimension\n or"
+                "(x,y,time,ens_number) for four dimension."
+                )
+        is_valid=False
+        
+    elif  len(set(variables_names).intersection(set(variables_checklist)))!=1:
+        print(
+                    "input specification incorrect.\n"
+                    f"Either None or more that one of : {', '.join(variables_checklist)},  detected\n"
+                    f"expected exactly one of : {', '.join(variables_checklist)}"
+                )
+        is_valid=False
+         
+    elif len(set(variables_names).intersection(set(velocity_checklist)))==1:
+        print(
+                    "input specification incorrect.\n"
+                    "Either velocity_x or velocity_y present\n"
+                    "expected both velocity_x and velocity_y or none"
+                )
+        is_valid=False
+    
+    elif not all(attribute in dataset.attrs for attribute in attribute_checklist):
+        print(
+                    "input specification incorrect.\n"
+                    f"One of the :{', '.join(attribute_checklist)} missing\n"
+                    "expected all to be present"
+                )
+        is_valid=False
+    
+    elif not all(attribute in dataset.variables['precipitation'].attrs for attribute in precip_var_checklist):
+        print(
+                    "input specification incorrect.\n"
+                    f"One of the : {', '.join(precip_var_checklist)} missing\n"
+                    "expected all to be present"
+        )
+        is_valid=False
+    
+    elif dataset.coords is not None:
+        for var in dataset.coords:
+            if not all(attribute in dataset.coords[var].attrs for attribute in coord_var_checklist):
+                print("Input specification incorrect\n"
+                    "At least one attribute not present in a coordinate variable\n"
+                    f"Expected all the coordinate variable to have:  {', '.join(coord_var_checklist)}, to be present ")
+                is_valid=False
+                break
+                
+    
+
+    return is_valid
+     
+     
+
