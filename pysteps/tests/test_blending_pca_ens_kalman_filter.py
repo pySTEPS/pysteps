@@ -40,8 +40,7 @@ pca_enkf_arg_values = [
     # Other forecast length
     (20,35,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
     # Other noise method
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"nonparametric","masked_enkf",True,None,1.0,"ensemble",False,False),
-                       ]
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"nonparametric","masked_enkf",True,None,1.0,"ensemble",False,False),]
 # fmt: on
 
 pca_enkf_arg_names = (

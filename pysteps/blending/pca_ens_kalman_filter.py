@@ -1206,9 +1206,9 @@ class EnKFCombinationNowcaster:
 
     def __check_no_rain_case(self):
 
-        print(f"Test for no rain cases")
-        print(f"======================")
-        print(f"")
+        print("Test for no rain cases")
+        print("======================")
+        print("")
 
         # Check for zero input fields in the radar and NWP data.
         zero_precip_radar = check_norain(

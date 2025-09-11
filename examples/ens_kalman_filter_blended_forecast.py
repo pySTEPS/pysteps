@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 from matplotlib import pyplot as plt
-import xarray as xr
 
 import pysteps
 from pysteps import io, rcparams, blending
