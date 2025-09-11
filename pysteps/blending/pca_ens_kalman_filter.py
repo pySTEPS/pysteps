@@ -36,8 +36,8 @@ method consists of the following main steps:
         #. Apply update step of ensemble Kalman filter.
 
     #. Set no data values in final forecast fields.
-    #. In the origin approach, it is iterated between forecast and correction step.
-       However, to reduce smoothing effects, at the first timestep a pure forecast step is computed and then it is iterated between correction and forecast step. The mentioned smoothing effects arise due to the NWP effective horizontal resolution and due to the spatial decomposition at each forecast time step.
+    #. The origin approach iterates between forecast and correction step. However, to 
+       reduce smoothing effects in this implementation, a pure forecast step is computed at the first forecast time step and, afterwards, it is iterated between correction and forecast step. The mentioned smoothing effects arise due to the NWP effective horizontal resolution and due to the spatial decomposition at each forecast time step.
 """
 import time
 import datetime
@@ -410,14 +410,20 @@ class ForecastInitialization:
         self.mean_extrapolation = np.array(precip_forecast_decomp["means"])
         self.std_extrapolation = np.array(precip_forecast_decomp["stds"])
 
-        # If there are values in the radar fields, compute the auto-correlations
-        GAMMA = np.empty((self.__config.n_cascade_levels, self.__config.ar_order))
-        # if not self.__params.zero_precip_radar:
-        # compute lag-l temporal auto-correlation coefficients for each cascade level
-        for i in range(self.__config.n_cascade_levels):
-            GAMMA[i, :] = correlation.temporal_autocorrelation(
-                self.precip_cascades[i], mask=self.__params.mask_threshold
-            )
+        if self.__params.no_rain_case == "obs":
+
+            GAMMA = np.ones((self.__config.n_cascade_levels, self.__config.ar_order))
+
+        else:
+
+            # If there are values in the radar fields, compute the auto-correlations
+            GAMMA = np.empty((self.__config.n_cascade_levels, self.__config.ar_order))
+
+            # compute lag-l temporal auto-correlation coefficients for each cascade level
+            for i in range(self.__config.n_cascade_levels):
+                GAMMA[i, :] = correlation.temporal_autocorrelation(
+                    self.precip_cascades[i], mask=self.__params.mask_threshold
+                )
 
         # Print the GAMMA value
         nowcast_utils.print_corrcoefs(GAMMA)
@@ -446,7 +452,11 @@ class ForecastInitialization:
         Initialize noise-based perturbations if configured, computing any required
         adjustment coefficients and setting up the perturbation generator.
         """
-        if self.__config.noise_method is not None:
+        if (
+            self.__config.noise_method is not None
+            and self.__params.no_rain_case != "obs"
+        ):
+
             # get methods for perturbations
             init_noise, self.__params.noise_generator = noise.get_method(
                 self.__config.noise_method
@@ -530,25 +540,62 @@ class ForecastInitialization:
                 )
             )
 
-        # Determine the noise field for each ensemble member
-        for j in range(self.__config.n_noise_fields):
-            epsilon = self.__params.noise_generator(
-                self.__params.perturbation_generator,
-                randstate=self.__randgen_precip[j],
-                fft_method=self.__params.fft_objs[j],
-                domain=self.__config.domain,
-            )
-            # Decompose the noise field into a cascade
-            self.noise_field_pool[j] = self.__params.decomposition_method(
-                epsilon,
-                self.__params.bandpass_filter,
-                fft_method=self.__params.fft_objs[j],
-                input_domain=self.__config.domain,
-                output_domain=self.__config.domain,
-                compute_stats=False,
-                normalize=True,
-                compact_output=True,
-            )["cascade_levels"]
+        if self.__params.noise_generator is not None:
+
+            # Determine the noise field for each ensemble member
+            for j in range(self.__config.n_noise_fields):
+                epsilon = self.__params.noise_generator(
+                    self.__params.perturbation_generator,
+                    randstate=self.__randgen_precip[j],
+                    fft_method=self.__params.fft_objs[j],
+                    domain=self.__config.domain,
+                )
+                # Decompose the noise field into a cascade
+                self.noise_field_pool[j] = self.__params.decomposition_method(
+                    epsilon,
+                    self.__params.bandpass_filter,
+                    fft_method=self.__params.fft_objs[j],
+                    input_domain=self.__config.domain,
+                    output_domain=self.__config.domain,
+                    compute_stats=False,
+                    normalize=True,
+                    compact_output=True,
+                )["cascade_levels"]
+
+
+class ForecastState:
+    """
+    Common memory of ForecastModel instances.
+    """
+
+    def __init__(
+        self,
+        enkf_combination_config: EnKFCombinationConfig,
+        enkf_combination_params: EnKFCombinationParams,
+        noise_field_pool: np.ndarray,
+        latest_obs: np.ndarray,
+        precip_mask: np.ndarray,
+    ):
+
+        self.config = enkf_combination_config
+        self.params = enkf_combination_params
+        self.noise_field_pool = noise_field_pool
+        self.precip_mask = np.repeat(
+            precip_mask[None, :], self.config.n_ens_members, axis=0
+        )
+
+        latest_obs[~np.isfinite(latest_obs)] = self.config.precip_threshold - 2.0
+        self.nwc_prediction = np.repeat(
+            latest_obs[None, :, :], self.config.n_ens_members, axis=0
+        )
+        self.fc_resampled = np.repeat(
+            latest_obs[None, :, :], self.config.n_ens_members, axis=0
+        )
+        self.nwc_prediction_btf = self.nwc_prediction.copy()
+
+        self.final_combined_forecast = []
+
+        return
 
 
 class ForecastModel:
@@ -556,53 +603,18 @@ class ForecastModel:
     Class to manage the forecast step of each ensemble member.
     """
 
-    __config: EnKFCombinationConfig | None = None
-    __params: EnKFCombinationParams | None = None
-    __noise_field_pool: np.ndarray | None = None
-    __precip_mask: np.ndarray | None = None
-
-    nwc_prediction: np.ndarray | None = None
-    nwc_prediction_btf: np.ndarray | None = None
-
-    fc_resampled: np.ndarray | None = None
-    final_combined_forecast: list | None = None
-
     def __init__(
         self,
-        enkf_combination_config: EnKFCombinationConfig,
-        enkf_combination_params: EnKFCombinationParams,
+        forecast_state: ForecastState,
         precip_cascades: np.ndarray,
         velocity: np.ndarray,
-        noise_field_pool: np.ndarray,
-        latest_obs: np.ndarray,
-        precip_mask: np.ndarray,
         mu: np.ndarray,
         sigma: np.ndarray,
         ens_member: int,
     ):
 
-        # Initialize class variables
-        if ForecastModel.__config is None:
-
-            ForecastModel.__config = enkf_combination_config
-            ForecastModel.__params = enkf_combination_params
-            ForecastModel.__noise_field_pool = noise_field_pool
-            ForecastModel.__precip_mask = np.repeat(
-                precip_mask[None, :], self.__config.n_ens_members, axis=0
-            )
-
-            latest_obs[~np.isfinite(latest_obs)] = self.__config.precip_threshold - 2.0
-            ForecastModel.nwc_prediction = np.repeat(
-                latest_obs[None, :, :], self.__config.n_ens_members, axis=0
-            )
-            ForecastModel.fc_resampled = np.repeat(
-                latest_obs[None, :, :], self.__config.n_ens_members, axis=0
-            )
-            ForecastModel.nwc_prediction_btf = ForecastModel.nwc_prediction.copy()
-
-            ForecastModel.final_combined_forecast = []
-
         # Initialize instance variables
+        self.__forecast_state = forecast_state
         self.__precip_cascades = precip_cascades
         self.__velocity = velocity
 
@@ -610,15 +622,17 @@ class ForecastModel:
         self.__sigma = sigma
 
         self.__previous_displacement = np.zeros(
-            (2, ForecastModel.__params.len_y, ForecastModel.__params.len_x)
+            (2, self.__forecast_state.params.len_y, self.__forecast_state.params.len_x)
         )
 
         # Get NWP effective horizontal resolution and type of probability matching from
         # combination kwargs.
         # It's not the best practice to mix parameters. Maybe the cascade mask as well
         # as the probability matching should be implemented at another location.
-        self.__nwp_hres_eff = self.__params.combination_kwargs.get("nwp_hres_eff", 0.0)
-        self.__prob_matching = self.__params.combination_kwargs.get(
+        self.__nwp_hres_eff = self.__forecast_state.params.combination_kwargs.get(
+            "nwp_hres_eff", 0.0
+        )
+        self.__prob_matching = self.__forecast_state.params.combination_kwargs.get(
             "prob_matching", "iterative"
         )
 
@@ -627,7 +641,8 @@ class ForecastModel:
         # Factor 3 on the effective resolution is similar to that factor of the
         # localization of AR parameters and scaling parameters.
         self.__resolution_mask = (
-            self.__params.len_y / self.__params.bandpass_filter["central_wavenumbers"]
+            self.__forecast_state.params.len_y
+            / self.__forecast_state.params.bandpass_filter["central_wavenumbers"]
             >= self.__nwp_hres_eff * 3.0
         )
 
@@ -646,7 +661,7 @@ class ForecastModel:
         self.__iterate()
 
         # Recompose the precipitation field for the correction step.
-        ForecastModel.nwc_prediction[self.__ens_member] = (
+        self.__forecast_state.nwc_prediction[self.__ens_member] = (
             blending.utils.recompose_cascade(
                 combined_cascade=self.__precip_cascades[:, -1],
                 combined_mean=self.__mu,
@@ -668,8 +683,8 @@ class ForecastModel:
 
         # Set the resulting field as shallow copy of the field that is used
         # continuously for forecast computation.
-        ForecastModel.nwc_prediction_btf[self.__ens_member] = (
-            ForecastModel.nwc_prediction[self.__ens_member]
+        self.__forecast_state.nwc_prediction_btf[self.__ens_member] = (
+            self.__forecast_state.nwc_prediction[self.__ens_member]
         )
 
         # Set no data area
@@ -680,12 +695,12 @@ class ForecastModel:
     def __decompose(self, is_correction_timestep):
 
         # Call spatial decomposition method.
-        precip_extrap_decomp = self.__params.decomposition_method(
-            ForecastModel.nwc_prediction[self.__ens_member],
-            self.__params.bandpass_filter,
-            fft_method=self.__params.fft_objs[self.__ens_member],
-            input_domain=self.__config.domain,
-            output_domain=self.__config.domain,
+        precip_extrap_decomp = self.__forecast_state.params.decomposition_method(
+            self.__forecast_state.nwc_prediction[self.__ens_member],
+            self.__forecast_state.params.bandpass_filter,
+            fft_method=self.__forecast_state.params.fft_objs[self.__ens_member],
+            input_domain=self.__forecast_state.config.domain,
+            output_domain=self.__forecast_state.config.domain,
             compute_stats=False,
             normalize=True,
             compact_output=False,
@@ -703,8 +718,9 @@ class ForecastModel:
             self.__mu = np.array(precip_extrap_decomp["means"])
             # Compute the standard deviation evolved by an AR(1)-process.
             self.__sigma = np.sqrt(
-                self.__params.PHI[:, 0] ** 2.0 * self.__sigma**2.0
-                + self.__params.PHI[:, 1] ** 2.0 * self.__params.noise_std_coeffs**2.0
+                self.__forecast_state.params.PHI[:, 0] ** 2.0 * self.__sigma**2.0
+                + self.__forecast_state.params.PHI[:, 1] ** 2.0
+                * self.__forecast_state.params.noise_std_coeffs**2.0
             )
 
             # Use the standard deviations of the currently decomposed field for spatial
@@ -730,15 +746,15 @@ class ForecastModel:
 
         # Call the extrapolation method
         (
-            ForecastModel.nwc_prediction[self.__ens_member],
+            self.__forecast_state.nwc_prediction[self.__ens_member],
             self.__previous_displacement,
-        ) = ForecastModel.__params.extrapolation_method(
-            ForecastModel.nwc_prediction[self.__ens_member],
+        ) = self.__forecast_state.params.extrapolation_method(
+            self.__forecast_state.nwc_prediction[self.__ens_member],
             self.__velocity,
             [1],
             allow_nonfinite_values=True,
             displacement_previous=self.__previous_displacement,
-            **self.__params.extrapolation_kwargs,
+            **self.__forecast_state.params.extrapolation_kwargs,
         )
 
         # Get the difference of the previous displacement field.
@@ -751,18 +767,20 @@ class ForecastModel:
         # Get a noise field out of the noise field pool and multiply it with
         # precipitation mask and the standard deviation coefficients.
         epsilon = (
-            ForecastModel.__noise_field_pool[
-                np.random.randint(ForecastModel.__config.n_noise_fields)
+            self.__forecast_state.noise_field_pool[
+                np.random.randint(self.__forecast_state.config.n_noise_fields)
             ]
-            * ForecastModel.__precip_mask[self.__ens_member][None, :, :]
-            * self.__params.noise_std_coeffs[:, None, None]
+            * self.__forecast_state.precip_mask[self.__ens_member][None, :, :]
+            * self.__forecast_state.params.noise_std_coeffs[:, None, None]
         )
 
         # Iterate through the AR(1) process for each cascade level.
-        for i in range(self.__config.n_cascade_levels):
+        for i in range(self.__forecast_state.config.n_cascade_levels):
 
             self.__precip_cascades[i] = autoregression.iterate_ar_model(
-                self.__precip_cascades[i], self.__params.PHI[i], epsilon[i]
+                self.__precip_cascades[i],
+                self.__forecast_state.params.PHI[i],
+                epsilon[i],
             )
 
     # Update the precipitation mask for the forecast step by incorporating areas
@@ -773,11 +791,11 @@ class ForecastModel:
         # precipitation threshold and dilate it by a configurable range.
         precip_mask = (
             binary_dilation(
-                nwp > ForecastModel.__config.precip_threshold,
+                nwp > self.__forecast_state.config.precip_threshold,
                 structure=np.ones(
                     (
-                        ForecastModel.__config.precip_mask_dilation,
-                        ForecastModel.__config.precip_mask_dilation,
+                        self.__forecast_state.config.precip_mask_dilation,
+                        self.__forecast_state.config.precip_mask_dilation,
                     ),
                     dtype=int,
                 ),
@@ -788,12 +806,12 @@ class ForecastModel:
         # precipitation threshold and dilate it by a configurable range.
         precip_mask += (
             binary_dilation(
-                ForecastModel.nwc_prediction[self.__ens_member]
-                > ForecastModel.__config.precip_threshold,
+                self.__forecast_state.nwc_prediction[self.__ens_member]
+                > self.__forecast_state.config.precip_threshold,
                 structure=np.ones(
                     (
-                        ForecastModel.__config.precip_mask_dilation,
-                        ForecastModel.__config.precip_mask_dilation,
+                        self.__forecast_state.config.precip_mask_dilation,
+                        self.__forecast_state.config.precip_mask_dilation,
                     ),
                     dtype=int,
                 ),
@@ -805,9 +823,9 @@ class ForecastModel:
         # Some additional dilation of the precipitation mask.
         precip_mask = gaussian_filter(precip_mask, (1, 1))
         # Set the mask outside the radar domain to 0.
-        precip_mask[ForecastModel.__params.domain_mask] = 0.0
+        precip_mask[self.__forecast_state.params.domain_mask] = 0.0
         # Convert mask into bool.
-        ForecastModel.__precip_mask[self.__ens_member] = np.array(
+        self.__forecast_state.precip_mask[self.__ens_member] = np.array(
             precip_mask, dtype=bool
         )
 
@@ -815,18 +833,18 @@ class ForecastModel:
     def __probability_matching(self):
 
         # Apply probability matching
-        ForecastModel.nwc_prediction[self.__ens_member] = (
+        self.__forecast_state.nwc_prediction[self.__ens_member] = (
             probmatching.nonparam_match_empirical_cdf(
-                ForecastModel.nwc_prediction[self.__ens_member],
-                ForecastModel.fc_resampled[self.__ens_member],
+                self.__forecast_state.nwc_prediction[self.__ens_member],
+                self.__forecast_state.fc_resampled[self.__ens_member],
             )
         )
 
     # Set no data area in the resulting precipitation field.
     def __set_no_data(self):
 
-        ForecastModel.nwc_prediction_btf[self.__ens_member][
-            ForecastModel.__params.domain_mask
+        self.__forecast_state.nwc_prediction_btf[self.__ens_member][
+            self.__forecast_state.params.domain_mask
         ] = np.nan
 
 
@@ -954,16 +972,20 @@ class EnKFCombinationNowcaster:
         )
 
         # Initialize an instance of NWC forecast model class for each ensemble member.
+        self.FS = ForecastState(
+            enkf_combination_config=self.__config,
+            enkf_combination_params=self.__params,
+            noise_field_pool=self.FI.noise_field_pool,
+            latest_obs=self.__obs_precip[-1, :, :],
+            precip_mask=precip_mask.copy(),
+        )
+
         self.FC_Models = {}
         for j in range(self.__config.n_ens_members):
             FC = ForecastModel(
-                enkf_combination_config=self.__config,
-                enkf_combination_params=self.__params,
+                forecast_state=self.FS,
                 precip_cascades=deepcopy(self.FI.precip_cascades),
                 velocity=self.__obs_velocity,
-                noise_field_pool=self.FI.noise_field_pool,
-                latest_obs=self.__obs_precip[-1, :, :],
-                precip_mask=precip_mask.copy(),
                 mu=deepcopy(self.FI.mean_extrapolation),
                 sigma=deepcopy(self.FI.std_extrapolation),
                 ens_member=j,
@@ -985,17 +1007,17 @@ class EnKFCombinationNowcaster:
 
         # Stack and return the forecast output.
         if self.__config.return_output:
-            ForecastModel.final_combined_forecast = np.array(
-                ForecastModel.final_combined_forecast
+            self.FS.final_combined_forecast = np.array(
+                self.FS.final_combined_forecast
             ).swapaxes(0, 1)
 
             if self.__config.measure_time:
                 return (
-                    ForecastModel.final_combined_forecast,
+                    self.FS.final_combined_forecast,
                     self.__fc_init,
                     self.__mainloop_time,
                 )
-            return ForecastModel.final_combined_forecast
+            return self.FS.final_combined_forecast
 
         # Else, return None
         return None
@@ -1184,6 +1206,10 @@ class EnKFCombinationNowcaster:
 
     def __check_no_rain_case(self):
 
+        print(f"Test for no rain cases")
+        print(f"======================")
+        print(f"")
+
         # Check for zero input fields in the radar and NWP data.
         zero_precip_radar = check_norain(
             self.__obs_precip,
@@ -1312,7 +1338,7 @@ class EnKFCombinationNowcaster:
                     t_corr = np.where(
                         self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
                     )[0][0]
-                ForecastModel.nwc_prediction = self.__nwp_precip[:, t_corr]
+                self.FS.nwc_prediction = self.__nwp_precip[:, t_corr]
 
             # Otherwise compute the combined forecast.
             else:
@@ -1328,11 +1354,11 @@ class EnKFCombinationNowcaster:
                         self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
                     )[0][0]
 
-                    ForecastModel.nwc_prediction, ForecastModel.fc_resampled = (
+                    self.FS.nwc_prediction, self.FS.fc_resampled = (
                         self.KalmanFilterModel.correct_step(
-                            ForecastModel.nwc_prediction,
+                            self.FS.nwc_prediction,
                             self.__nwp_precip[:, t_corr],
-                            ForecastModel.fc_resampled,
+                            self.FS.fc_resampled,
                         )
                     )
 
@@ -1362,7 +1388,8 @@ class EnKFCombinationNowcaster:
                     dask_worker_collection = None
 
             # Apply back transformation
-            [FC_Model.backtransform() for FC_Model in self.FC_Models.values()]
+            for FC_Model in self.FC_Models.values():
+                FC_Model.backtransform()
 
             if self.__config.measure_time:
                 _ = self.__measure_time("timestep", starttime)
@@ -1371,14 +1398,14 @@ class EnKFCombinationNowcaster:
 
             if (
                 self.__config.callback is not None
-                and ForecastModel.nwc_prediction_btf.shape[1] > 0
+                and self.FS.nwc_prediction_btf.shape[1] > 0
             ):
-                self.__config.callback(ForecastModel.nwc_prediction_btf)
+                self.__config.callback(self.FS.nwc_prediction_btf)
 
             if self.__config.return_output:
 
-                ForecastModel.final_combined_forecast.append(
-                    ForecastModel.nwc_prediction_btf.copy()
+                self.FS.final_combined_forecast.append(
+                    self.FS.nwc_prediction_btf.copy()
                 )
 
         if self.__config.measure_time:
@@ -1416,7 +1443,7 @@ def forecast(
     precip_mask_dilation=1,
     n_cascade_levels=6,
     precip_thr=-10.0,
-    norain_thr=-15.0,
+    norain_thr=0.01,
     extrap_method="semilagrangian",
     decomp_method="fft",
     bandpass_filter_method="gaussian",

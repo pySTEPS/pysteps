@@ -379,9 +379,9 @@ class EnsembleKalmanFilter:
 
         # Compute the fraction of w1 and w2 and set values on grid boxes marked by
         # w_close or w_zero to 1 and 0, respectively.
-        prob_matching_weight = w1 / w2
+        prob_matching_weight = np.zeros_like(w1)
+        prob_matching_weight[~w_zero] = w1[~w_zero] / w2[~w_zero]
         prob_matching_weight[w_close] = 1.0
-        prob_matching_weight[w_zero] = 0.0
 
         # Even now we have at some grid boxes weights outside the range between 0
         # and 1. Therefore, we leave them out in the calculation of the averaged
