@@ -326,8 +326,10 @@ def aggregate_fields(
                 }
             )
         )
+
     for d, ws in zip(dim, window_size):
-        dataset[d].attrs["stepsize"] = dataset[d].attrs["stepsize"] * ws
+        if "stepsize" in dataset[d].attrs:
+            dataset[d].attrs["stepsize"] = dataset[d].attrs["stepsize"] * ws
 
     return dataset
 
