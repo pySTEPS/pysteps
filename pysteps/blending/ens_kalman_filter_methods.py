@@ -102,8 +102,6 @@ class EnsembleKalmanFilter:
         print(f"No. ens mems with precip (Lien):    {self.__n_lien}")
         print("")
 
-        return
-
     def update(
         self,
         background_ensemble: np.ndarray,

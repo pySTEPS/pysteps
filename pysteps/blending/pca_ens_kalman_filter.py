@@ -463,9 +463,6 @@ class ForecastInitialization:
 
             if self.__config.noise_stddev_adj == "auto":
                 print("Computing noise adjustment coefficients... ", end="", flush=True)
-                if self.__config.measure_time:
-                    starttime = time.time()
-
                 precip_forecast_min = np.min(self.__precip_noise_input)
                 self.__params.noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
                     self.__precip_noise_input[-1, :, :],
