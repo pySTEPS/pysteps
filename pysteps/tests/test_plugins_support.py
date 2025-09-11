@@ -21,8 +21,8 @@ from pysteps import io, postprocessing
 
 
 # BUG:
-# XR: Cookie cutter makes two calls to importers, one 
-# which is not wrapped with postprocess_import resulting in the importer 
+# XR: Cookie cutter makes two calls to importers, one
+# which is not wrapped with postprocess_import resulting in the importer
 # returning 3 values on the first call. On the second call the importer goes
 # through the postprocess_import resulting in one dataset being returned.
 # Should fix this issue first before fixing tests.
