@@ -14,7 +14,7 @@ pca_enkf_arg_values = [
     # Coarser NWP temporal resolution
     (20,30,0,-60,False,False,5,15,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
     # Coarser Obs temporal resolution
-    (20,30,0,-60,False,False,10,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),    
+    (20,30,0,-60,False,False,10,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
     # Larger shift of the NWP init
     (20,30,0,-30,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
     # Zero rain case in observation

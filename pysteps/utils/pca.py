@@ -12,7 +12,14 @@ Principal component analysis for pysteps.
 """
 
 import numpy as np
-from sklearn import decomposition
+from pysteps.exceptions import MissingOptionalDependency
+
+try:
+    from sklearn import decomposition
+
+    SKLEARN_IMPORTED = True
+except ImportError:
+    SKLEARN_IMPORTED = False
 
 
 def pca_transform(
@@ -69,6 +76,13 @@ def pca_transform(
             One-dimensional array of shape (n_features) containg the per-feature
             explained variance ratio.
     """
+
+    # Test import of sklean
+    if not SKLEARN_IMPORTED:
+        raise MissingOptionalDependency(
+            "scikit-learn package is required for principal component analysis "
+            "but it is not installed"
+        )
 
     # Input data have to be two-dimensional
     if forecast_ens.ndim != 2:
