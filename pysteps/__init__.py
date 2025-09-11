@@ -10,7 +10,6 @@ from jsonschema import Draft4Validator
 # import subpackages
 from . import blending
 from . import cascade
-from . import combination
 from . import datasets
 from . import decorators
 from . import downscaling

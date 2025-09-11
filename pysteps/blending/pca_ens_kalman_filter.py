@@ -1282,7 +1282,6 @@ class EnKFCombinationNowcaster:
         t_corr = 0
 
         for t, fc_leadtime in enumerate(self.__forecast_leadtimes):
-
             if self.__config.measure_time:
                 starttime = time.time()
 
