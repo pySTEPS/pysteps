@@ -1813,6 +1813,9 @@ class StepsBlendingNowcaster:
                         repeats,
                         axis=0,
                     )
+        #TODO: work on this
+        print('Shape of the matched NWP input:', self.__state.precip_models_cascades_timestep.shape)
+        print('Shape of the matched nowcast input:', self.__state.precip_nowcast_cascades)
 
     def __determine_skill_for_current_timestep(self, t):
         """
