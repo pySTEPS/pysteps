@@ -2049,6 +2049,7 @@ class StepsBlendingNowcaster:
                         worker_state.final_blended_forecast_non_perturbed[i]
                     )
 
+        if self.__config.noise_method is not None:
             # Regress the noise component to the subsequent time step
             # iterate the AR(p) model for each cascade level
             for i in range(self.__config.n_cascade_levels):
