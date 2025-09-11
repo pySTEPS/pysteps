@@ -86,6 +86,7 @@ def test_pca_enkf_combination(
     use_accum_sampling_prob,
     ensure_full_nwp_weight,
 ):
+    pytest.importorskip("sklearn")
 
     # Set forecast init
     forecast_init = datetime.datetime(2025, 6, 4, 17, 0)
