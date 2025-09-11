@@ -795,7 +795,11 @@ class StepsBlendingNowcaster:
                 "precip_models must be either a two-dimensional array containing dictionaries with decomposed model fields"
                 "or a four-dimensional array containing the original (NWP) model forecasts"
             )
-
+        precip_nowcast_dim = self.__precip_nowcast.ndim
+        if precip_nowcast_dim != 4:
+            raise ValueError(
+                "precip_nowcast must be a four-dimensional array containing the externally calculated nowcast"
+            )
         if self.__config.extrapolation_kwargs is None:
             self.__state.extrapolation_kwargs = dict()
         else:
@@ -893,7 +897,7 @@ class StepsBlendingNowcaster:
         )
         if self.__precip_nowcast is not None:
             print(
-                f"input dimensions pre-computed nowcast:            {self.__precip_nowcast.shape[1]}x{self.__precip_nowcast.shape[2]}"
+                f"input dimensions pre-computed nowcast:            {self.__precip_nowcast.shape[2]}x{self.__precip_nowcast.shape[3]}"
             )
         if self.__config.kmperpixel is not None:
             print(f"km/pixel:                    {self.__config.kmperpixel}")
@@ -1083,11 +1087,12 @@ class StepsBlendingNowcaster:
             )
         if self.__precip_nowcast is not None:
             self.__precip_nowcast = self.__precip_nowcast.copy()
-            # TODO: check this function for ensemble nowcasts
-            for i in range(self.__precip_nowcast.shape[0]):
-                self.__precip_nowcast[i, ~np.isfinite(self.__precip_nowcast[i, :])] = (
-                    np.nanmin(self.__precip_nowcast[i, :])
-                )
+            # TODO: check this function for ensemble nowcasts -> now made it always work with 4 dimentions
+            for m in range(self.__precip_nowcast.shape[0]):
+                for t in range(self.__precip_nowcast.shape[1]):
+                    self.__precip_nowcast[
+                        m, t, ~np.isfinite(self.__precip_nowcast[m, t, :, :])
+                    ] = np.nanmin(self.__precip_nowcast[m, t, :, :])
 
         # Perform the cascade decomposition for the input precip fields and,
         # if necessary, for the (NWP) model fields
@@ -1109,25 +1114,65 @@ class StepsBlendingNowcaster:
         # Decompose precomputed nowcasts and rearange them again into the required components
         # TODO: check if this also works if an ensemble nowcast is provided!
         if self.__precip_nowcast is not None:
-            precip_nowcast_decomp = []
-            for i in range(self.__precip_nowcast.shape[0]):
-                cascades = self.__params.decomposition_method(
-                    self.__precip_nowcast[i],
-                    self.__params.bandpass_filter,
-                    n_levels=self.__config.n_cascade_levels,
-                    mask=self.__params.mask_threshold,
-                    method="fft",
-                    fft_method=self.__params.fft,
-                    output_domain=self.__config.domain,
-                    compute_stats=True,
-                    normalize=True,
-                    compact_output=True,
-                )
+            # precip_nowcast_decomp = []
+            # for i in range(self.__precip_nowcast.shape[0]):
+            #     cascades = self.__params.decomposition_method(
+            #         self.__precip_nowcast[i],
+            #         self.__params.bandpass_filter,
+            #         n_levels=self.__config.n_cascade_levels,
+            #         mask=self.__params.mask_threshold,
+            #         method="fft",
+            #         fft_method=self.__params.fft,
+            #         output_domain=self.__config.domain,
+            #         compute_stats=True,
+            #         normalize=True,
+            #         compact_output=True,
+            #     )
 
-                precip_nowcast_decomp.append(cascades)
+            #     precip_nowcast_decomp.append(cascades)
 
-            self.__state.precip_nowcast_cascades = nowcast_utils.stack_cascades(
-                precip_nowcast_decomp, self.__config.n_cascade_levels
+            # self.__state.precip_nowcast_cascades = nowcast_utils.stack_cascades(
+            #     precip_nowcast_decomp, self.__config.n_cascade_levels
+            # )
+            if self.__precip_nowcast.shape[0] == 1:
+                decomp_precip_nowcast = [
+                    self.__params.decomposition_method(
+                        self.__precip_nowcast[0, t, :, :],
+                        bp_filter=self.__params.bandpass_filter,
+                        n_levels=self.__config.n_cascade_levels,
+                        mask=self.__params.mask_threshold,
+                        method="fft",
+                        fft_method=self.__params.fft,
+                        output_domain=self.__config.domain,
+                        compute_stats=True,
+                        normalize=True,
+                        compact_output=True,
+                    )
+                ]
+            else:
+                with ThreadPool(self.__config.num_workers) as pool:
+                    decomp_precip_nowcast = pool.map(
+                        partial(
+                            self.__params.decomposition_method,
+                            bp_filter=self.__params.bandpass_filter,
+                            fft_method=self.__params.fft,
+                            output_domain=self.__config.domain,
+                            normalize=True,
+                            compute_stats=True,
+                            compact_output=True,
+                        ),
+                        list(self.__precip_nowcast[:, t, :, :]),
+                    )
+
+            self.__state.precip_nowcast_cascades = np.array(
+                [decomp["cascade_levels"] for decomp in decomp_precip_nowcast]
+            )
+            # TODO: check if this is also necessary for ensemble nowcasts somwhere, otherwise remove it
+            self.__state.mean_nowcast_timestep = np.array(
+                [decomp["means"] for decomp in decomp_precip_nowcast]
+            )
+            self.__state.std_nowcast_timestep = np.array(
+                [decomp["stds"] for decomp in decomp_precip_nowcast]
             )
 
         # Rearrange the cascaded into a four-dimensional array of shape
@@ -1729,6 +1774,12 @@ class StepsBlendingNowcaster:
                 "The number of NWP model members is larger than the given number of ensemble members. n_model_members <= n_ens_members."
             )
 
+        n_ens_members_provided = self.__precip_nowcast.shape[0]
+        if n_ens_members_provided > self.__config.n_ens_members:
+            raise ValueError(
+                "The number of nowcast ensemble members provided is larger than the given number of ensemble members requested. n_ens_members_provided <= n_ens_members."
+            )
+
         # Check if NWP models/members should be used individually, or if all of
         # them are blended together per nowcast ensemble member.
         if self.__config.blend_nwp_members:
@@ -2021,7 +2072,7 @@ class StepsBlendingNowcaster:
             for i in range(self.__config.n_cascade_levels):
                 # Use a deterministic Externally computed nowcasting model
                 worker_state.precip_cascades[j][i] = (
-                    self.__state.precip_nowcast_cascades[i][t]
+                    self.__state.precip_nowcast_cascades[j][i][t]
                 )
 
         # Follow the 'standard' STEPS blending approach as described in :cite:`Imhoff2023`
