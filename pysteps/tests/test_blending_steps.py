@@ -66,7 +66,7 @@ steps_arg_values = [
     (5, 10, 5, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
     (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
     (1, 10, 5, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
-] 
+]
 # fmt:on
 
 steps_arg_names = (
