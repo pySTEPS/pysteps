@@ -36,7 +36,7 @@ method consists of the following main steps:
         #. Apply update step of ensemble Kalman filter.
 
     #. Set no data values in final forecast fields.
-    #. The origin approach iterates between forecast and correction step. However, to 
+    #. The origin approach iterates between forecast and correction step. However, to
        reduce smoothing effects in this implementation, a pure forecast step is computed at the first forecast time step and, afterwards, it is iterated between correction and forecast step. The mentioned smoothing effects arise due to the NWP effective horizontal resolution and due to the spatial decomposition at each forecast time step.
 """
 import time
