@@ -955,10 +955,10 @@ class StepsBlendingNowcaster:
                 )
             )
             print(
-                f"vel. pert., parallel:        {self.__params.velocity_perturbations_parallel[0]},{self.__params.velocity_perturbations_parallel[1]},{self.__params.velocity_perturbations_parallel[2]}"
+                f"vel. pert. parallel:        {self.__params.velocity_perturbations_parallel[0]},{self.__params.velocity_perturbations_parallel[1]},{self.__params.velocity_perturbations_parallel[2]}"
             )
             print(
-                f"vel. pert., perpendicular:   {self.__params.velocity_perturbations_perpendicular[0]},{self.__params.velocity_perturbations_perpendicular[1]},{self.__params.velocity_perturbations_perpendicular[2]}"
+                f"vel. pert. perpendicular:   {self.__params.velocity_perturbations_perpendicular[0]},{self.__params.velocity_perturbations_perpendicular[1]},{self.__params.velocity_perturbations_perpendicular[2]}"
             )
         else:
             (
@@ -1813,9 +1813,14 @@ class StepsBlendingNowcaster:
                         repeats,
                         axis=0,
                     )
-        #TODO: work on this
-        print('Shape of the matched NWP input:', self.__state.precip_models_cascades_timestep.shape)
-        print('Shape of the matched nowcast input:', self.__state.precip_nowcast_cascades)
+        # TODO: work on this
+        print(
+            "Shape of the matched NWP input:",
+            self.__state.precip_models_cascades_timestep.shape,
+        )
+        print(
+            "Shape of the matched nowcast input:", self.__state.precip_nowcast_cascades
+        )
 
     def __determine_skill_for_current_timestep(self, t):
         """
