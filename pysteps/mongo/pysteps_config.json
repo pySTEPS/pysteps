@@ -1,0 +1,133 @@
+{
+    "name": "AKL",
+    "pysteps": {
+        "n_cascade_levels": 5,
+        "timestep": 600,
+        "kmperpixel": 2.0,
+        "precip_threshold": 1.0,
+        "transform":"dB",
+        "threshold":-10,
+        "zerovalue":-11,
+        "scale_break": 20,
+        "extrapolation_method": "semilagrangian",
+        "decomposition_method": "fft",
+        "bandpass_filter_method": "gaussian",
+        "noise_method": "nonparametric",
+        "noise_stddev_adj": null,
+        "ar_order": 2,
+        "velocity_perturbation_method": null,
+        "conditional": false,
+        "probmatching_method": "cdf",
+        "mask_method": "incremental",
+        "seed": null,
+        "num_workers": 1,
+        "fft_method": "numpy",
+        "domain": "spatial",
+        "extrapolation_kwargs": {},
+        "filter_kwargs": {},
+        "noise_kwargs": {},
+        "velocity_perturbation_kwargs": {},
+        "mask_kwargs": {},
+        "measure_time": false,
+        "callback": null,
+        "return_output": true
+    },
+    "output": { 
+        "products":["qpesim", "auckprec","nowcast", "nwpblend"], 
+        "qpesim":{ 
+            "n_ens_members": 50,
+            "n_forecasts": 144,    
+            "fx_update":10800,
+            "gridfs_out": true,
+            "nc_out": false,
+            "nwp_product": "auckprec",
+            "rad_product": "QPE",
+            "out_product": "qpesim",
+            "out_dir_name": null,
+            "out_file_name": "$N_$P_$V{%Y-%m-%dT%H:%M:%S}_$B{%Y-%m-%dT%H:%M:%S}_$E.nc"
+        },
+        "auckprec":{ 
+            "gridfs_out": true,
+            "nc_out": false,
+            "out_product": "auckprec",
+            "tmp_dir": "$HOME/tmp",
+            "out_dir_name": null,
+            "out_file_name": "$N_$P_$V{%Y-%m-%dT%H:%M:%S}_$B{%Y-%m-%dT%H:%M:%S}_$E.nc"
+        },
+        "nowcast":{ 
+            "n_ens_members": 25,
+            "n_forecasts": 12,    
+            "fx_update":1800,
+            "gridfs_out": true,
+            "nc_out": false,
+            "nwp_product": "auckprec",
+            "rad_product": "QPE",
+            "out_product": "nowcast",
+            "out_dir_name": null,
+            "out_file_name": "$N_$P_$V{%Y-%m-%dT%H:%M:%S}_$B{%Y-%m-%dT%H:%M:%S}_$E.nc"
+        },
+        "nwpblend":{ 
+            "n_ens_members": 25,
+            "n_forecasts": 72,    
+            "blend_width":180,
+            "gridfs_out": true,
+            "nc_out": false,
+            "nwp_product": "auckprec",
+            "rad_product": "QPE",
+            "out_product": "nwpblend",
+            "out_dir_name": null,
+            "out_file_name": "$N_$P_$V{%Y-%m-%dT%H:%M:%S}_$B{%Y-%m-%dT%H:%M:%S}_$E.nc"
+        }
+
+    },
+    "domain": {
+        "n_rows": 128,
+        "n_cols": 128,
+        "p_size": 2000,
+        "start_x": 1627000,
+        "start_y": 5854000
+    },
+    "projection": {
+        "epsg": "EPSG:2193",
+        "name": "transverse_mercator",
+        "central_meridian": 173.0,
+        "latitude_of_origin": 0.0,
+        "scale_factor": 0.9996,
+        "false_easting": 1600000.0,
+        "false_northing": 10000000.0
+    },
+  "dynamic_scaling": {
+    "central_wave_lengths": [
+      128.0,
+      33.793468576034414,
+      14.709461552298315,
+      6.402665020067988,
+      2.0
+    ],
+    "space_time_exponent": 0.8471382397261171,
+    "lag2_constants": [
+      1.0019662531226008,
+      0.9895839949795303,
+      0.9544104783679567,
+      0.8610790248307003,
+      0.6447730842290677
+    ],
+    "lag2_exponents": [
+      2.576213907004238,
+      2.7557407261557945,
+      2.6102093715829717,
+      2.222301153284,
+      1.6742864097867338
+    ],
+    "cor_len_percentiles": [
+      95,
+      50,
+      5
+    ],
+    "cor_len_pvals": [
+      894.5855025523205,
+      253.723822128425,
+      84.28166129094791
+    ]
+  }
+}
