@@ -110,6 +110,18 @@ def get_method(name, **kwargs):
     Additional keyword arguments are passed to the initializer of the FFT
     methods, see utils.fft.
 
+    Principal component analysis methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    | pca_transform     |  Transform a two-dimensional array into principal   |
+    |                   |  component analysis                                 |
+    +-------------------+-----------------------------------------------------+
+    | pca_backtransform |  Transform a given principal component trans-       |
+    |                   |  formation back into physical space                 |
+    +-------------------+-----------------------------------------------------+    
+
     Reprojection methods:
 
     +-------------------+-----------------------------------------------------+

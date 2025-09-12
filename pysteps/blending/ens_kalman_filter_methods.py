@@ -550,7 +550,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Transform the analysis ensemble back into physical space.
         analysis_ensemble = utils.pca.pca_backtransform(
-            forecast_ens_pc=analysis_ensemble_pc, pca_params=pca_params
+            forecast_ens_pc=analysis_ensemble_pc.T, pca_params=pca_params
         )
 
         # Get the sampling probability either based on the ensembles...
