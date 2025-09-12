@@ -26,17 +26,18 @@ def test_nowcast_main_loop(
     timesteps, ensemble, num_ensemble_members, velocity_perturbations
 ):
     """Test the nowcast_main_loop function."""
-    precip = get_precipitation_fields(
+    dataset = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
         metadata=False,
         upscale=2000,
     )
-    precip = precip.filled()
 
     oflow_method = motion.get_method("LK")
-    velocity = oflow_method(precip)
+    dataset = oflow_method(dataset)
+    precip = dataset["precip_intensity"].values
+    velocity = np.stack([dataset["velocity_x"].values, dataset["velocity_y"].values])
 
     precip = precip[-1]
 

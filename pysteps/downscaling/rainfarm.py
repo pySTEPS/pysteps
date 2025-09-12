@@ -18,11 +18,12 @@ downscaled precipitation field by means of Gaussian random fields.
 """
 
 import warnings
-
+import xarray as xr
 import numpy as np
 from scipy.signal import convolve
 from pysteps.utils.spectral import rapsd
 from pysteps.utils.dimension import aggregate_fields
+from pysteps.xarray_helpers import compute_lat_lon
 
 
 def _gaussianize(precip):
@@ -210,7 +211,7 @@ _make_kernel["uniform"] = _make_tophat_kernel
 
 
 def downscale(
-    precip,
+    precip_dataset: xr.Dataset,
     ds_factor,
     alpha=None,
     threshold=None,
@@ -224,8 +225,8 @@ def downscale(
 
     Parameters
     ----------
-    precip: array_like
-        Array of shape (m, n) containing the input field.
+    precip: xarray.Dataset
+        Xarray dataset containing the input field.
         The input is expected to contain rain rate values.
         All values are required to be finite.
     alpha: float, optional
@@ -266,6 +267,8 @@ def downscale(
     """
 
     # Validate inputs
+    precip_var = precip_dataset.attrs["precip_var"]
+    precip = precip_dataset[precip_var].values.squeeze()
     if not np.isfinite(precip).all():
         raise ValueError("All values in 'precip' must be finite.")
     if not isinstance(ds_factor, int) or ds_factor <= 0:
@@ -297,8 +300,50 @@ def downscale(
     noise_field /= noise_field.std()
     noise_field = np.exp(noise_field)
 
+    y_new = np.arange(
+        precip_dataset.y.values[0]
+        - precip_dataset.y.attrs["stepsize"]
+        + precip_dataset.y.attrs["stepsize"] / ds_factor,
+        precip_dataset.y.values[-1] + precip_dataset.y.attrs["stepsize"] / ds_factor,
+        precip_dataset.y.attrs["stepsize"] / ds_factor,
+    )
+    x_new = np.arange(
+        precip_dataset.x.values[0]
+        - precip_dataset.y.attrs["stepsize"]
+        + precip_dataset.x.attrs["stepsize"] / ds_factor,
+        precip_dataset.x.values[-1] + precip_dataset.x.attrs["stepsize"] / ds_factor,
+        precip_dataset.x.attrs["stepsize"] / ds_factor,
+    )
+    lat, lon = compute_lat_lon(x_new, y_new, precip_dataset.attrs["projection"])
+    noise_dataset = xr.Dataset(
+        data_vars={precip_var: (["time", "y", "x"], [noise_field])},
+        coords={
+            "time": (["time"], precip_dataset.time.values, precip_dataset.time.attrs),
+            "y": (
+                ["y"],
+                y_new,
+                {
+                    **precip_dataset.y.attrs,
+                    "stepsize": precip_dataset.y.attrs["stepsize"] / ds_factor,
+                },
+            ),
+            "x": (
+                ["x"],
+                x_new,
+                {
+                    **precip_dataset.x.attrs,
+                    "stepsize": precip_dataset.x.attrs["stepsize"] / ds_factor,
+                },
+            ),
+            "lon": (["y", "x"], lon, precip_dataset.lon.attrs),
+            "lat": (["y", "x"], lat, precip_dataset.lat.attrs),
+        },
+        attrs=precip_dataset.attrs,
+    )
+
     # Aggregate the noise field to low resolution
-    noise_lowres = aggregate_fields(noise_field, ds_factor, axis=(0, 1))
+    noise_lowres_dataset = aggregate_fields(noise_dataset, ds_factor, dim=("y", "x"))
+    noise_lowres = noise_lowres_dataset[precip_var].values.squeeze()
 
     # Expand input and noise fields to high resolution
     precip_expanded = np.kron(precip, np.ones((ds_factor, ds_factor)))
@@ -322,8 +367,11 @@ def downscale(
     if threshold is not None:
         precip_highres[precip_highres < threshold] = 0
 
+    precip_highres_dataset = noise_dataset.copy(deep=True)
+    precip_highres_dataset[precip_var][:] = [precip_highres]
+
     # Return the downscaled field and optionally the spectral slope alpha
     if return_alpha:
-        return precip_highres, alpha
+        return precip_highres_dataset, alpha
 
-    return precip_highres
+    return precip_highres_dataset

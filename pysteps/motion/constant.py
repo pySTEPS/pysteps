@@ -14,27 +14,32 @@ correlation between two images.
 
 import numpy as np
 import scipy.optimize as op
+import xarray as xr
 from scipy.ndimage import map_coordinates
 
 
-def constant(R, **kwargs):
+def constant(dataset: xr.Dataset, **kwargs):
     """
     Compute a constant advection field by finding a translation vector that
     maximizes the correlation between two successive images.
 
     Parameters
     ----------
-    R: array_like
-      Array of shape (T,m,n) containing a sequence of T two-dimensional input
-      images of shape (m,n). If T > 2, two last elements along axis 0 are used.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain a precipitation data variable.
+        The dataset has to have a time dimension. If the size of this dimension
+        is larger than 2, the last 2 entries of this dimension are used.
 
     Returns
     -------
-    out: array_like
-        The constant advection field having shape (2, m, n), where out[0, :, :]
-        contains the x-components of the motion vectors and out[1, :, :]
-        contains the y-components.
+    out: xarray.Dataset
+        The input dataset with the constant advection field added in the ``velocity_x``
+        and ``velocity_y`` data variables.
     """
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    R = dataset[precip_var].values
     m, n = R.shape[1:]
     X, Y = np.meshgrid(np.arange(n), np.arange(m))
 
@@ -51,4 +56,7 @@ def constant(R, **kwargs):
     options = {"initial_simplex": (np.array([(0, 1), (1, 0), (1, 1)]))}
     result = op.minimize(f, (1, 1), method="Nelder-Mead", options=options)
 
-    return np.stack([-result.x[0] * np.ones((m, n)), -result.x[1] * np.ones((m, n))])
+    output = np.stack([-result.x[0] * np.ones((m, n)), -result.x[1] * np.ones((m, n))])
+    dataset["velocity_x"] = (["y", "x"], output[0])
+    dataset["velocity_y"] = (["y", "x"], output[1])
+    return dataset

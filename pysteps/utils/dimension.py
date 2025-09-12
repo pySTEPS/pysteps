@@ -14,26 +14,43 @@ Functions to manipulate array dimensions.
     clip_domain
     square_domain
 """
+from typing import Any, Callable
 
 import numpy as np
+import xarray as xr
 
-_aggregation_methods = dict(
-    sum=np.sum, mean=np.mean, nanmean=np.nanmean, nansum=np.nansum
-)
+from pysteps.xarray_helpers import compute_lat_lon
+
+_aggregation_methods: dict[str, Callable[..., Any]] = {
+    "sum": np.sum,
+    "mean": np.mean,
+    "min": np.min,
+    "max": np.max,
+    "nanmean": np.nanmean,
+    "nansum": np.nansum,
+    "nanmin": np.nanmin,
+    "nanmax": np.nanmax,
+}
 
 
-def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
+def aggregate_fields_time(
+    dataset: xr.Dataset, time_window_min, ignore_nan=False
+) -> xr.Dataset:
     """Aggregate fields in time.
+
+    It attempts to aggregate the given dataset in the time direction in an integer
+    number of sections of length = ``time_window_min``.
+    If such a aggregation is not possible, an error is raised.
+    The data is aggregated by a method chosen based on the unit of the precipitation
+    data in the dataset. ``mean`` is used when the unit is ``mm/h`` and ``sum``
+    is used when the unit is ``mm``. For other units an error is raised.
 
     Parameters
     ----------
-    R: array-like
-        Array of shape (t,m,n) or (l,t,m,n) containing
-        a time series of (ensemble) input fields.
+    dataset: xarray.Dataset
+        Dataset containing a time series of (ensemble) input fields
+        as described in the documentation of :py:mod:`pysteps.io.importers`.
         They must be evenly spaced in time.
-    metadata: dict
-        Metadata dictionary containing the timestamps and unit attributes as
-        described in the documentation of :py:mod:`pysteps.io.importers`.
     time_window_min: float or None
         The length in minutes of the time window that is used to
         aggregate the fields.
@@ -45,12 +62,8 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
 
     Returns
     -------
-    outputarray: array-like
-        The new array of aggregated fields of shape (k,m,n) or (l,k,m,n), where
-        k = t*delta/time_window_min and delta is the time interval between two
-        successive timestamps.
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: xarray.Dataset
+        The new dataset.
 
     See also
     --------
@@ -58,40 +71,24 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     pysteps.utils.dimension.aggregate_fields
     """
 
-    R = R.copy()
-    metadata = metadata.copy()
-
     if time_window_min is None:
-        return R, metadata
+        return dataset
 
-    unit = metadata["unit"]
-    timestamps = metadata["timestamps"]
-    if "leadtimes" in metadata:
-        leadtimes = metadata["leadtimes"]
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
 
-    if len(R.shape) < 3:
-        raise ValueError("The number of dimension must be > 2")
-    if len(R.shape) == 3:
-        axis = 0
-    if len(R.shape) == 4:
-        axis = 1
-    if len(R.shape) > 4:
-        raise ValueError("The number of dimension must be <= 4")
+    unit = metadata["units"]
 
-    if R.shape[axis] != len(timestamps):
-        raise ValueError(
-            "The list of timestamps has length %i, " % len(timestamps)
-            + "but R contains %i frames" % R.shape[axis]
-        )
+    timestamps = dataset["time"].values
 
     # assumes that frames are evenly spaced
-    delta = (timestamps[1] - timestamps[0]).seconds / 60
+    delta = (timestamps[1] - timestamps[0]) / np.timedelta64(1, "m")
     if delta == time_window_min:
-        return R, metadata
-    if (R.shape[axis] * delta) % time_window_min:
-        raise ValueError("time_window_size does not equally split R")
+        return dataset
+    if time_window_min % delta:
+        raise ValueError("time_window_size does not equally split dataset")
 
-    nframes = int(time_window_min / delta)
+    window_size = int(time_window_min / delta)
 
     # specify the operator to be used to aggregate
     # the values within the time window
@@ -100,55 +97,49 @@ def aggregate_fields_time(R, metadata, time_window_min, ignore_nan=False):
     elif unit == "mm":
         method = "sum"
     else:
-        raise ValueError(
-            "can only aggregate units of 'mm/h' or 'mm'" + " not %s" % unit
-        )
+        raise ValueError(f"can only aggregate units of 'mm/h' or 'mm' not {unit}")
 
     if ignore_nan:
         method = "".join(("nan", method))
 
-    R = aggregate_fields(R, nframes, axis=axis, method=method)
-
-    metadata["accutime"] = time_window_min
-    metadata["timestamps"] = timestamps[nframes - 1 :: nframes]
-    if "leadtimes" in metadata:
-        metadata["leadtimes"] = leadtimes[nframes - 1 :: nframes]
-
-    return R, metadata
+    return aggregate_fields(
+        dataset, window_size, dim="time", method=method, velocity_method="sum"
+    )
 
 
-def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
+def aggregate_fields_space(
+    dataset: xr.Dataset, space_window, ignore_nan=False
+) -> xr.Dataset:
     """
     Upscale fields in space.
 
+    It attempts to aggregate the given dataset in y and x direction in an integer
+    number of sections of length = ``(window_size_y, window_size_x)``.
+    If such a aggregation is not possible, an error is raised.
+    The data is aggregated by computing the mean. Only datasets with precipitation
+    data in the ``mm`` or ``mm/h`` unit are currently supported.
+
     Parameters
     ----------
-    R: array-like
-        Array of shape (m,n), (t,m,n) or (l,t,m,n) containing a single field or
-        a time series of (ensemble) input fields.
-    metadata: dict
-        Metadata dictionary containing the xpixelsize, ypixelsize and unit
-        attributes as described in the documentation of
+    dataset: xarray.Dataset
+        Dataset containing a single field or
+        a time series of (ensemble) input fields as described in the documentation of
         :py:mod:`pysteps.io.importers`.
     space_window: float, tuple or None
         The length of the space window that is used to upscale the fields.
         If a float is given, the same window size is used for the x- and
         y-directions. Separate window sizes are used for x- and y-directions if
-        a two-element tuple is given. The space_window unit is the same used in
-        the geographical projection of R and hence the same as for the xpixelsize
-        and ypixelsize attributes. The space spanned by the n- and m-dimensions
-        of R must be a multiple of space_window. If set to None, the function
-        returns a copy of the original R and metadata.
+        a two-element tuple is given (y, x). The space_window unit is the same
+        as the unit of x and y in the input dataset. The space spanned by the
+        n- and m-dimensions of the dataset content must be a multiple of space_window.
+        If set to None, the function returns a copy of the original dataset.
     ignore_nan: bool, optional
         If True, ignore nan values.
 
     Returns
     -------
-    outputarray: array-like
-        The new array of aggregated fields of shape (k,j), (t,k,j) or (l,t,k,j),
-        where k = m*ypixelsize/space_window[1] and j = n*xpixelsize/space_window[0].
-    metadata: dict
-        The metadata with updated attributes.
+    dataset: xarray.Dataset
+        The new dataset.
 
     See also
     --------
@@ -156,110 +147,93 @@ def aggregate_fields_space(R, metadata, space_window, ignore_nan=False):
     pysteps.utils.dimension.aggregate_fields
     """
 
-    R = R.copy()
-    metadata = metadata.copy()
-
     if space_window is None:
-        return R, metadata
+        return dataset
 
-    unit = metadata["unit"]
-    ypixelsize = metadata["ypixelsize"]
-    xpixelsize = metadata["xpixelsize"]
+    precip_var = dataset.attrs["precip_var"]
+    metadata = dataset[precip_var].attrs
 
-    if len(R.shape) < 2:
-        raise ValueError("The number of dimensions must be >= 2")
-    if len(R.shape) == 2:
-        axes = [0, 1]
-    if len(R.shape) == 3:
-        axes = [1, 2]
-    if len(R.shape) == 4:
-        axes = [2, 3]
-    if len(R.shape) > 4:
-        raise ValueError("The number of dimensions must be <= 4")
+    unit = metadata["units"]
 
     if np.isscalar(space_window):
         space_window = (space_window, space_window)
 
-    # assumes that frames are evenly spaced
-    if ypixelsize == space_window[1] and xpixelsize == space_window[0]:
-        return R, metadata
+    ydelta = dataset["y"].attrs["stepsize"]
+    xdelta = dataset["x"].attrs["stepsize"]
 
-    ysize = R.shape[axes[0]] * ypixelsize
-    xsize = R.shape[axes[1]] * xpixelsize
-
-    if (
-        abs(ysize / space_window[1] - round(ysize / space_window[1])) > 1e-10
-        or abs(xsize / space_window[0] - round(xsize / space_window[0])) > 1e-10
-    ):
-        raise ValueError("space_window does not equally split R")
-
-    nframes = [int(space_window[1] / ypixelsize), int(space_window[0] / xpixelsize)]
+    if space_window[0] % ydelta > 1e-10 or space_window[1] % xdelta > 1e-10:
+        raise ValueError("space_window does not equally split dataset")
 
     # specify the operator to be used to aggregate the values
     # within the space window
     if unit == "mm/h" or unit == "mm":
         method = "mean"
     else:
-        raise ValueError(
-            "can only aggregate units of 'mm/h' or 'mm' " + "not %s" % unit
-        )
+        raise ValueError(f"can only aggregate units of 'mm/h' or 'mm' not {unit}")
 
     if ignore_nan:
         method = "".join(("nan", method))
 
-    R = aggregate_fields(R, nframes[0], axis=axes[0], method=method)
-    R = aggregate_fields(R, nframes[1], axis=axes[1], method=method)
+    window_size = (int(space_window[0] / ydelta), int(space_window[1] / xdelta))
 
-    metadata["ypixelsize"] = space_window[1]
-    metadata["xpixelsize"] = space_window[0]
-
-    return R, metadata
+    return aggregate_fields(dataset, window_size, ["y", "x"], method, "mean")
 
 
-def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
+def aggregate_fields(
+    dataset: xr.Dataset,
+    window_size,
+    dim="x",
+    method="mean",
+    velocity_method="mean",
+    trim=False,
+) -> xr.Dataset:
     """Aggregate fields along a given direction.
 
-    It attempts to aggregate the given R axis in an integer number of sections
+    It attempts to aggregate the given dataset dim in an integer number of sections
     of length = ``window_size``.
     If such a aggregation is not possible, an error is raised unless ``trim``
-    set to True, in which case the axis is trimmed (from the end)
+    set to True, in which case the dim is trimmed (from the end)
     to make it perfectly divisible".
 
     Parameters
     ----------
-    data: array-like
-        Array of any shape containing the input fields.
-    window_size: int or tuple of ints
+    dataset: xarray.Dataset
+        Dataset containing the input fields as described in the documentation of
+        :py:mod:`pysteps.io.importers`.
+    window_size: int or array-like of ints
         The length of the window that is used to aggregate the fields.
         If a single integer value is given, the same window is used for
-        all the selected axis.
+        all the selected dim.
 
         If ``window_size`` is a 1D array-like,
         each element indicates the length of the window that is used
-        to aggregate the fields along each axis. In this case,
+        to aggregate the fields along each dim. In this case,
         the number of elements of 'window_size' must be the same as the elements
-        in the ``axis`` argument.
-    axis: int or array-like of ints
-        Axis or axes where to perform the aggregation.
-        If this is a tuple of ints, the aggregation is performed over multiple
-        axes, instead of a single axis
+        in the ``dim`` argument.
+    dim: str or array-like of strs
+        Dim or dims where to perform the aggregation.
+        If this is an array-like of strs, the aggregation is performed over multiple
+        dims, instead of a single dim
     method: string, optional
         Optional argument that specifies the operation to use
-        to aggregate the values within the window.
+        to aggregate the precipitation values within the window.
+        Default to mean operator.
+    velocity_method: string, optional
+        Optional argument that specifies the operation to use
+        to aggregate the velocity values within the window.
         Default to mean operator.
     trim: bool
          In case that the ``data`` is not perfectly divisible by
-         ``window_size`` along the selected axis:
+         ``window_size`` along the selected dim:
 
          - trim=True: the data will be trimmed (from the end) along that
-           axis to make it perfectly divisible.
+           dim to make it perfectly divisible.
          - trim=False: a ValueError exception is raised.
 
     Returns
     -------
-    new_array: array-like
-        The new aggregated array with shape[axis] = k,
-        where k = R.shape[axis] / window_size.
+    dataset: xarray.Dataset
+        The new dataset.
 
     See also
     --------
@@ -267,90 +241,107 @@ def aggregate_fields(data, window_size, axis=0, method="mean", trim=False):
     pysteps.utils.dimension.aggregate_fields_space
     """
 
-    if np.ndim(axis) > 1:
+    if np.ndim(dim) > 1:
         raise TypeError(
             "Only integers or integer 1D arrays can be used for the " "'axis' argument."
         )
 
-    if np.ndim(axis) == 1:
-        axis = np.asarray(axis)
-        if np.ndim(window_size) == 0:
-            window_size = (window_size,) * axis.size
+    if np.ndim(dim) == 0:
+        dim = [dim]
 
-        window_size = np.asarray(window_size, dtype="int")
+    if np.ndim(window_size) == 0:
+        window_size = [window_size for _ in dim]
 
-        if window_size.shape != axis.shape:
-            raise ValueError(
-                "The 'window_size' and 'axis' shapes are incompatible."
-                f"window_size.shape: {str(window_size.shape)}, "
-                f"axis.shape: {str(axis.shape)}, "
-            )
-
-        new_data = data.copy()
-        for i in range(axis.size):
-            # Recursively call the aggregate_fields function
-            new_data = aggregate_fields(
-                new_data, window_size[i], axis=axis[i], method=method, trim=trim
-            )
-
-        return new_data
-
-    if np.ndim(window_size) != 0:
-        raise TypeError(
-            "A single axis was selected for the aggregation but several"
-            f"of window_sizes were given: {str(window_size)}."
-        )
-
-    data = np.asarray(data).copy()
-    orig_shape = data.shape
+    if len(window_size) != len(dim):
+        raise TypeError("The length of window size does not to match the length of dim")
 
     if method not in _aggregation_methods:
         raise ValueError(
             "Aggregation method not recognized. "
             f"Available methods: {str(list(_aggregation_methods.keys()))}"
         )
+    for ws in window_size:
+        if ws <= 0:
+            raise ValueError("'window_size' must be strictly positive")
 
-    if window_size <= 0:
-        raise ValueError("'window_size' must be strictly positive")
+    for d, ws in zip(dim, window_size):
+        if (dataset.sizes[d] % ws) and (not trim):
+            raise ValueError(
+                f"Since 'trim' argument was set to False,"
+                f"the 'window_size' {ws} must exactly divide"
+                f"the dimension along the selected axis:"
+                f"dataset.sizes[dim]={dataset.sizes[d]}"
+            )
 
-    if (orig_shape[axis] % window_size) and (not trim):
-        raise ValueError(
-            f"Since 'trim' argument was set to False,"
-            f"the 'window_size' {window_size} must exactly divide"
-            f"the dimension along the selected axis:"
-            f"data.shape[axis]={orig_shape[axis]}"
+    dataset_ref = dataset
+    dataset = (
+        dataset.rolling(dict(zip(dim, window_size)))
+        .reduce(_aggregation_methods[method])
+        .isel(
+            {
+                d: slice(ws - 1, dataset.sizes[d] - dataset.sizes[d] % ws, ws)
+                for d, ws in zip(dim, window_size)
+            }
+        )
+    )
+    if "velocity_x" in dataset_ref:
+        dataset["velocity_x"] = (
+            dataset_ref["velocity_x"]
+            .rolling(dict(zip(dim, window_size)))
+            .reduce(_aggregation_methods[velocity_method])
+            .isel(
+                {
+                    d: slice(
+                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
+                    )
+                    for d, ws in zip(dim, window_size)
+                }
+            )
+        )
+    if "velocity_y" in dataset_ref:
+        dataset["velocity_y"] = (
+            dataset_ref["velocity_y"]
+            .rolling(dict(zip(dim, window_size)))
+            .reduce(_aggregation_methods[velocity_method])
+            .isel(
+                {
+                    d: slice(
+                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
+                    )
+                    for d, ws in zip(dim, window_size)
+                }
+            )
+        )
+    if "quality" in dataset_ref:
+        dataset["quality"] = (
+            dataset_ref["quality"]
+            .rolling(dict(zip(dim, window_size)))
+            .reduce(_aggregation_methods["min"])
+            .isel(
+                {
+                    d: slice(
+                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
+                    )
+                    for d, ws in zip(dim, window_size)
+                }
+            )
         )
 
-    new_data = data.swapaxes(axis, 0)
-    if trim:
-        trim_size = data.shape[axis] % window_size
-        if trim_size > 0:
-            new_data = new_data[:-trim_size]
+    for d, ws in zip(dim, window_size):
+        if "stepsize" in dataset[d].attrs:
+            dataset[d].attrs["stepsize"] = dataset[d].attrs["stepsize"] * ws
 
-    new_data_shape = list(new_data.shape)
-    new_data_shape[0] //= window_size  # Final shape
-
-    new_data = new_data.reshape(new_data_shape[0], window_size, -1)
-
-    new_data = _aggregation_methods[method](new_data, axis=1)
-
-    new_data = new_data.reshape(new_data_shape).swapaxes(axis, 0)
-
-    return new_data
+    return dataset
 
 
-def clip_domain(R, metadata, extent=None):
+def clip_domain(dataset: xr.Dataset, extent=None):
     """
     Clip the field domain by geographical coordinates.
 
     Parameters
     ----------
-    R: array-like
-        Array of shape (m,n) or (t,m,n) containing the input fields.
-    metadata: dict
-        Metadata dictionary containing the x1, x2, y1, y2,
-        xpixelsize, ypixelsize,
-        zerovalue and yorigin attributes as described in the documentation of
+    dataset: xarray.Dataset
+        Dataset containing the input fields as described in the documentation of
         :py:mod:`pysteps.io.importers`.
     extent: scalars (left, right, bottom, top), optional
         The extent of the bounding box in data coordinates to be used to clip
@@ -362,238 +353,165 @@ def clip_domain(R, metadata, extent=None):
 
     Returns
     -------
-    R: array-like
-        the clipped array
-    metadata: dict
-        the metadata with updated attributes.
+    dataset: xarray.Dataset
+        The clipped dataset
     """
-
-    R = R.copy()
-    R_shape = np.array(R.shape)
-    metadata = metadata.copy()
-
     if extent is None:
-        return R, metadata
+        return dataset
+    return dataset.sel(x=slice(extent[0], extent[1]), y=slice(extent[2], extent[3]))
 
-    if len(R.shape) < 2:
-        raise ValueError("The number of dimension must be > 1")
-    if len(R.shape) == 2:
-        R = R[None, None, :, :]
-    if len(R.shape) == 3:
-        R = R[None, :, :, :]
-    if len(R.shape) > 4:
-        raise ValueError("The number of dimension must be <= 4")
 
-    # extract original domain coordinates
-    left = metadata["x1"]
-    right = metadata["x2"]
-    bottom = metadata["y1"]
-    top = metadata["y2"]
-
-    # extract bounding box coordinates
-    left_ = extent[0]
-    right_ = extent[1]
-    bottom_ = extent[2]
-    top_ = extent[3]
-
-    # compute its extent in pixels
-    dim_x_ = int((right_ - left_) / metadata["xpixelsize"])
-    dim_y_ = int((top_ - bottom_) / metadata["ypixelsize"])
-    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_)) * metadata["zerovalue"]
-
-    # build set of coordinates for the original domain
-    y_coord = (
-        np.linspace(bottom, top - metadata["ypixelsize"], R.shape[2])
-        + metadata["ypixelsize"] / 2.0
-    )
-    x_coord = (
-        np.linspace(left, right - metadata["xpixelsize"], R.shape[3])
-        + metadata["xpixelsize"] / 2.0
+def _pad_domain(
+    dataset: xr.Dataset, dim_to_pad: str, idx_buffer: int, zerovalue: float
+) -> xr.Dataset:
+    delta = dataset[dim_to_pad].attrs["stepsize"]
+    end_values = (
+        dataset[dim_to_pad].values[0] - delta * idx_buffer,
+        dataset[dim_to_pad].values[-1] + delta * idx_buffer,
     )
 
-    # build set of coordinates for the new domain
-    y_coord_ = (
-        np.linspace(bottom_, top_ - metadata["ypixelsize"], R_.shape[2])
-        + metadata["ypixelsize"] / 2.0
+    dataset_ref = dataset
+
+    dataset = dataset_ref.pad({dim_to_pad: idx_buffer}, constant_values=zerovalue)
+    dataset[dim_to_pad] = dataset_ref[dim_to_pad].pad(
+        {dim_to_pad: idx_buffer},
+        mode="linear_ramp",
+        end_values={dim_to_pad: end_values},
     )
-    x_coord_ = (
-        np.linspace(left_, right_ - metadata["xpixelsize"], R_.shape[3])
-        + metadata["xpixelsize"] / 2.0
+    dataset.lat.data[:], dataset.lon.data[:] = compute_lat_lon(
+        dataset.x.values, dataset.y.values, dataset.attrs["projection"]
     )
-
-    # origin='upper' reverses the vertical axes direction
-    if metadata["yorigin"] == "upper":
-        y_coord = y_coord[::-1]
-        y_coord_ = y_coord_[::-1]
-
-    # extract original domain
-    idx_y = np.where(np.logical_and(y_coord < top_, y_coord > bottom_))[0]
-    idx_x = np.where(np.logical_and(x_coord < right_, x_coord > left_))[0]
-
-    # extract new domain
-    idx_y_ = np.where(np.logical_and(y_coord_ < top, y_coord_ > bottom))[0]
-    idx_x_ = np.where(np.logical_and(x_coord_ < right, x_coord_ > left))[0]
-
-    # compose the new array
-    R_[:, :, idx_y_[0] : (idx_y_[-1] + 1), idx_x_[0] : (idx_x_[-1] + 1)] = R[
-        :, :, idx_y[0] : (idx_y[-1] + 1), idx_x[0] : (idx_x[-1] + 1)
-    ]
-
-    # update coordinates
-    metadata["y1"] = bottom_
-    metadata["y2"] = top_
-    metadata["x1"] = left_
-    metadata["x2"] = right_
-
-    R_shape[-2] = R_.shape[-2]
-    R_shape[-1] = R_.shape[-1]
-
-    return R_.reshape(R_shape), metadata
+    if "velocity_x" in dataset_ref:
+        dataset["velocity_x"].data = (
+            dataset_ref["velocity_x"]
+            .pad({dim_to_pad: idx_buffer}, constant_values=0.0)
+            .values
+        )
+    if "velocity_y" in dataset_ref:
+        dataset["velocity_y"].data = (
+            dataset_ref["velocity_y"]
+            .pad({dim_to_pad: idx_buffer}, constant_values=0.0)
+            .values
+        )
+    if "quality" in dataset_ref:
+        dataset["quality"].data = (
+            dataset_ref["quality"]
+            .pad({dim_to_pad: idx_buffer}, constant_values=0.0)
+            .values
+        )
+    return dataset
 
 
-def square_domain(R, metadata, method="pad", inverse=False):
+def square_domain(dataset: xr.Dataset, method="pad", inverse=False):
     """
     Either pad or crop a field to obtain a square domain.
 
     Parameters
     ----------
-    R: array-like
-        Array of shape (m,n) or (t,m,n) containing the input fields.
-    metadata: dict
-        Metadata dictionary containing the x1, x2, y1, y2,
-        xpixelsize, ypixelsize,
-        attributes as described in the documentation of
+    dataset: xarray.Dataset
+        Dataset containing the input fields as described in the documentation of
         :py:mod:`pysteps.io.importers`.
     method: {'pad', 'crop'}, optional
         Either pad or crop.
-        If pad, an equal number of zeros is added to both ends of its shortest
-        side in order to produce a square domain.
+        If pad, an equal number of pixels
+        filled with the minimum value of the precipitation
+        field is added to both ends of the precipitation fields shortest
+        side in order to produce a square domain. The quality and velocity fields
+        are always padded with zeros.
         If crop, an equal number of pixels is removed
         to both ends of its longest side in order to produce a square domain.
         Note that the crop method involves an irreversible loss of data.
     inverse: bool, optional
         Perform the inverse method to recover the original domain shape.
-        After a crop, the inverse is performed by padding the field with zeros.
+        After a crop, the inverse is performed by doing a pad.
 
     Returns
     -------
-    R: array-like
-        the reshape dataset
-    metadata: dict
-        the metadata with updated attributes.
+    dataset: xarray.Dataset
+        the reshaped dataset
     """
 
-    R = R.copy()
-    R_shape = np.array(R.shape)
-    metadata = metadata.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    precip_data = dataset[precip_var].values
 
-    if not inverse:
-        if len(R.shape) < 2:
-            raise ValueError("The number of dimension must be > 1")
-        if len(R.shape) == 2:
-            R = R[None, None, :]
-        if len(R.shape) == 3:
-            R = R[None, :]
-        if len(R.shape) > 4:
-            raise ValueError("The number of dimension must be <= 4")
+    x_len = len(dataset.x.values)
+    y_len = len(dataset.y.values)
 
-        if R.shape[2] == R.shape[3]:
-            return R.squeeze()
-
-        orig_dim = R.shape
-        orig_dim_n = orig_dim[0]
-        orig_dim_t = orig_dim[1]
-        orig_dim_y = orig_dim[2]
-        orig_dim_x = orig_dim[3]
+    if inverse:
+        if "orig_domain" not in dataset.attrs or "square_method" not in dataset.attrs:
+            raise ValueError("Attempting to inverse a non squared dataset")
+        method = dataset.attrs.pop("square_method")
+        orig_domain = dataset.attrs.pop("orig_domain")
 
         if method == "pad":
-            new_dim = np.max(orig_dim[2:])
-            R_ = np.ones((orig_dim_n, orig_dim_t, new_dim, new_dim)) * R.min()
+            if x_len > len(orig_domain[1]):
+                extent = (
+                    orig_domain[1].min(),
+                    orig_domain[1].max(),
+                    dataset.y.values.min(),
+                    dataset.y.values.max(),
+                )
+            elif y_len > len(orig_domain[0]):
+                extent = (
+                    dataset.x.values.min(),
+                    dataset.x.values.max(),
+                    orig_domain[0].min(),
+                    orig_domain[0].max(),
+                )
+            else:
+                return dataset
+            return clip_domain(dataset, extent)
 
-            if orig_dim_x < new_dim:
-                idx_buffer = int((new_dim - orig_dim_x) / 2.0)
-                R_[:, :, :, idx_buffer : (idx_buffer + orig_dim_x)] = R
-                metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] += idx_buffer * metadata["xpixelsize"]
+        if method == "crop":
+            if x_len < len(orig_domain[1]):
+                dim_to_pad = "x"
+                idx_buffer = int((len(orig_domain[1]) - x_len) / 2.0)
+            elif y_len < len(orig_domain[0]):
+                dim_to_pad = "y"
+                idx_buffer = int((len(orig_domain[0]) - y_len) / 2.0)
+            else:
+                return dataset
+            return _pad_domain(dataset, dim_to_pad, idx_buffer, np.nanmin(precip_data))
 
-            elif orig_dim_y < new_dim:
-                idx_buffer = int((new_dim - orig_dim_y) / 2.0)
-                R_[:, :, idx_buffer : (idx_buffer + orig_dim_y), :] = R
-                metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] += idx_buffer * metadata["ypixelsize"]
+        raise ValueError(f"Unknown square method: {method}")
 
-        elif method == "crop":
-            new_dim = np.min(orig_dim[2:])
-            R_ = np.zeros((orig_dim_n, orig_dim_t, new_dim, new_dim))
-
-            if orig_dim_x > new_dim:
-                idx_buffer = int((orig_dim_x - new_dim) / 2.0)
-                R_ = R[:, :, :, idx_buffer : (idx_buffer + new_dim)]
-                metadata["x1"] += idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
-
-            elif orig_dim_y > new_dim:
-                idx_buffer = int((orig_dim_y - new_dim) / 2.0)
-                R_ = R[:, :, idx_buffer : (idx_buffer + new_dim), :]
-                metadata["y1"] += idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
-
-        else:
-            raise ValueError("Unknown type")
-
-        metadata["orig_domain"] = (orig_dim_y, orig_dim_x)
-        metadata["square_method"] = method
-
-        R_shape[-2] = R_.shape[-2]
-        R_shape[-1] = R_.shape[-1]
-
-        return R_.reshape(R_shape), metadata
-
-    elif inverse:
-        if len(R.shape) < 2:
-            raise ValueError("The number of dimension must be > 2")
-        if len(R.shape) == 2:
-            R = R[None, None, :]
-        if len(R.shape) == 3:
-            R = R[None, :]
-        if len(R.shape) > 4:
-            raise ValueError("The number of dimension must be <= 4")
-
-        method = metadata.pop("square_method")
-        shape = metadata.pop("orig_domain")
-
-        if R.shape[2] == shape[0] and R.shape[3] == shape[1]:
-            return R.squeeze(), metadata
-
-        R_ = np.zeros((R.shape[0], R.shape[1], shape[0], shape[1]))
+    else:
+        if "orig_domain" in dataset.attrs and "square_method" in dataset.attrs:
+            raise ValueError("Attempting to square an already squared dataset")
+        dataset.attrs["orig_domain"] = (dataset.y.values, dataset.x.values)
+        dataset.attrs["square_method"] = method
 
         if method == "pad":
-            if R.shape[2] == shape[0]:
-                idx_buffer = int((R.shape[3] - shape[1]) / 2.0)
-                R_ = R[:, :, :, idx_buffer : (idx_buffer + shape[1])]
-                metadata["x1"] += idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] -= idx_buffer * metadata["xpixelsize"]
+            if x_len > y_len:
+                dim_to_pad = "y"
+                idx_buffer = int((x_len - y_len) / 2.0)
+            elif y_len > x_len:
+                dim_to_pad = "x"
+                idx_buffer = int((y_len - x_len) / 2.0)
+            else:
+                return dataset
+            return _pad_domain(dataset, dim_to_pad, idx_buffer, np.nanmin(precip_data))
 
-            elif R.shape[3] == shape[1]:
-                idx_buffer = int((R.shape[2] - shape[0]) / 2.0)
-                R_ = R[:, :, idx_buffer : (idx_buffer + shape[0]), :]
-                metadata["y1"] += idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] -= idx_buffer * metadata["ypixelsize"]
+        if method == "crop":
+            if x_len > y_len:
+                idx_buffer = int((x_len - y_len) / 2.0)
+                extent = (
+                    dataset.x.values[idx_buffer],
+                    dataset.x.values[-idx_buffer - 1],
+                    dataset.y.values.min(),
+                    dataset.y.values.max(),
+                )
+            elif y_len > x_len:
+                idx_buffer = int((y_len - x_len) / 2.0)
+                extent = (
+                    dataset.x.values.min(),
+                    dataset.x.values.max(),
+                    dataset.y.values[idx_buffer],
+                    dataset.y.values[-idx_buffer - 1],
+                )
+            else:
+                return dataset
+            return clip_domain(dataset, extent)
 
-        elif method == "crop":
-            if R.shape[2] == shape[0]:
-                idx_buffer = int((shape[1] - R.shape[3]) / 2.0)
-                R_[:, :, :, idx_buffer : (idx_buffer + R.shape[3])] = R
-                metadata["x1"] -= idx_buffer * metadata["xpixelsize"]
-                metadata["x2"] += idx_buffer * metadata["xpixelsize"]
-
-            elif R.shape[3] == shape[1]:
-                idx_buffer = int((shape[0] - R.shape[2]) / 2.0)
-                R_[:, :, idx_buffer : (idx_buffer + R.shape[2]), :] = R
-                metadata["y1"] -= idx_buffer * metadata["ypixelsize"]
-                metadata["y2"] += idx_buffer * metadata["ypixelsize"]
-
-        R_shape[-2] = R_.shape[-2]
-        R_shape[-1] = R_.shape[-1]
-
-        return R_.reshape(R_shape), metadata
+        raise ValueError(f"Unknown square method: {method}")

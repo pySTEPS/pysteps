@@ -527,10 +527,10 @@ def nowcast_main_loop(
         if not ensemble:
             precip_forecast_out = precip_forecast_out[0, :]
 
-    if measure_time:
-        return precip_forecast_out, time.time() - starttime_total
-    else:
-        return precip_forecast_out
+        if measure_time:
+            return precip_forecast_out, time.time() - starttime_total
+        else:
+            return precip_forecast_out
 
 
 def print_ar_params(phi):

@@ -2,8 +2,8 @@
 
 """ """
 
-import pytest
 import numpy as np
+import pytest
 
 from pysteps import motion, verification
 from pysteps.tests.helpers import get_precipitation_fields
@@ -60,19 +60,19 @@ def test_lk(
         pytest.importorskip("pandas")
 
     # inputs
-    precip, metadata = get_precipitation_fields(
+    dataset = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
         metadata=True,
         upscale=2000,
     )
-    precip = precip.filled()
+    precip_var = dataset.attrs["precip_var"]
 
     # Retrieve motion field
     oflow_method = motion.get_method("LK")
-    output = oflow_method(
-        precip,
+    output_dataset = oflow_method(
+        dataset,
         lk_kwargs=lk_kwargs,
         fd_method=fd_method,
         dense=dense,
@@ -85,13 +85,17 @@ def test_lk(
 
     # Check format of ouput
     if dense:
+        output = np.stack(
+            [output_dataset["velocity_x"].values, output_dataset["velocity_y"].values]
+        )
         assert isinstance(output, np.ndarray)
         assert output.ndim == 3
         assert output.shape[0] == 2
-        assert output.shape[1:] == precip[0].shape
+        assert output.shape[1:] == dataset[precip_var].values[0].shape
         if nr_std_outlier == 0:
             assert output.sum() == 0
     else:
+        output = output_dataset
         assert isinstance(output, tuple)
         assert len(output) == 2
         assert isinstance(output[0], np.ndarray)

@@ -22,6 +22,8 @@ from functools import wraps
 
 import numpy as np
 
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
+
 
 def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
     """
@@ -30,6 +32,8 @@ def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
     """
     # Clean up indentation from docstrings for the
     # docstrings to be merged correctly.
+    if target_func.__doc__ is None:
+        return target_func
     extra_kwargs_doc = inspect.cleandoc(extra_kwargs_doc_text)
     target_func.__doc__ = inspect.cleandoc(target_func.__doc__)
 
@@ -66,7 +70,7 @@ def postprocess_import(fillna=np.nan, dtype="double"):
     def _postprocess_import(importer):
         @wraps(importer)
         def _import_with_postprocessing(*args, **kwargs):
-            precip, *other_args = importer(*args, **kwargs)
+            precip, quality, metadata = importer(*args, **kwargs)
 
             _dtype = kwargs.get("dtype", dtype)
 
@@ -88,7 +92,9 @@ def postprocess_import(fillna=np.nan, dtype="double"):
                     mask = ~np.isfinite(precip)
                     precip[mask] = _fillna
 
-            return (precip.astype(_dtype),) + tuple(other_args)
+            return convert_input_to_xarray_dataset(
+                precip.astype(_dtype), quality, metadata
+            )
 
         extra_kwargs_doc = """
             Other Parameters
@@ -124,7 +130,9 @@ def check_input_frames(
             target motion_method_func function.
             """
 
-            input_images = args[0]
+            dataset = args[0]
+            precip_var = dataset.attrs["precip_var"]
+            input_images = dataset[precip_var].values
             if input_images.ndim != 3:
                 raise ValueError(
                     "input_images dimension mismatch.\n"

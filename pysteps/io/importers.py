@@ -65,6 +65,122 @@ The metadata dictionary contains the following recommended key-value pairs:
 |   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
+# XR: Move this to appropriate place
+The data and metadata is then postprocessed into an xarray dataset. This dataset will
+always contain an x and y dimension, but can be extended with a time dimension and/or
+an ensemble member dimension over the course of the process.
+
+The dataset can contain the following coordinate variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++--------------------+-------------------------------------------------------------------------------------------+
+|  Coordinate        |                Description                                                                |
++====================+===========================================================================================+
+|   y                | y-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++--------------------+-------------------------------------------------------------------------------------------+
+|   x                | x-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++--------------------+-------------------------------------------------------------------------------------------+
+|   lat              | latitude coordinate in degrees                                                            |
++--------------------+-------------------------------------------------------------------------------------------+
+|   lon              | longitude coordinate in degrees                                                           |
++--------------------+-------------------------------------------------------------------------------------------+
+|   time             | forecast time in seconds since forecast start time                                        |
++--------------------+-------------------------------------------------------------------------------------------+
+|   ens_number       | ensemble member number (integer)                                                          |
++--------------------+-------------------------------------------------------------------------------------------+
+|   direction        | used by proesmans to return the forward and backward advection and consistency fields     |
++--------------------+-------------------------------------------------------------------------------------------+
+
+The time, x and y dimensions all MUST be regularly spaced, with the stepsize included
+in a ``stepsize`` attribute. The stepsize is given in the unit of the dimension (this
+is alwyas seconds for the time dimension).
+
+The dataset can contain the following data variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++-------------------+-----------------------------------------------------------------------------------------------------------+
+|    Variable       |                Description                                                                                |
++===================+===========================================================================================================+
+| precip_intensity, | precipitation data, based on the unit the data has it is stored in one of these 3 possible variables      |
+| precip_accum      | precip_intensity if unit is ``mm/h``, precip_accum if unit is ``mm`` and reflectivity if unit is ``dBZ``, |
+| or reflectivity   | the attributes of this variable contain metadata relevant to this attribute (see below)                   |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_x        | x-component of the advection field in cartesian_unit per timestep                                         |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_y        | y-component of the advection field in cartesian_unit per timestep                                         |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| quality           | value between 0 and 1 denoting the quality of the precipitation data, currently not used for anything     |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_quality  | value between 0 and 1 denoting the quality of the velocity data, currently only returned by proesmans     |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+
+Some of the metadata in the metadata dictionary is not explicitely stored in the dataset,
+but is still implicitly present. For example ``x1`` can easily be found by taking the first
+value from the x coordinate variable. Metadata that is not implicitly present is explicitly
+stored either in the datasets global attributes or as attributes of the precipitation variable.
+Data that relates to the entire dataset is stored in the global attributes. The following data
+is stored in the global attributes:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   projection     | PROJ.4-compatible projection definition                  |
++------------------+----------------------------------------------------------+
+|   institution    | name of the institution who provides the data            |
++------------------+----------------------------------------------------------+
+|   precip_var     | the name of the precipitation variable in this dataset   |
++------------------+----------------------------------------------------------+
+
+The following data is stored as attributes of the precipitation variable:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   units          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
++------------------+----------------------------------------------------------+
+|   threshold      | the rain/no rain threshold with the same unit,           |
+|                  | transformation and accutime of the data.                 |
++------------------+----------------------------------------------------------+
+|   zerovalue      | the value assigned to the no rain pixels with the same   |
+|                  | unit, transformation and accutime of the data.           |
++------------------+----------------------------------------------------------+
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|   (optional)     | others                                                   |
++------------------+----------------------------------------------------------+
+|   accutime       | the accumulation time in minutes of the data, float      |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+|   zr_a           | the Z-R constant a in Z = a*R**b                         |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+|   zr_b           | the Z-R exponent b in Z = a*R**b                         |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+
+The following data is stored as attributes of the coordinate variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   units          | the unit  e.g. 'm' or 'km' for the cartesian coordinates |
++------------------+----------------------------------------------------------+
+|   stepsize       | the stepsize of the data (in minutes in case of the time |
+|                  | coordinate), this stepsize should be exactly the         |
+|                  | difference between every value of this coordinate and    |
+|                  | the next                                                 |
++------------------+----------------------------------------------------------+
+
+Furthermore the dataset can contain some additional metadata to make the dataset
+CF-compliant.
+
 Available Importers
 -------------------
 
@@ -93,12 +209,10 @@ import datetime
 from functools import partial
 
 import numpy as np
-
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import
-from pysteps.exceptions import DataModelError
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 
 try:
@@ -238,7 +352,6 @@ def _get_threshold_value(precip):
         return np.nan
 
 
-@postprocess_import(dtype="float32")
 def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
@@ -293,7 +406,14 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         image dimensions.
         Default: window_size=4.
 
-    {extra_kwargs_doc}
+    Other Parameters
+    ----------------
+    dtype: str
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -306,7 +426,32 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     metadata: dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
+    dataset = _import_mrms_grib(filename, extent, window_size, **kwargs)
+    # Create a function with default arguments for aggregate_fields
+    block_reduce = partial(aggregate_fields, method="mean", trim=True)
 
+    if window_size != (1, 1):
+        # Downscale data
+        precip_var = dataset.attrs["precip_var"]
+        # block_reduce does not handle nan values
+        if "fillna" in kwargs:
+            no_data_mask = dataset[precip_var].values == kwargs["fillna"]
+        else:
+            no_data_mask = np.isnan(dataset[precip_var].values)
+        dataset[precip_var].data[no_data_mask] = 0
+        dataset["no_data_mask"] = (("y", "x"), no_data_mask)
+        dataset = block_reduce(dataset, window_size, dim=("y", "x"))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = dataset.no_data_mask.values == 1.0
+        dataset = dataset.drop_vars("no_data_mask")
+
+    return dataset
+
+
+@postprocess_import(dtype="float32")
+def _import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     del kwargs
 
     if not PYGRIB_IMPORTED:
@@ -351,32 +496,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
 
     precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
-
-    # Create a function with default arguments for aggregate_fields
-    block_reduce = partial(aggregate_fields, method="mean", trim=True)
-
-    if window_size != (1, 1):
-        # Downscale data
-        lats = block_reduce(lats, window_size[0])
-        lons = block_reduce(lons, window_size[1])
-
-        # Update the limits
-        ul_lat, lr_lat = (
-            lats[0],
-            lats[-1],
-        )  # Lat from North to south!
-        ul_lon, lr_lon = lons[0], lons[-1]
-
-        precip[no_data_mask] = 0  # block_reduce does not handle nan values
-        precip = block_reduce(precip, window_size, axis=(0, 1))
-
-        # Consider that if a single invalid observation is located in the block,
-        # then mark that value as invalid.
-        no_data_mask = block_reduce(
-            no_data_mask.astype("int"),
-            window_size,
-            axis=(0, 1),
-        ).astype(bool)
 
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan
@@ -1904,7 +2023,6 @@ def _read_hdf5_cont(f, d):
                 }
 
         else:
-
             # Save h5py.Dataset by group name
             d[key] = np.array(value)
 

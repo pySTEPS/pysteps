@@ -21,7 +21,6 @@ dependencies:
   - dask
   - pyfftw
   - h5py
-  - PyWavelets
   - pygrib
   - black
   - pytest-cov
@@ -31,3 +30,6 @@ dependencies:
   - scikit-image
   - pandas
   - rasterio
+  - xarray
+  - geotiff
+  - cookiecutter

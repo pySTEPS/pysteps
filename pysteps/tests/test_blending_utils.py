@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime, timezone
 import os
 
 import numpy as np
@@ -18,6 +19,7 @@ from pysteps.blending.utils import (
     stack_cascades,
 )
 from pysteps.utils.check_norain import check_norain
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 pytest.importorskip("netCDF4")
 
@@ -59,6 +61,9 @@ nwp_metadata = dict(
     y1=-731900.0,
     y2=0.0,
 )
+precip_nwp_dataset = convert_input_to_xarray_dataset(
+    precip_nwp, None, nwp_metadata, datetime.now(tz=timezone.utc)
+)
 
 # Get the analysis time and valid time
 times_nwp = np.array(
@@ -95,16 +100,19 @@ times_nwp = np.array(
 # Prepare input NWP files
 # Convert to rain rates [mm/h]
 converter = pysteps.utils.get_method("mm/h")
-precip_nwp, nwp_metadata = converter(precip_nwp, nwp_metadata)
+precip_nwp_dataset = converter(precip_nwp_dataset)
+nwp_precip_var = precip_nwp_dataset.attrs["precip_var"]
 
 # Threshold the data
-nwp_metadata["threshold"] = 0.1
-precip_nwp[precip_nwp < nwp_metadata["threshold"]] = 0.0
+precip_nwp_dataset[nwp_precip_var].attrs["threshold"] = 0.1
+precip_nwp_dataset[nwp_precip_var].data[
+    precip_nwp_dataset[nwp_precip_var].values < 0.1
+] = 0.0
 
 # Transform the data
 transformer = pysteps.utils.get_method("dB")
-precip_nwp, nwp_metadata = transformer(
-    precip_nwp, nwp_metadata, threshold=nwp_metadata["threshold"]
+precip_nwp_dataset = transformer(
+    precip_nwp_dataset, threshold=nwp_metadata["threshold"]
 )
 
 # Set two issue times for testing
@@ -117,7 +125,7 @@ weights = np.full((2, 8), fill_value=0.5)
 # Set the testing arguments
 # Test function arguments
 utils_arg_names = (
-    "precip_nwp",
+    "precip_nwp_dataset",
     "nwp_model",
     "issue_times",
     "timestep",
@@ -130,19 +138,19 @@ utils_arg_names = (
 # Test function values
 utils_arg_values = [
     (
-        precip_nwp,
+        precip_nwp_dataset,
         "test",
         [issue_time_first, issue_time_second],
         5.0,
         3,
         times_nwp,
-        precip_nwp.shape[1:],
+        precip_nwp_dataset[nwp_precip_var].values.shape[1:],
         weights,
     )
 ]
 
 smoothing_arg_names = (
-    "precip_nwp",
+    "precip_nwp_dataset",
     "max_padding_size_in_px",
     "gaussian_kernel_size",
     "inverted",
@@ -150,11 +158,11 @@ smoothing_arg_names = (
 )
 
 smoothing_arg_values = [
-    (precip_nwp, 80, 9, False, False),
-    (precip_nwp, 10, 9, False, False),
-    (precip_nwp, 80, 5, False, False),
-    (precip_nwp, 80, 9, True, False),
-    (precip_nwp, 80, 9, False, True),
+    (precip_nwp_dataset, 80, 9, False, False),
+    (precip_nwp_dataset, 10, 9, False, False),
+    (precip_nwp_dataset, 80, 5, False, False),
+    (precip_nwp_dataset, 80, 9, True, False),
+    (precip_nwp_dataset, 80, 9, False, True),
 ]
 
 
@@ -164,7 +172,7 @@ smoothing_arg_values = [
 @pytest.mark.parametrize(utils_arg_names, utils_arg_values)
 # The test function to be used
 def test_blending_utils(
-    precip_nwp,
+    precip_nwp_dataset,
     nwp_model,
     issue_times,
     timestep,
@@ -186,7 +194,7 @@ def test_blending_utils(
     # Compute and store the motion
     ###
     compute_store_nwp_motion(
-        precip_nwp=precip_nwp,
+        precip_nwp=precip_nwp_dataset,
         oflow_method=oflow_method,
         analysis_time=valid_times[0],
         nwp_model=nwp_model,
@@ -214,7 +222,7 @@ def test_blending_utils(
     # Decompose and store NWP forecast
     ###
     decompose_NWP(
-        R_NWP=precip_nwp,
+        R_NWP=precip_nwp_dataset,
         NWP_model=nwp_model,
         analysis_time=valid_times[0],
         timestep=timestep,
@@ -304,13 +312,13 @@ def test_blending_utils(
     # Check, for a sample, if the stored motion fields are as expected
     assert_array_almost_equal(
         v_nwp_first[1],
-        oflow_method(precip_nwp[0:2, :, :]),
+        oflow_method(precip_nwp_dataset[0:2, :, :]),
         decimal=3,
         err_msg="Stored motion field of first forecast not equal to expected motion field",
     )
     assert_array_almost_equal(
         v_nwp_second[1],
-        oflow_method(precip_nwp[3:5, :, :]),
+        oflow_method(precip_nwp_dataset[3:5, :, :]),
         decimal=3,
         err_msg="Stored motion field of second forecast not equal to expected motion field",
     )
@@ -364,7 +372,11 @@ def test_blending_utils(
     assert v_nwp_blended.shape == v_nwp_first[1].shape
     assert_array_almost_equal(
         v_nwp_blended,
-        (oflow_method(precip_nwp[0:2, :, :]) + oflow_method(precip_nwp[3:5, :, :])) / 2,
+        (
+            oflow_method(precip_nwp_dataset[0:2, :, :])
+            + oflow_method(precip_nwp_dataset[3:5, :, :])
+        )
+        / 2,
         decimal=3,
         err_msg="Blended motion field does not equal average of the two motion fields",
     )
@@ -385,18 +397,18 @@ def test_blending_utils(
 
     assert_array_almost_equal(
         precip_recomposed_first,
-        precip_nwp[0, :, :],
+        precip_nwp_dataset[0, :, :],
         decimal=3,
         err_msg="Recomposed field of first forecast does not equal original field",
     )
     assert_array_almost_equal(
         precip_recomposed_second,
-        precip_nwp[3, :, :],
+        precip_nwp_dataset[3, :, :],
         decimal=3,
         err_msg="Recomposed field of second forecast does not equal original field",
     )
 
-    precip_arr = precip_nwp
+    precip_arr = precip_nwp_dataset
     # rainy fraction is 0.005847
     assert not check_norain(precip_arr, win_fun=None)
     assert not check_norain(
@@ -427,15 +439,15 @@ def test_blending_utils(
 # Finally, also test the compute_smooth_dilated mask functionality
 @pytest.mark.parametrize(smoothing_arg_names, smoothing_arg_values)
 def test_blending_smoothing_utils(
-    precip_nwp,
+    precip_nwp_dataset,
     max_padding_size_in_px,
     gaussian_kernel_size,
     inverted,
     non_linear_growth_kernel_sizes,
 ):
     # First add some nans to indicate a mask
-    precip_nwp[:, 0:100, 0:100] = np.nan
-    nan_indices = np.isnan(precip_nwp[0])
+    precip_nwp_dataset[:, 0:100, 0:100] = np.nan
+    nan_indices = np.isnan(precip_nwp_dataset[0])
     new_mask = compute_smooth_dilated_mask(
         nan_indices,
         max_padding_size_in_px=max_padding_size_in_px,

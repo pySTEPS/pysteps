@@ -5,9 +5,8 @@ import numpy as np
 import pytest
 
 from pysteps import motion
-from pysteps.visualization import plot_precip_field, quiver, streamplot
 from pysteps.tests.helpers import get_precipitation_fields
-
+from pysteps.visualization import plot_precip_field, quiver, streamplot
 
 arg_names_quiver = (
     "source",
@@ -33,12 +32,23 @@ def test_visualization_motionfields_quiver(
 ):
     pytest.importorskip("cv2")
     if source is not None:
-        fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
+        dataset = get_precipitation_fields(0, 2, False, upscale, source)
+        oflow_method = motion.get_method("LK")
+        dataset = oflow_method(dataset)
+        precip_var = dataset.attrs["precip_var"]
+        fields = dataset[precip_var].values
+        geodata = {
+            "projection": dataset.attrs["projection"],
+            "x1": dataset.x.values[0],
+            "x2": dataset.x.values[-1],
+            "y1": dataset.y.values[0],
+            "y2": dataset.y.values[-1],
+            "yorigin": "lower",
+        }
         if not pass_geodata:
             geodata = None
         ax = plot_precip_field(fields[-1], geodata=geodata)
-        oflow_method = motion.get_method("LK")
-        UV = oflow_method(fields)
+        UV = np.stack([dataset.velocity_x.values, dataset.velocity_y.values])
 
     else:
         shape = (100, 100)
@@ -78,12 +88,23 @@ def test_visualization_motionfields_streamplot(
 ):
     pytest.importorskip("cv2")
     if source is not None:
-        fields, geodata = get_precipitation_fields(0, 2, False, True, upscale, source)
-        if not pass_geodata:
-            pass_geodata = None
-        ax = plot_precip_field(fields[-1], geodata=geodata)
+        dataset = get_precipitation_fields(0, 2, False, upscale, source)
         oflow_method = motion.get_method("LK")
-        UV = oflow_method(fields)
+        dataset = oflow_method(dataset)
+        precip_var = dataset.attrs["precip_var"]
+        fields = dataset[precip_var].values
+        geodata = {
+            "projection": dataset.attrs["projection"],
+            "x1": dataset.x.values[0],
+            "x2": dataset.x.values[-1],
+            "y1": dataset.y.values[0],
+            "y2": dataset.y.values[-1],
+            "yorigin": "lower",
+        }
+        if not pass_geodata:
+            geodata = None
+        ax = plot_precip_field(fields[-1], geodata=geodata)
+        UV = np.stack([dataset.velocity_x.values, dataset.velocity_y.values])
 
     else:
         shape = (100, 100)

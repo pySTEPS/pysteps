@@ -1,10 +1,12 @@
 import numpy as np
 import pytest
 
+from tempfile import NamedTemporaryFile
 from pysteps import io
 from pysteps.tests.helpers import get_precipitation_fields
+import xarray as xr
 
-precip, metadata = get_precipitation_fields(
+precip_dataset = get_precipitation_fields(
     num_prev_files=1,
     num_next_files=0,
     return_raw=False,
@@ -12,36 +14,57 @@ precip, metadata = get_precipitation_fields(
     upscale=2000,
 )
 
+# XR: The following lines are currently needed as we don't have a dedicated xarray writer, mayve we should fix the xarray reader to disallow non types in attrs and to store datetime units as encoding instead of attributes
+precip_dataset.time.encoding = {"units": precip_dataset.time.attrs["units"]}
+del precip_dataset.time.attrs["units"]
+
+precip_var = precip_dataset.attrs["precip_var"]
+precip_dataarray = precip_dataset[precip_var]
+
+zeros = np.zeros(precip_dataarray.shape, dtype=np.float32)
+
+zero_dataset = xr.Dataset(
+    data_vars={
+        "precip_intensity": (
+            ("time", "y", "x"),
+            zeros,
+            {
+                "long_name": "Precipitation intensity",
+                "units": "mm hr-1",  # keep attrs simple types, no None
+                "_FillValue": np.float32(-9999),  # valid NetCDF fill value
+                # omit standard_name unless you have a CF-valid value
+            },
+        )
+    },
+    coords={
+        "time": ("time", precip_dataarray["time"].values),
+        "y": ("y", precip_dataarray["y"].values),
+        "x": ("x", precip_dataarray["x"].values),
+    },
+    attrs={"precip_var": "precip_intensity"},  # simple, serializable globals
+)
+
 
 @pytest.mark.parametrize(
-    "precip, metadata",
-    [(precip, metadata), (np.zeros_like(precip), metadata)],
+    "precip_dataset",
+    [(precip_dataset), (zero_dataset)],
 )
-def test_import_netcdf(precip, metadata, tmp_path):
+def test_import_netcdf(precip_dataset):
+    # XR: this test might not make that much sense in the future
+    with NamedTemporaryFile() as tempfile:
+        precip_var = precip_dataset.attrs["precip_var"]
+        precip_dataarray = precip_dataset[precip_var]
+        field_shape = (precip_dataarray.shape[1], precip_dataarray.shape[2])
 
-    pytest.importorskip("pyproj")
+        precip_dataset.to_netcdf(tempfile.name)
+        precip_netcdf = io.import_netcdf_pysteps(tempfile.name, dtype="float64")
 
-    field_shape = (precip.shape[1], precip.shape[2])
-    startdate = metadata["timestamps"][-1]
-    timestep = metadata["accutime"]
-    exporter = io.exporters.initialize_forecast_exporter_netcdf(
-        outpath=tmp_path.as_posix(),
-        outfnprefix="test",
-        startdate=startdate,
-        timestep=timestep,
-        n_timesteps=precip.shape[0],
-        shape=field_shape,
-        metadata=metadata,
-    )
-    io.exporters.export_forecast_dataset(precip, exporter)
-    io.exporters.close_forecast_files(exporter)
-
-    tmp_file = tmp_path / "test.nc"
-    precip_netcdf, metadata_netcdf = io.import_netcdf_pysteps(tmp_file, dtype="float64")
-
-    assert isinstance(precip_netcdf, np.ndarray)
-    assert isinstance(metadata_netcdf, dict)
-    assert precip_netcdf.ndim == precip.ndim, "Wrong number of dimensions"
-    assert precip_netcdf.shape[0] == precip.shape[0], "Wrong number of lead times"
-    assert precip_netcdf.shape[1:] == field_shape, "Wrong field shape"
-    assert np.allclose(precip_netcdf, precip)
+        assert isinstance(precip_netcdf, xr.Dataset)
+        assert (
+            precip_netcdf[precip_var].ndim == precip_dataarray.ndim
+        ), "Wrong number of dimensions"
+        assert (
+            precip_netcdf[precip_var].shape[0] == precip_dataarray.shape[0]
+        ), "Wrong number of lead times"
+        assert precip_netcdf[precip_var].shape[1:] == field_shape, "Wrong field shape"
+        assert np.allclose(precip_netcdf[precip_var].values, precip_dataarray.values)

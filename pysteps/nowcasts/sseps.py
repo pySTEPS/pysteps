@@ -21,12 +21,14 @@ size.
 import time
 
 import numpy as np
+import xarray as xr
 from scipy.ndimage import generate_binary_structure, iterate_structure
 
 from pysteps import cascade, extrapolation, noise
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 from pysteps.utils.check_norain import check_norain
 
 try:
@@ -38,9 +40,7 @@ except ImportError:
 
 
 def forecast(
-    precip,
-    metadata,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
     n_ens_members=24,
     n_cascade_levels=6,
@@ -75,18 +75,14 @@ def forecast(
 
     Parameters
     ----------
-    precip: array-like
-        Array of shape (ar_order+1,m,n) containing the input precipitation fields
-        ordered by timestamp from oldest to newest. The time steps between the inputs
-        are assumed to be regular, and the inputs are required to have finite values.
-    metadata: dict
-        Metadata dictionary containing the accutime, xpixelsize, threshold and
-        zerovalue attributes as described in the documentation of
-        :py:mod:`pysteps.io.importers`. xpixelsize is assumed to be in meters.
-    velocity: array-like
-        Array of shape (2,m,n) containing the x- and y-components of the advection
-        field. The velocities are assumed to represent one time step between the
-        inputs. All values are required to be finite.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as any precipitation data variable.
+        The units and stepsize of ``y`` and ``x`` have to be the same and the only supported
+        units are meters and kilometers. The time dimension of the dataset has to be size
+        ``ar_order + 1`` and the precipitation variable has to have this dimension. All
+        velocity values are required to be finite.
     win_size: int or two-element sequence of ints
         Size-length of the localization window.
     overlap: float [0,1[
@@ -178,12 +174,15 @@ def forecast(
 
     Returns
     -------
-    out: ndarray
-        If return_output is True, a four-dimensional array of shape
-        (n_ens_members,num_timesteps,m,n) containing a time series of forecast
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
         precipitation fields for each ensemble member. Otherwise, a None value
         is returned. The time series starts from t0+timestep, where timestep is
-        taken from the input precipitation fields.
+        taken from the metadata of the time coordinate. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast dataset, the
+        initialization time of the nowcast generator and the time used in the
+        main loop (seconds).
 
     See also
     --------
@@ -198,7 +197,20 @@ def forecast(
     ----------
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`NBSG2017`
     """
+    timesteps_in = timesteps
+    x_units = dataset["x"].attrs["units"]
+    y_units = dataset["y"].attrs["units"]
+    x_stepsize = dataset["x"].attrs["stepsize"]
+    y_stepsize = dataset["y"].attrs["stepsize"]
+    if x_units != y_units or x_stepsize != y_stepsize:
+        raise ValueError("units and stepsize needs to be the same for x and y")
+    if x_units not in ["m", "km"]:
+        raise ValueError("only m and km supported as x and y units")
 
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    precip = dataset[precip_var].values
+    velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
     _check_inputs(precip, velocity, timesteps, ar_order)
 
     if extrap_kwargs is None:
@@ -234,8 +246,10 @@ def forecast(
     else:
         win_size = tuple([int(win_size[i]) for i in range(2)])
 
-    timestep = metadata["accutime"]
-    kmperpixel = metadata["xpixelsize"] / 1000
+    timestep = dataset["time"].attrs["stepsize"] / 60
+    kmperpixel = x_stepsize
+    if x_units == "m":
+        kmperpixel = kmperpixel / 1000
 
     print("Computing SSEPS nowcast")
     print("-----------------------")
@@ -289,8 +303,8 @@ def forecast(
             f"velocity perturbations, perpendicular: {vp_perp[0]},{vp_perp[1]},{vp_perp[2]}"
         )
 
-    precip_thr = metadata["threshold"]
-    precip_min = metadata["zerovalue"]
+    precip_thr = dataset[precip_var].attrs["threshold"]
+    precip_min = dataset[precip_var].attrs["zerovalue"]
 
     num_ensemble_workers = n_ens_members if num_workers > n_ens_members else num_workers
 
@@ -926,10 +940,12 @@ def forecast(
 
     if return_output:
         outarr = np.stack([np.stack(precip_forecast[j]) for j in range(n_ens_members)])
+        output_dataset = convert_output_to_xarray_dataset(dataset, timesteps_in, outarr)
+
         if measure_time:
-            return outarr, init_time, mainloop_time
+            return output_dataset, init_time, mainloop_time
         else:
-            return outarr
+            return output_dataset
     else:
         return None
 

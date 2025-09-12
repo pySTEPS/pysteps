@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
-from pysteps.visualization import plot_precip_field
-from pysteps.utils import conversion
-from pysteps.postprocessing import ensemblestats
-from pysteps.tests.helpers import get_precipitation_fields
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
+
+from pysteps.postprocessing import ensemblestats
+from pysteps.tests.helpers import get_precipitation_fields
+from pysteps.utils import conversion
+from pysteps.visualization import plot_precip_field
 
 plt_arg_names = (
     "source",
@@ -41,20 +41,23 @@ def test_visualization_plot_precip_field(
     source, plot_type, bbox, colorscale, probthr, title, colorbar, axis
 ):
     if plot_type == "intensity":
-        field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
-        field = field.squeeze()
-        field, metadata = conversion.to_rainrate(field, metadata)
+        dataset = get_precipitation_fields(0, 0, True, None, source)
+        dataset = conversion.to_rainrate(dataset)
 
     elif plot_type == "depth":
-        field, metadata = get_precipitation_fields(0, 0, True, True, None, source)
-        field = field.squeeze()
-        field, metadata = conversion.to_raindepth(field, metadata)
+        dataset = get_precipitation_fields(0, 0, True, None, source)
+        dataset = conversion.to_raindepth(dataset)
 
     elif plot_type == "prob":
-        field, metadata = get_precipitation_fields(0, 10, True, True, None, source)
-        field, metadata = conversion.to_rainrate(field, metadata)
+        dataset = get_precipitation_fields(0, 10, True, None, source)
+        dataset = conversion.to_rainrate(dataset)
+
+    precip_var = dataset.attrs["precip_var"]
+    field = dataset[precip_var].values
+    if plot_type == "prob":
         field = ensemblestats.excprob(field, probthr)
 
+    field = field.squeeze()
     field_orig = field.copy()
     ax = plot_precip_field(
         field.copy(),
@@ -63,7 +66,7 @@ def test_visualization_plot_precip_field(
         geodata=None,
         colorscale=colorscale,
         probthr=probthr,
-        units=metadata["unit"],
+        units=dataset[precip_var].attrs["units"],
         title=title,
         colorbar=colorbar,
         axis=axis,

@@ -16,12 +16,12 @@ This tests check that the retrieved motion fields are within reasonable values.
 Also, they will fail if any modification on the code decrease the quality of
 the retrieval.
 """
-
 from contextlib import contextmanager
+from functools import partial
 
 import numpy as np
 import pytest
-from functools import partial
+import xarray as xr
 from scipy.ndimage import uniform_filter
 
 import pysteps as stp
@@ -38,7 +38,10 @@ def not_raises(_exception):
         raise pytest.fail("DID RAISE {0}".format(_exception))
 
 
-reference_field = get_precipitation_fields(num_prev_files=0)
+reference_dataset = get_precipitation_fields(num_prev_files=0)
+precip_var = reference_dataset.attrs["precip_var"]
+reference_data = reference_dataset[precip_var].values[0][::-1]
+reference_field = np.ma.masked_array(reference_data, reference_data == -15.0)
 
 
 def _create_motion_field(input_precip, motion_type):
@@ -208,6 +211,18 @@ def test_optflow_method_convergence(
     ideal_motion, precip_obs = _create_observations(
         input_precip.copy(), motion_type, num_times=num_times
     )
+    precip_data = precip_obs.data
+    dataset = xr.Dataset(
+        data_vars={
+            precip_var: (
+                ["time", "y", "x"],
+                precip_data,
+                reference_dataset[precip_var].attrs,
+            )
+        },
+        coords={**dict(reference_dataset.coords), "time": np.arange(num_times)},
+        attrs={**reference_dataset.attrs},
+    )
 
     oflow_method = motion.get_method(optflow_method_name)
 
@@ -217,15 +232,18 @@ def test_optflow_method_convergence(
         # To increase the stability of the tests to we increase this value to
         # maxiter=150.
         retrieved_motion = oflow_method(
-            precip_obs, verbose=False, options=dict(maxiter=150)
+            dataset, verbose=False, options=dict(maxiter=150)
         )
     elif optflow_method_name == "proesmans":
-        retrieved_motion = oflow_method(precip_obs)
+        retrieved_motion = oflow_method(dataset)
     else:
-        retrieved_motion = oflow_method(precip_obs, verbose=False)
+        retrieved_motion = oflow_method(dataset, verbose=False)
 
-    precip_data, _ = stp.utils.dB_transform(precip_obs.max(axis=0), inverse=True)
-    precip_data.data[precip_data.mask] = 0
+    precip_dataset = stp.utils.dB_transform(
+        dataset.max(dim="time", keep_attrs=True), inverse=True
+    )
+    precip_data = precip_dataset[precip_var].values
+    precip_data[np.isnan(precip_dataset[precip_var].values)] = 0
 
     precip_mask = (uniform_filter(precip_data, size=20) > 0.1) & ~precip_obs.mask.any(
         axis=0
@@ -236,7 +254,8 @@ def test_optflow_method_convergence(
     # Relative MSE = < (expected_motion - computed_motion)^2 > / <expected_motion^2 >
     # Relative RMSE = sqrt(Relative MSE)
 
-    mse = ((ideal_motion - retrieved_motion)[:, precip_mask] ** 2).mean()
+    motion_array = np.stack([retrieved_motion.velocity_x, retrieved_motion.velocity_y])
+    mse = ((ideal_motion - motion_array)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
     rel_rmse = np.sqrt(rel_mse) * 100
@@ -280,8 +299,13 @@ def test_no_precipitation(optflow_method_name, num_times):
     if optflow_method_name == "lk":
         pytest.importorskip("cv2")
     zero_precip = np.zeros((num_times,) + reference_field.shape)
+    dataset = xr.Dataset(
+        data_vars={precip_var: (["time", "y", "x"], zero_precip)},
+        coords={**dict(reference_dataset.coords), "time": np.arange(num_times)},
+        attrs=reference_dataset.attrs,
+    )
     motion_method = motion.get_method(optflow_method_name)
-    uv_motion = motion_method(zero_precip, verbose=False)
+    uv_motion = motion_method(dataset, verbose=False)
 
     assert np.abs(uv_motion).max() < 0.01
 
@@ -313,15 +337,70 @@ def test_input_shape_checks(
 
     with not_raises(Exception):
         for frames in range(minimum_input_frames, maximum_input_frames + 1):
-            motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
+            dataset = xr.Dataset(
+                data_vars={
+                    precip_var: (
+                        ["time", "y", "x"],
+                        np.zeros((frames, image_size, image_size)),
+                    )
+                },
+                coords={
+                    "time": np.arange(frames),
+                    "y": np.arange(image_size),
+                    "x": np.arange(image_size),
+                },
+                attrs=reference_dataset.attrs,
+            )
+            motion_method(dataset, verbose=False)
 
     with pytest.raises(ValueError):
-        motion_method(np.zeros((2,)))
+        motion_method(
+            xr.Dataset(
+                data_vars={precip_var: (["time"], np.zeros((2,)))},
+                coords={"time": np.arange(2)},
+                attrs=reference_dataset.attrs,
+            )
+        )
+        motion_method(
+            xr.Dataset(
+                data_vars={precip_var: (["y", "x"], np.zeros((2, 2)))},
+                coords={"y": np.arange(2), "x": np.arange(2)},
+                attrs=reference_dataset.attrs,
+            )
+        )
         motion_method(np.zeros((2, 2)))
         for frames in range(minimum_input_frames):
-            motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
+            dataset = xr.Dataset(
+                data_vars={
+                    precip_var: (
+                        ["time", "y", "x"],
+                        np.zeros((frames, image_size, image_size)),
+                    )
+                },
+                coords={
+                    "time": np.arange(frames),
+                    "y": np.arange(image_size),
+                    "x": np.arange(image_size),
+                },
+                attrs=reference_dataset.attrs,
+            )
+            motion_method(dataset, verbose=False)
         for frames in range(maximum_input_frames + 1, maximum_input_frames + 4):
-            motion_method(np.zeros((frames, image_size, image_size)), verbose=False)
+            dataset = xr.Dataset(
+                data_vars={
+                    precip_var: (
+                        ["time", "y", "x"],
+                        np.zeros((frames, image_size, image_size)),
+                    )
+                },
+                coords={
+                    "time": np.arange(frames),
+                    "y": np.arange(image_size),
+                    "x": np.arange(image_size),
+                },
+                attrs=reference_dataset.attrs,
+            )
+            motion_method(dataset, verbose=False)
 
 
 def test_vet_padding():
@@ -333,9 +412,16 @@ def test_vet_padding():
     _, precip_obs = _create_observations(
         reference_field.copy(), "linear_y", num_times=2
     )
+    precip_data = precip_obs.data
+    precip_data[precip_obs.mask] = np.nan
+    dataset = xr.Dataset(
+        data_vars={precip_var: (["time", "y", "x"], precip_data)},
+        coords={**dict(reference_dataset.coords), "time": [0, 1]},
+        attrs=reference_dataset.attrs,
+    )
 
     # Use a small region to speed up the test
-    precip_obs = precip_obs[:, 200:427, 250:456]
+    dataset = dataset.isel(y=slice(200, 427), x=slice(250, 456))
     # precip_obs.shape == (227 , 206)
     # 227 is a prime number ; 206 = 2*103
     # Using this shape will force vet to internally pad the input array for the sector's
@@ -354,8 +440,10 @@ def test_vet_padding():
             # we don't care about convergence in this test
         )
 
-        assert precip_obs.shape == vet_method(precip_obs).shape
-        assert precip_obs.shape == vet_method(np.ma.masked_invalid(precip_obs)).shape
+        assert (
+            dataset[precip_var].values.shape
+            == vet_method(dataset)[precip_var].values.shape
+        )
 
 
 def test_vet_cost_function():
@@ -383,7 +471,7 @@ def test_vet_cost_function():
             ideal_motion.shape[1:],  # blocks_shape (same as 2D grid)
             mask_2d,  # Mask
             1e6,  # smooth_gain
-            debug=False,
+            debug=True,
         )
 
     tolerance = 1e-12
@@ -408,11 +496,21 @@ def test_lk_masked_array():
     np.ma.set_fill_value(precip_obs, -15)
     ndarray = precip_obs.filled()
     ndarray[ndarray == -15] = np.nan
-    uv_ndarray = motion_method(ndarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
+    dataset = xr.Dataset(
+        data_vars={precip_var: (["time", "y", "x"], ndarray)},
+        coords={**dict(reference_dataset.coords), "time": [0, 1]},
+        attrs=reference_dataset.attrs,
+    )
+    uv_ndarray = motion_method(dataset, fd_kwargs={"buffer_mask": 20}, verbose=False)
 
     # masked array
     mdarray = np.ma.masked_invalid(ndarray)
     mdarray.data[mdarray.mask] = -15
-    uv_mdarray = motion_method(mdarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
+    dataset = xr.Dataset(
+        data_vars={precip_var: (["time", "y", "x"], ndarray)},
+        coords={**dict(reference_dataset.coords), "time": [0, 1]},
+        attrs=reference_dataset.attrs,
+    )
+    uv_mdarray = motion_method(dataset, fd_kwargs={"buffer_mask": 20}, verbose=False)
 
     assert np.abs(uv_mdarray - uv_ndarray).max() < 0.01

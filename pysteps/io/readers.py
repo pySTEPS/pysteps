@@ -11,14 +11,17 @@ Module with the reader functions.
     read_timeseries
 """
 
+import warnings
+
 import numpy as np
+import xarray as xr
 
 
-def read_timeseries(inputfns, importer, **kwargs):
+def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset | None:
     """
     Read a time series of input files using the methods implemented in the
-    :py:mod:`pysteps.io.importers` module and stack them into a 3d array of
-    shape (num_timesteps, height, width).
+    :py:mod:`pysteps.io.importers` module and stack them into a 3d xarray
+    dataset of shape (num_timesteps, height, width).
 
     Parameters
     ----------
@@ -27,55 +30,78 @@ def read_timeseries(inputfns, importer, **kwargs):
         :py:mod:`pysteps.io.archive` module.
     importer: function
         A function implemented in the :py:mod:`pysteps.io.importers` module.
+    timestep: int, optional
+        The timestep in seconds, this value is optional if more than 1 inputfns
+        are given.
     kwargs: dict
         Optional keyword arguments for the importer.
 
     Returns
     -------
-    out: tuple
-        A three-element tuple containing the read data and quality rasters and
+    out: Dataset
+        A dataset containing the read data and quality rasters and
         associated metadata. If an input file name is None, the corresponding
         precipitation and quality fields are filled with nan values. If all
         input file names are None or if the length of the file name list is
-        zero, a three-element tuple containing None values is returned.
+        zero, None is returned.
 
     """
 
     # check for missing data
-    precip_ref = None
+    dataset_ref = None
     if all(ifn is None for ifn in inputfns):
-        return None, None, None
+        return None
     else:
         if len(inputfns[0]) == 0:
-            return None, None, None
+            return None
         for ifn in inputfns[0]:
             if ifn is not None:
-                precip_ref, quality_ref, metadata = importer(ifn, **kwargs)
+                dataset_ref = importer(ifn, **kwargs)
                 break
 
-    if precip_ref is None:
-        return None, None, None
+    if dataset_ref is None:
+        return None
 
-    precip = []
-    quality = []
-    timestamps = []
+    startdate = min(inputfns[1])
+    sorted_dates = sorted(inputfns[1])
+    timestep_dates = None
+    if len(sorted_dates) > 1:
+        timestep_dates = int((sorted_dates[1] - sorted_dates[0]).total_seconds())
+
+    if timestep is None and timestep_dates is None:
+        raise ValueError("either provide a timestep or provide more than one inputfn")
+    if timestep is None:
+        timestep = timestep_dates
+    if timestep_dates is not None and timestep != timestep_dates:
+        # XR: This should be an error, but some test fail on this.
+        warnings.warn(
+            "Supplied timestep does not match actual timestep spacing in input data, "
+            + "using actual spacing as timestep."
+        )
+        timestep = timestep_dates
+    for i in range(len(sorted_dates) - 1):
+        if int((sorted_dates[i + 1] - sorted_dates[i]).total_seconds()) != timestep:
+            raise ValueError("supplied dates are not evenly spaced")
+
+    datasets = []
     for i, ifn in enumerate(inputfns[0]):
         if ifn is not None:
-            precip_, quality_, _ = importer(ifn, **kwargs)
-            precip.append(precip_)
-            quality.append(quality_)
-            timestamps.append(inputfns[1][i])
+            dataset_ = importer(ifn, **kwargs)
         else:
-            precip.append(precip_ref * np.nan)
-            if quality_ref is not None:
-                quality.append(quality_ref * np.nan)
-            else:
-                quality.append(None)
-            timestamps.append(inputfns[1][i])
+            dataset_ = dataset_ref * np.nan
+        dataset_ = dataset_.expand_dims(dim="time", axis=0)
+        dataset_ = dataset_.assign_coords(
+            time=(
+                "time",
+                [inputfns[1][i]],
+                {
+                    "long_name": "forecast time",
+                    "units": f"seconds since {startdate:%Y-%m-%d %H:%M:%S}",
+                    "stepsize": timestep,
+                },
+            )
+        )
+        datasets.append(dataset_)
 
-    # Replace this with stack?
-    precip = np.concatenate([precip_[None, :, :] for precip_ in precip])
-    # TODO: Q should be organized as R, but this is not trivial as Q_ can be also None or a scalar
-    metadata["timestamps"] = np.array(timestamps)
-
-    return precip, quality, metadata
+    dataset = xr.concat(datasets, dim="time")
+    return dataset

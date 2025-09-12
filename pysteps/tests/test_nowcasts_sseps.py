@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from pysteps import motion, nowcasts, verification
 from pysteps.tests.helpers import get_precipitation_fields
@@ -18,8 +19,8 @@ sseps_arg_names = (
 )
 
 sseps_arg_values = [
-    (5, 6, 2, "incremental", "cdf", 200, 3, 0.60),
-    (5, 6, 2, "incremental", "cdf", 200, [3], 0.60),
+    (5, 6, 2, "incremental", "cdf", 200, 3, 0.62),
+    (5, 6, 2, "incremental", "cdf", 200, [3], 0.62),
 ]
 
 
@@ -27,22 +28,61 @@ def test_default_sseps_norain():
     """Tests SSEPS nowcast with default params and all-zero inputs."""
 
     # Define dummy nowcast input data
-    precip_input = np.zeros((3, 100, 100))
-    metadata = {
-        "accutime": 5,
-        "xpixelsize": 1000,
-        "threshold": 0.1,
-        "zerovalue": 0,
-    }
+    dataset_input = xr.Dataset(
+        data_vars={
+            "precip_intensity": (
+                ["time", "y", "x"],
+                np.zeros((3, 100, 100)),
+                {
+                    "units": "mm/h",
+                    "accutime": 5,
+                    "threshold": 0.1,
+                    "zerovalue": 0,
+                },
+            )
+        },
+        coords={
+            "time": (
+                ["time"],
+                np.arange(3.0) * 5.0,
+                {
+                    "long_name": "forecast time",
+                    "units": "seconds since 1970-01-01 00:00:00",
+                    "stepsize": 5.0,
+                },
+            ),
+            "y": (
+                ["y"],
+                np.arange(100.0) * 1000.0,
+                {
+                    "axis": "X",
+                    "long_name": "x-coordinate in Cartesian system",
+                    "standard_name": "projection_x_coordinate",
+                    "units": "m",
+                    "stepsize": 1000.0,
+                },
+            ),
+            "x": (
+                ["x"],
+                np.arange(100.0) * 1000.0,
+                {
+                    "axis": "X",
+                    "long_name": "x-coordinate in Cartesian system",
+                    "standard_name": "projection_x_coordinate",
+                    "units": "m",
+                    "stepsize": 1000.0,
+                },
+            ),
+        },
+        attrs={"precip_var": "precip_intensity"},
+    )
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(precip_input)
+    retrieved_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("sseps")
     precip_forecast = nowcast_method(
-        precip_input,
-        metadata,
         retrieved_motion,
         n_ens_members=3,
         timesteps=3,
@@ -67,32 +107,29 @@ def test_sseps(
 ):
     """Tests SSEPS nowcast."""
     # inputs
-    precip_input, metadata = get_precipitation_fields(
+    dataset_input = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
         metadata=True,
         upscale=2000,
     )
-    precip_input = precip_input.filled()
+    precip_var = dataset_input.attrs["precip_var"]
 
-    precip_obs = get_precipitation_fields(
+    dataset_obs = get_precipitation_fields(
         num_prev_files=0, num_next_files=3, return_raw=False, upscale=2000
-    )[1:, :, :]
-    precip_obs = precip_obs.filled()
+    ).isel(time=slice(1, None, None))
 
     pytest.importorskip("cv2")
     oflow_method = motion.get_method("LK")
-    retrieved_motion = oflow_method(precip_input)
+    dataset_w_motion = oflow_method(dataset_input)
 
     nowcast_method = nowcasts.get_method("sseps")
 
-    precip_forecast = nowcast_method(
-        precip_input,
-        metadata,
-        retrieved_motion,
+    dataset_forecast = nowcast_method(
+        dataset_w_motion,
+        timesteps,
         win_size=win_size,
-        timesteps=timesteps,
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         ar_order=ar_order,
@@ -100,6 +137,7 @@ def test_sseps(
         mask_method=mask_method,
         probmatching_method=probmatching_method,
     )
+    precip_forecast = dataset_forecast[precip_var].values
 
     assert precip_forecast.ndim == 4
     assert precip_forecast.shape[0] == n_ens_members
@@ -107,7 +145,9 @@ def test_sseps(
         timesteps if isinstance(timesteps, int) else len(timesteps)
     )
 
-    crps = verification.probscores.CRPS(precip_forecast[:, -1], precip_obs[-1])
+    crps = verification.probscores.CRPS(
+        precip_forecast[:, -1], dataset_obs[precip_var].values[-1]
+    )
     assert crps < max_crps, f"CRPS={crps:.2f}, required < {max_crps:.2f}"
 
 
