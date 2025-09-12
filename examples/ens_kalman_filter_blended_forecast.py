@@ -35,10 +35,9 @@ import pysteps_nwp_importers
 # https://github.com/pySTEPS/pysteps-nwp-importers.
 
 # Selected case
-date_radar = datetime.strptime("202506041700", "%Y%m%d%H%M")
-# The last NWP forecast was issued at 16:00 (using the issue time of 16:00
-# ensures that the first time step is at 17:00 - similar to the radar data.
-# This is purely for simplifying the code in this example.)
+date_radar = datetime.strptime("202506041645", "%Y%m%d%H%M")
+# The last NWP forecast was issued at 16:00 - the blending tool will be able
+# to find the correct lead times itself.
 date_nwp = datetime.strptime("202506041600", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["dwd"]
 nwp_data_source = rcparams.data_sources["dwd_nwp"]
@@ -64,7 +63,7 @@ fns = io.find_by_date(
     fn_pattern,
     fn_ext,
     timestep_radar,
-    num_prev_files=3,
+    num_prev_files=2,
 )
 
 # Read the radar composites (which are already in mm/h)
@@ -100,9 +99,15 @@ log_thr_prec = 10.0 * np.log10(prec_thr)
 log_thr_min = 10.0 * np.log10(zerovalue)
 
 # Reproject the DWD ICON NWP data onto a regular grid
-nwp_metadata["clon"] = nwp_metadata["longitude"].values
-nwp_metadata["clat"] = nwp_metadata["latitude"].values
-nwp_precip = nwp_precip.values
+nwp_metadata["clon"] = nwp_precip["longitude"].values
+nwp_metadata["clat"] = nwp_precip["latitude"].values
+# We change the time step from the DWD NWP data to 15 min (it is actually 5 min)
+# to have a longer forecast horizon available for this example, as pysteps_data
+# only contains 1 hour of DWD forecast data (to minimize storage).
+nwp_metadata["accutime"] = 15.0
+nwp_precip = (
+    nwp_precip.values * 3.0
+)  # (to account for the change in time step from 5 to 15 min)
 
 # Reproject ID2 data onto a regular grid
 nwp_precip_rprj, nwp_metadata_rprj = (
@@ -116,7 +121,7 @@ converter = pysteps.utils.get_method("mm/h")
 radar_precip, radar_metadata = converter(
     radar_precip, radar_metadata
 )  # The radar data should already be in mm/h
-nwp_precip_rprj, nwp_metadata_rprj = converter(nwp_precip, nwp_metadata)
+nwp_precip_rprj, nwp_metadata_rprj = converter(nwp_precip_rprj, nwp_metadata_rprj)
 
 # Threshold the data
 radar_precip[radar_precip < prec_thr] = 0.0
@@ -136,7 +141,7 @@ plot_precip_field(
 plt.subplot(122)
 plot_precip_field(
     nwp_precip_rprj[0, 0, :, :],
-    geodata=nwp_metadata,
+    geodata=nwp_metadata_rprj,
     title=f"NWP forecast at {date_str}",
     colorscale="STEPS-NL",
 )
@@ -180,7 +185,10 @@ timestamps_radar = np.array(
 )
 timestamps_nwp = np.array(
     sorted(
-        [date_nwp + timedelta(minutes=i * 5) for i in range(len(nwp_precip_rprj[0]))]
+        [
+            date_nwp + timedelta(minutes=i * int(nwp_metadata_rprj["accutime"]))
+            for i in range(nwp_precip_rprj.shape[0])
+        ]
     )
 )
 
@@ -210,7 +218,7 @@ precip_forecast = blending_method(
     nwp_precip=nwp_precip_rprj,  # NWP in dBR
     nwp_timestamps=timestamps_nwp,  # NWP timestamps
     velocity=velocity_radar,  # Velocity vector field
-    forecast_horizon=240,  # Forecast length (horizon) in minutes
+    forecast_horizon=120,  # Forecast length (horizon) in minutes - only a short forecast horizon due to the limited dataset length stored here.
     issuetime=date_radar,  # Forecast issue time as datetime object
     n_ens_members=20,  # No. of ensemble members
     precip_mask_dilation=1,  # Dilation of precipitation mask in grid boxes
@@ -246,7 +254,7 @@ nwp_precip, _ = converter(nwp_precip_rprj, nwp_metadata_rprj)
 
 fig = plt.figure(figsize=(5, 12))
 
-leadtimes_min = [30, 60, 90, 120, 150, 180, 240]
+leadtimes_min = [15, 30, 45, 60, 90, 120]
 n_leadtimes = len(leadtimes_min)
 for n, leadtime in enumerate(leadtimes_min):
     # Nowcast with blending into NWP
@@ -263,8 +271,8 @@ for n, leadtime in enumerate(leadtimes_min):
     # Raw NWP forecast
     plt.subplot(n_leadtimes, 2, n * 2 + 2)
     plot_precip_field(
-        nwp_precip[0, int(leadtime / timestep_radar) - 1, :, :],
-        geodata=nwp_metadata,
+        nwp_precip[0, int(leadtime / int(nwp_metadata_rprj["accutime"])) - 1, :, :],
+        geodata=nwp_metadata_rprj,
         title=f"NWP +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
