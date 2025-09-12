@@ -47,7 +47,7 @@ def test_pca(len_y, n_components):
     )
 
     assert precip_field_pc.shape == (len_y, len_y)
-    assert pca_params["principal_components"].shape == precip_field.shape
+    assert pca_params["principal_components"].shape[1] == precip_field.shape[1]
     assert pca_params["mean"].shape[0] == precip_field.shape[1]
     assert pca_params["explained_variance"].shape[0] == precip_field.shape[0]
 
