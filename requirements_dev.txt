@@ -1,5 +1,5 @@
 # Base dependencies
-python>=3.11
+python>=3.10
 numpy
 opencv-python
 pillow
@@ -16,6 +16,7 @@ pyfftw
 cartopy>=0.18
 h5py
 scikit-image
+scikit-learn
 pandas
 rasterio
 
