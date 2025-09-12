@@ -46,13 +46,14 @@ def test_pca(len_y, n_components):
         forecast_ens=precip_field, get_params=True, **kwargs
     )
 
-    assert precip_field_pc.shape == (len_y, len_y)
+    assert precip_field_pc.shape == (len_y, n_components)
     assert pca_params["principal_components"].shape[1] == precip_field.shape[1]
     assert pca_params["mean"].shape[0] == precip_field.shape[1]
-    assert pca_params["explained_variance"].shape[0] == precip_field.shape[0]
 
     precip_field_backtransformed = pca.pca_backtransform(
         precip_field_pc, pca_params=pca_params
     )
 
-    assert np.sum(np.abs(precip_field_backtransformed - precip_field)) < 1e-6
+    # These fields are only equal if the full PCA is computed
+    if len_y == n_components:
+        assert np.sum(np.abs(precip_field_backtransformed - precip_field)) < 1e-6

@@ -1334,6 +1334,13 @@ class EnKFCombinationNowcaster:
             # If full NWP weight is reached, set pure NWP ensemble forecast in combined
             # forecast output
             if is_full_nwp_weight:
+
+                # Set t_corr to the first available NWP data timestep and that is 0
+                try:
+                    t_corr
+                except NameError:
+                    t_corr = 0
+
                 print(f"Full NWP weight is reached for lead time + {fc_leadtime} min")
                 if is_correction_timestep:
                     t_corr = np.where(
