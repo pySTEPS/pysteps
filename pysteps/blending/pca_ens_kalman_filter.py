@@ -897,7 +897,7 @@ class EnKFCombinationNowcaster:
         nwp_precip: np.ndarray
             Array of shape (n_ens,n_times,m,n) containing the (NWP) ensemble model
             forecast.
-        nwp_timesteps: np.ndarray
+        nwp_timestamps: np.ndarray
             Array of shape (n_times) containing the corresponding time stamps of the
             (NWP) ensemble model forecast as datetime objects.
         obs_velocity: np.ndarray
@@ -1061,9 +1061,11 @@ class EnKFCombinationNowcaster:
                 f"nwp_timestamps length: {NWP_timestamps_len}"
                 f"nwp_precip shape:      {NWP_shape}"
             )
+
         # Ensure that model has shape: [n_ens_members, t, y, x]
         # n_ens_members and t can sometimes be swapped when using grib datasets.
-        if NWP_shape[1] == self.__config.n_ens_members:
+        # Check for temporal resolution of NWP data
+        if NWP_shape[0] == NWP_timestamps_len:
             self.__nwp_precip = self.__nwp_precip.swapaxes(0, 1)
 
         # Check dimensions of obs velocity
@@ -1491,7 +1493,7 @@ def forecast(
     nwp_precip: np.ndarray
         Array of shape (n_ens,n_times,m,n) containing the (NWP) ensemble model
         forecast.
-    nwp_timesteps: np.ndarray
+    nwp_timestamps: np.ndarray
         Array of shape (n_times) containing the corresponding time stamps of the
         (NWP) ensemble model forecast as datetime objects.
     velocity: np.ndarray
