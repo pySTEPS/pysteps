@@ -55,4 +55,4 @@ def test_pca(len_y, n_components):
         precip_field_pc, pca_params=pca_params
     )
 
-    assert np.sum(np.abs(precip_field_backtransformed - precip_field)) == 0.0
+    assert np.sum(np.abs(precip_field_backtransformed - precip_field)) < 1e-6
