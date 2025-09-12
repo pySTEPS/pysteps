@@ -51,7 +51,7 @@
             "path_fmt": "%Y%m%d",
             "fn_pattern": "%Y%m%d%H%M_FINUTM",
             "fn_ext": "tif",
-            "importer": "geotiff",
+            "importer": "fmi_geotiff",
             "timestep": 5,
             "importer_kwargs": {}
         },

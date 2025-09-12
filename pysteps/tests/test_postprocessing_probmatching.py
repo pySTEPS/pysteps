@@ -8,7 +8,6 @@ from pysteps.postprocessing.probmatching import (
 
 
 class TestResampleDistributions:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         # Set the seed for reproducibility

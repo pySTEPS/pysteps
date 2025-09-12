@@ -12,7 +12,6 @@ precip_dataset = get_precipitation_fields(
     metadata=True,
     source="dwd",
     log_transform=False,
-    importer_kwargs=dict(qty="RATE"),
 )
 
 precip_var = precip_dataset.attrs["precip_var"]
@@ -54,7 +53,7 @@ test_ry_attrs = [
         None,
     ),
     (precip_dataarray.attrs["accutime"], 5.0, 1e-10),
-    (precip_dataset.time.attrs["stepsize"], 5.0, 1e-10),
+    (precip_dataset.time.attrs["stepsize"], 300, 1e-10),
     (precip_dataarray.attrs["units"], "mm/h", None),
     (precip_dataarray.attrs["transform"], None, None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),

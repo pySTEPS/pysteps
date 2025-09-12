@@ -1,38 +1,23 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 
-import pysteps
+import xarray as xr
+from pysteps.tests.helpers import get_precipitation_fields
 
 
 def test_read_timeseries_mch():
-    pytest.importorskip("PIL")
-
-    date = datetime.strptime("201505151630", "%Y%m%d%H%M")
-    data_source = pysteps.rcparams.data_sources["mch"]
-    root_path = data_source["root_path"]
-    path_fmt = data_source["path_fmt"]
-    fn_pattern = data_source["fn_pattern"]
-    fn_ext = data_source["fn_ext"]
-    importer_name = data_source["importer"]
-    importer_kwargs = data_source["importer_kwargs"]
-    timestep = data_source["timestep"]
-
-    fns = pysteps.io.archive.find_by_date(
-        date,
-        root_path,
-        path_fmt,
-        fn_pattern,
-        fn_ext,
-        timestep=timestep,
+    precip_dataset = get_precipitation_fields(
         num_prev_files=1,
         num_next_files=1,
+        return_raw=True,
+        metadata=True,
+        source="mch",
+        log_transform=False,
     )
 
-    importer = pysteps.io.get_method(importer_name, "importer")
-    precip, _, metadata = pysteps.io.read_timeseries(fns, importer, **importer_kwargs)
+    precip_var = precip_dataset.attrs["precip_var"]
+    precip_dataarray = precip_dataset[precip_var]
 
-    assert isinstance(precip, np.ndarray)
-    assert isinstance(metadata, dict)
-    assert precip.shape[0] == 3
+    assert isinstance(precip_dataset, xr.Dataset)
+    assert precip_dataarray.shape[0] == 3
