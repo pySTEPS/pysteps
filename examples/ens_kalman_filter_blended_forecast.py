@@ -271,7 +271,7 @@ for n, leadtime in enumerate(leadtimes_min):
     # Raw NWP forecast
     plt.subplot(n_leadtimes, 2, n * 2 + 2)
     plot_precip_field(
-        nwp_precip[0, int(leadtime / int(nwp_metadata_rprj["accutime"])) - 1, :, :],
+        nwp_precip[int(leadtime / int(nwp_metadata_rprj["accutime"])) - 1, 0, :, :],
         geodata=nwp_metadata_rprj,
         title=f"NWP +{leadtime} min",
         axis="off",
