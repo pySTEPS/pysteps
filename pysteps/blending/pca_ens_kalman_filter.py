@@ -1061,7 +1061,9 @@ class EnKFCombinationNowcaster:
                 f"nwp_timestamps length: {NWP_timestamps_len}"
                 f"nwp_precip shape:      {NWP_shape}"
             )
-        if NWP_shape[0] == NWP_timestamps_len:
+        # Ensure that model has shape: [n_ens_members, t, y, x]
+        # n_ens_members and t can sometimes be swapped when using grib datasets.
+        if NWP_shape[1] == self.__config.n_ens_members:
             self.__nwp_precip = self.__nwp_precip.swapaxes(0, 1)
 
         # Check dimensions of obs velocity
