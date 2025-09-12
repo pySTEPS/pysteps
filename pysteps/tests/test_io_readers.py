@@ -1,10 +1,8 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 
-import pysteps
-
+import xarray as xr
 from pysteps.tests.helpers import get_precipitation_fields
 
 
@@ -21,9 +19,5 @@ def test_read_timeseries_mch():
     precip_var = precip_dataset.attrs["precip_var"]
     precip_dataarray = precip_dataset[precip_var]
 
-    importer = pysteps.io.get_method(importer_name, "importer")
-    precip, _, metadata = pysteps.io.read_timeseries(fns, importer, **importer_kwargs)
-
-    assert isinstance(precip, np.ndarray)
-    assert isinstance(metadata, dict)
-    assert precip.shape[0] == 3
+    assert isinstance(precip_dataset, xr.Dataset)
+    assert precip_dataarray.shape[0] == 3
