@@ -1303,9 +1303,6 @@ class EnKFCombinationNowcaster:
 
         self.__params.extrapolation_kwargs["return_displacement"] = True
         is_correction_timestep = False
-        # Set t_corr to 0 to compute the precip mask with the first NWP fields
-        # Afterwards, the NWP fields closest in the future are used
-        t_corr = 0
 
         for t, fc_leadtime in enumerate(self.__forecast_leadtimes):
             if self.__config.measure_time:
@@ -1343,70 +1340,18 @@ class EnKFCombinationNowcaster:
             # Otherwise compute the combined forecast.
             else:
                 print(f"Computing combination for lead time + {fc_leadtime} min")
-                # If the temporal resolution of the NWP data is equal to those of the
-                # observation, the correction step can be applied after the forecast
-                # step for the current forecast leadtime.
-                # However, if the temporal resolution is different, the correction step
-                # has to be applied before the forecast step to avoid smoothing effects
-                # in the resulting precipitation fields.
-                if is_correction_timestep:
-                    t_corr = np.where(
-                        self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
-                    )[0][0]
-
-                    self.FS.nwc_prediction, self.FS.fc_resampled = (
-                        self.KalmanFilterModel.correct_step(
-                            self.FS.nwc_prediction,
-                            self.__nwp_precip[:, t_corr],
-                            self.FS.fc_resampled,
-                        )
-                    )
-
-                # Run nowcasting time step
-                if is_nowcasting_timestep:
-
-                    def worker(j):
-
-                        self.FC_Models[j].run_forecast_step(
-                            nwp=self.__nwp_precip[j, t_corr],
-                            is_correction_timestep=is_correction_timestep,
-                        )
-
-                    dask_worker_collection = []
-
-                    if DASK_IMPORTED and self.__config.n_ens_members > 1:
-                        for j in range(self.__config.n_ens_members):
-                            dask_worker_collection.append(dask.delayed(worker)(j))
-                        dask.compute(
-                            *dask_worker_collection,
-                            num_workers=self.__params.num_ensemble_workers,
-                        )
-                    else:
-                        for j in range(self.__config.n_ens_members):
-                            worker(j)
-
-                    dask_worker_collection = None
+                self.__forecast_loop(t, is_correction_timestep, is_nowcasting_timestep)
 
             # Apply back transformation
             for FC_Model in self.FC_Models.values():
                 FC_Model.backtransform()
 
+            self.__write_output()
+
             if self.__config.measure_time:
                 _ = self.__measure_time("timestep", starttime)
             else:
                 print("...done.")
-
-            if (
-                self.__config.callback is not None
-                and self.FS.nwc_prediction_btf.shape[1] > 0
-            ):
-                self.__config.callback(self.FS.nwc_prediction_btf)
-
-            if self.__config.return_output:
-
-                self.FS.final_combined_forecast.append(
-                    self.FS.nwc_prediction_btf.copy()
-                )
 
         if self.__config.measure_time:
             self.__mainloop_time = time.time() - starttime_mainloop
@@ -1415,6 +1360,70 @@ class EnKFCombinationNowcaster:
             )
 
         return
+
+    def __forecast_loop(self, t, is_correction_timestep, is_nowcasting_timestep):
+
+        # If the temporal resolution of the NWP data is equal to those of the
+        # observation, the correction step can be applied after the forecast
+        # step for the current forecast leadtime.
+        # However, if the temporal resolution is different, the correction step
+        # has to be applied before the forecast step to avoid smoothing effects
+        # in the resulting precipitation fields.
+        if is_correction_timestep:
+            t_corr = np.where(
+                self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
+            )[0][0]
+
+            self.FS.nwc_prediction, self.FS.fc_resampled = (
+                self.KalmanFilterModel.correct_step(
+                    self.FS.nwc_prediction,
+                    self.__nwp_precip[:, t_corr],
+                    self.FS.fc_resampled,
+                )
+            )
+
+        # Run nowcasting time step
+        if is_nowcasting_timestep:
+
+            # Set t_corr to the first available NWP data timestep and that is 0
+            try:
+                t_corr
+            except NameError:
+                t_corr = 0
+
+            def worker(j):
+
+                self.FC_Models[j].run_forecast_step(
+                    nwp=self.__nwp_precip[j, t_corr],
+                    is_correction_timestep=is_correction_timestep,
+                )
+
+            dask_worker_collection = []
+
+            if DASK_IMPORTED and self.__config.n_ens_members > 1:
+                for j in range(self.__config.n_ens_members):
+                    dask_worker_collection.append(dask.delayed(worker)(j))
+                dask.compute(
+                    *dask_worker_collection,
+                    num_workers=self.__params.num_ensemble_workers,
+                )
+            else:
+                for j in range(self.__config.n_ens_members):
+                    worker(j)
+
+            dask_worker_collection = None
+
+    def __write_output(self):
+
+        if (
+            self.__config.callback is not None
+            and self.FS.nwc_prediction_btf.shape[1] > 0
+        ):
+            self.__config.callback(self.FS.nwc_prediction_btf)
+
+        if self.__config.return_output:
+
+            self.FS.final_combined_forecast.append(self.FS.nwc_prediction_btf.copy())
 
     def __measure_time(self, label, start_time):
         """

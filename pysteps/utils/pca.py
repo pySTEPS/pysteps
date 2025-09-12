@@ -168,13 +168,12 @@ def pca_backtransform(forecast_ens_pc: np.ndarray, pca_params: dict):
         raise KeyError("Output is not None but has no key 'mean'!")
 
     # Check whether PC and forecast_ens_pc have the correct shape
-    if forecast_ens_pc.shape[0] != pca_params["principal_components"].shape[0]:
+    if forecast_ens_pc.shape[1] != pca_params["principal_components"].shape[0]:
         raise ValueError("pca mean has not the same length as the input array!")
 
     # Transform forecast_ens_pc back into physical space.
     forecast_ens = (
-        np.dot(forecast_ens_pc.T, pca_params["principal_components"])
-        + pca_params["mean"]
+        np.dot(forecast_ens_pc, pca_params["principal_components"]) + pca_params["mean"]
     )
 
     return forecast_ens
