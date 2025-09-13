@@ -553,6 +553,80 @@ def estimate_ar_params_yw_localized(gamma, d=0):
     return list(phi_out.reshape(np.hstack([[len(phi_out)], gamma[0].shape])))
 
 
+# optimized version of timeseries.autoregression.estimate_ar_params_yw_localized
+# for an ARI(1,d) model
+def estimate_ar1_params_yw_localized(gamma, d):
+    """
+    Estimate AR(1) parameters for a given autocorrelation structure.
+
+    Parameters:
+    - gamma (np.ndarray): The autocorrelation coefficients for the time series.
+    - d (int): The differencing order (0 for AR, 1 for ARI).
+
+    Returns:
+    - phi (np.ndarray): Estimated AR(1) parameters.
+    """
+    phi = []
+    phi1 = gamma[0, :]
+    phi0 = np.sqrt(np.maximum(1.0 - phi1**2, 0))
+
+    if d == 0:
+        # AR(1,0) model (no differencing)
+        phi.append(phi1)
+        # Noise term
+        phi.append(phi0)
+
+    elif d == 1:
+        # ARI(1,1) model (first differenced)
+        phi1_d = 1 + phi1
+        phi2_d = -phi1
+        phi.append(phi1_d)
+        phi.append(phi2_d)
+        # Noise term
+        phi.append(phi0)
+
+    return np.array(phi)
+
+
+# for an ARI(2,d) model
+def estimate_ar2_params_yw_localized(gamma, d):
+    """
+    Estimate AR(2) parameters for a given autocorrelation structure.
+
+    Parameters:
+    - gamma (np.ndarray): The autocorrelation coefficients for the time series.
+    - d (int): The differencing order (0 for AR, 1 for ARI).
+
+    Returns:
+    - phi (np.ndarray): Estimated AR(2) parameters.
+    """
+    phi = []
+    g1 = gamma[0, :]
+    g2 = gamma[1, :]
+    phi1 = (g1 * (1.0 - g2)) / (1.0 - g1**2)
+    phi2 = (g2 - g1**2) / (1.0 - g1**2)
+    phi0 = np.sqrt(np.maximum(1.0 - phi1 * g1 - phi2 * g2, 0))
+
+    if d == 0:
+        # AR(2,0) model (no differencing)
+        phi.append(phi1)
+        phi.append(phi2)
+        # Noise term
+        phi.append(phi0)
+    elif d == 1:
+        # ARI(2,1) model (first differenced)
+        phi1_d = 1 + phi1
+        phi2_d = phi2 - phi1
+        phi3_d = -phi2
+        phi.append(phi1_d)
+        phi.append(phi2_d)
+        phi.append(phi3_d)
+        # Noise term
+        phi.append(phi0)
+
+    return np.array(phi)
+
+
 def estimate_var_params_ols(
     x, p, d=0, check_stationarity=True, include_constant_term=False, h=0, lam=0.0
 ):
