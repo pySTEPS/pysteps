@@ -17,7 +17,6 @@ test_data_to_rainrate = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -33,7 +32,6 @@ test_data_to_rainrate = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -51,7 +49,6 @@ test_data_to_rainrate = [
                     np.array([1.0]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -67,7 +64,6 @@ test_data_to_rainrate = [
                     np.array([12.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 12.0,
                         "zerovalue": 12.0,
@@ -101,7 +97,6 @@ test_data_to_rainrate = [
                     np.array([1.25892541]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.25892541,
                         "zerovalue": 0.0,
@@ -135,7 +130,6 @@ test_data_to_rainrate = [
                     np.array([15.10710494]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 15.10710494,
                         "zerovalue": 0.0,
@@ -169,7 +163,6 @@ test_data_to_rainrate = [
                     np.array([0.04210719]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 0.04210719,
                         "zerovalue": 0.0,
@@ -203,7 +196,6 @@ test_data_to_rainrate = [
                     np.array([2.71828183]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 2.71828183,
                         "zerovalue": 0.0,
@@ -237,7 +229,6 @@ test_data_to_rainrate = [
                     np.array([32.61938194]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 32.61938194,
                         "zerovalue": 0.0,
@@ -271,7 +262,6 @@ test_data_to_rainrate = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -305,7 +295,6 @@ test_data_to_rainrate = [
                     np.array([12.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 12.0,
                         "zerovalue": 12.0,
@@ -335,7 +324,6 @@ test_data_to_raindepth = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -351,7 +339,6 @@ test_data_to_raindepth = [
                     np.array([0.08333333]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 0.08333333,
                         "zerovalue": 0.08333333,
@@ -369,7 +356,6 @@ test_data_to_raindepth = [
                     np.array([1.0]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -385,7 +371,6 @@ test_data_to_raindepth = [
                     np.array([1.0]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -419,7 +404,6 @@ test_data_to_raindepth = [
                     np.array([0.10491045]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 0.10491045,
                         "zerovalue": 0.0,
@@ -453,7 +437,6 @@ test_data_to_raindepth = [
                     np.array([1.25892541]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.25892541,
                         "zerovalue": 0.0,
@@ -487,7 +470,6 @@ test_data_to_raindepth = [
                     np.array([0.00350893]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 0.00350893,
                         "zerovalue": 0.0,
@@ -521,7 +503,6 @@ test_data_to_raindepth = [
                     np.array([0.22652349]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 0.22652349,
                         "zerovalue": 0.0,
@@ -555,7 +536,6 @@ test_data_to_raindepth = [
                     np.array([0.08333333]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 0.08333333,
                         "zerovalue": 0.08333333,
@@ -589,7 +569,6 @@ test_data_to_raindepth = [
                     np.array([1.0]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -619,7 +598,6 @@ test_data_to_reflectivity = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,
@@ -653,7 +631,6 @@ test_data_to_reflectivity = [
                     np.array([1.0]),
                     {
                         "units": "mm",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1.0,
                         "zerovalue": 1.0,

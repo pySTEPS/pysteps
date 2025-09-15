@@ -38,7 +38,6 @@ test_attrs = [
     (precip_dataarray.attrs["accutime"], 5.0, 1e-10),
     (precip_dataset.time.attrs["stepsize"], 300, 1e-10),
     (precip_dataarray.attrs["units"], "mm", None),
-    (precip_dataarray.attrs["transform"], None, None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
     (precip_dataarray.attrs["threshold"], 0.0008258007600496956, 1e-19),
     (precip_dataarray.attrs["zr_a"], 316.0, None),

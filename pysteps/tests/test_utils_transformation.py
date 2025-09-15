@@ -16,7 +16,6 @@ test_data_boxcox_transform = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": np.e,
                         "zerovalue": 0,
@@ -74,7 +73,6 @@ test_data_boxcox_transform = [
                     np.array([np.exp(1.0)]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": np.e,
                         "zerovalue": 0,
@@ -92,7 +90,6 @@ test_data_boxcox_transform = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": np.e,
                         "zerovalue": 0,
@@ -150,7 +147,6 @@ test_data_boxcox_transform = [
                     np.array([0.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": np.e,
                         "zerovalue": 0,
@@ -185,7 +181,6 @@ test_data_dB_transform = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1,
                         "zerovalue": 1,
@@ -241,7 +236,6 @@ test_data_dB_transform = [
                     np.array([1.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 1,
                         "zerovalue": 0,
@@ -273,7 +267,6 @@ test_data_NQ_transform = [
                     np.array([1.0, 2.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 0,
                         "zerovalue": 0,
@@ -320,7 +313,6 @@ test_data_sqrt_transform = [
                     np.array([1.0, 4.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 4,
                         "zerovalue": 0,
@@ -372,7 +364,6 @@ test_data_sqrt_transform = [
                     np.array([1.0, 4.0]),
                     {
                         "units": "mm/h",
-                        "transform": None,
                         "accutime": 5,
                         "threshold": 4,
                         "zerovalue": 0,

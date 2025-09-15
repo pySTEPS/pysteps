@@ -66,6 +66,7 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 
 # XR: Move this to appropriate place
+# XR: Add means, stds cascade level and decomposition attributes
 The data and metadata is then postprocessed into an xarray dataset. This dataset will
 always contain an x and y dimension, but can be extended with a time dimension and/or
 an ensemble member dimension over the course of the process.
@@ -214,6 +215,7 @@ from matplotlib.pyplot import imread
 from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 try:
     from osgeo import gdal, gdalconst, osr
@@ -538,7 +540,6 @@ def _import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         ypixelsize=ysize,
         unit="mm/h",
         accutime=2.0,
-        transform=None,
         zerovalue=0,
         projection=proj_def.strip(),
         yorigin="upper",
@@ -550,7 +551,7 @@ def _import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         cartesian_unit="degrees",
     )
 
-    return precip, None, metadata
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 @postprocess_import()
@@ -581,7 +582,6 @@ def import_bom_rf3(filename, **kwargs):
     precip, geodata = _import_bom_rf3_data(filename)
     metadata = geodata
 
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
 
@@ -1021,7 +1021,8 @@ def import_knmi_hdf5(
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
-    metadata["transform"] = transform
+    if transform is not None:
+        metadata["transform"] = transform
     metadata["zerovalue"] = 0.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 200.0
@@ -1152,7 +1153,6 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
 
     metadata["accutime"] = accutime
     metadata["unit"] = unit
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["institution"] = "MeteoSwiss"
@@ -1285,11 +1285,11 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
             "institution": "MeteoSwiss",
             "accutime": 5.0,
             "unit": unit,
-            "transform": transform,
             "zerovalue": np.nanmin(precip),
             "threshold": thr,
             "zr_a": 316.0,
             "zr_b": 1.5,
+            **({"transform": transform} if transform is not None else {}),
         }
     )
 
@@ -1365,7 +1365,6 @@ def import_mch_metranet(filename, product, unit, accutime):
     metadata["institution"] = "MeteoSwiss"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 316.0
@@ -1621,9 +1620,9 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         "institution": "Odyssey datacentre",
         "accutime": 15.0,
         "unit": unit,
-        "transform": transform,
         "zerovalue": np.nanmin(precip),
         "threshold": _get_threshold_value(precip),
+        **({"transform": transform} if transform is not None else {}),
     }
 
     metadata.update(kwargs)
@@ -1723,7 +1722,6 @@ def import_saf_crri(filename, extent=None, **kwargs):
 
     precip, quality = _import_saf_crri_data(filename, idx_x, idx_y)
 
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
 

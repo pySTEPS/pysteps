@@ -92,7 +92,6 @@ test_odyssey_attrs = [
     # ("yorigin", "upper", None),
     (precip_odyssey_dataarray.attrs["units"], "mm/h", None),
     (precip_odyssey.attrs["institution"], "Odyssey datacentre", None),
-    (precip_odyssey_dataarray.attrs["transform"], None, None),
     (precip_odyssey_dataarray.attrs["zerovalue"], 0.0, 1e-6),
     (precip_odyssey_dataarray.attrs["threshold"], 0.01, 1e-6),
 ]
@@ -153,7 +152,6 @@ test_nimbus_rain_rate_attrs = [
     (precip_nimbus_rain_rate_dataarray.attrs["accutime"], 15.0, 1e-10),
     (precip_nimbus_rain_rate_dataarray.attrs["units"], "mm/h", None),
     (precip_nimbus_rain_rate.attrs["institution"], "Odyssey datacentre", None),
-    (precip_nimbus_rain_rate_dataarray.attrs["transform"], None, None),
     (precip_nimbus_rain_rate_dataarray.attrs["zerovalue"], 0.0, 1e-10),
     (precip_nimbus_rain_rate_dataarray.attrs["threshold"], 0.01, 1e-10),
 ]
@@ -185,7 +183,6 @@ test_nimbus_rain_accum_attrs = [
     (precip_nimbus_rain_accum_dataarray.attrs["accutime"], 15.0, 1e-10),
     (precip_nimbus_rain_accum_dataarray.attrs["units"], "mm", None),
     (precip_nimbus_rain_accum.attrs["institution"], "Odyssey datacentre", None),
-    (precip_nimbus_rain_accum_dataarray.attrs["transform"], None, None),
     (precip_nimbus_rain_accum_dataarray.attrs["zerovalue"], 0.0, 1e-10),
     (precip_nimbus_rain_accum_dataarray.attrs["threshold"], 0.01, 1e-10),
 ]

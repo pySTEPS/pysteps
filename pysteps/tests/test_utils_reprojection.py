@@ -57,12 +57,12 @@ def build_precip_dataset(
         name=precip_var_name,
         attrs={
             "units": units,
-            "transform": transform_attr,
             "accutime": float(accutime_min),
             "threshold": float(threshold),
             "zerovalue": float(zerovalue),
             "zr_a": float(zr_a),
             "zr_b": float(zr_b),
+            **({"transform": transform_attr} if transform_attr is not None else {}),
         },
     )
 

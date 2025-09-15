@@ -94,11 +94,8 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
             time=(
                 "time",
                 [inputfns[1][i]],
-                {
-                    "long_name": "forecast time",
-                    "units": f"seconds since {startdate:%Y-%m-%d %H:%M:%S}",
-                    "stepsize": timestep,
-                },
+                {"long_name": "forecast time", "stepsize": timestep},
+                {"units": f"seconds since {startdate:%Y-%m-%d %H:%M:%S}"},
             )
         )
         datasets.append(dataset_)
