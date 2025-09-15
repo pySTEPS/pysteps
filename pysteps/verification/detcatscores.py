@@ -18,7 +18,7 @@ forecasts.
 
 import collections
 import numpy as np
-from pfss.pysteps.verification.spatialscores import smooth_fields, normalize_forecast_obs
+from pysteps.verification.spatialscores import smooth_fields, normalize_forecast_obs
 
 def det_cat_fct(pred, obs, thr, scores="", axis=None):
     """
