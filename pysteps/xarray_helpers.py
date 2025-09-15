@@ -19,13 +19,38 @@ import numpy.typing as npt
 import pyproj
 import xarray as xr
 
-from pysteps.utils.conversion import cf_parameters_from_unit
 
 # TODO(converters): Write methods for converting Proj.4 projection definitions
 # into CF grid mapping attributes. Currently this has been implemented for
 # the stereographic projection.
 # The conversions implemented here are take from:
 # https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
+
+
+def cf_parameters_from_unit(unit: str) -> tuple[str, dict[str, str | None]]:
+    if unit == "mm/h":
+        var_name = "precip_intensity"
+        var_standard_name = "instantaneous_precipitation_rate"
+        var_long_name = "instantaneous precipitation rate"
+        var_unit = "mm/h"
+    elif unit == "mm":
+        var_name = "precip_accum"
+        var_standard_name = "accumulated_precipitation"
+        var_long_name = "accumulated precipitation"
+        var_unit = "mm"
+    elif unit == "dBZ":
+        var_name = "reflectivity"
+        var_long_name = "equivalent reflectivity factor"
+        var_standard_name = "equivalent_reflectivity_factor"
+        var_unit = "dBZ"
+    else:
+        raise ValueError(f"unknown unit {unit}")
+
+    return var_name, {
+        "standard_name": var_standard_name,
+        "long_name": var_long_name,
+        "units": var_unit,
+    }
 
 
 def _convert_proj4_to_grid_mapping(proj4str):

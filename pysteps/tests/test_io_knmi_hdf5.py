@@ -39,8 +39,8 @@ test_attrs = [
     (precip_dataset.x.attrs["stepsize"], 1000.0, 1e-10),
     (precip_dataset.y.attrs["stepsize"], 1000.0, 1e-10),
     (precip_dataarray.attrs["accutime"], 5.0, 1e-10),
-    (precip_dataset.time.attrs["stepsize"], 5.0, 1e-10),
-    (precip_dataarray.attrs["units"], "mm/h", None),
+    (precip_dataset.time.attrs["stepsize"], 300, 1e-10),
+    (precip_dataarray.attrs["units"], "mm", None),
     (precip_dataset.x.attrs["units"], "m", None),
     (precip_dataset.y.attrs["units"], "m", None),
     (

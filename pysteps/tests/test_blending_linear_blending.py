@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
 import numpy as np
 import pytest
 from pysteps.blending.linear_blending import forecast, _get_ranked_salience, _get_ws
 from numpy.testing import assert_array_almost_equal
 from pysteps.utils import transformation
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 # Test function arguments
 linear_arg_values = [
@@ -218,30 +220,68 @@ def test_linear_blending(
         for i in range(100, 200):
             r_input[:, i, :] = 11.0
     else:
-        r_input = np.zeros((200, 200))
+        r_input = np.zeros((1, 200, 200))
         for i in range(100, 200):
-            r_input[i, :] = 11.0
+            r_input[0, i, :] = 11.0
 
-    # Transform from mm/h to dB
-    r_input, _ = transformation.dB_transform(
-        r_input, None, threshold=0.1, zerovalue=-15.0
+    metadata = dict()
+    metadata["unit"] = "mm/h"
+    metadata["cartesian_unit"] = "km"
+    metadata["accutime"] = 5.0
+    metadata["zerovalue"] = 0.0
+    metadata["threshold"] = 0.01
+    metadata["zr_a"] = 200.0
+    metadata["zr_b"] = 1.6
+    metadata["x1"] = 0.0
+    metadata["x2"] = 200.0
+    metadata["y1"] = 0.0
+    metadata["y2"] = 200.0
+    metadata["yorigin"] = "lower"
+    metadata["institution"] = "test"
+    metadata["projection"] = (
+        "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 +lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+    )
+    radar_dataset = convert_input_to_xarray_dataset(
+        r_input,
+        None,
+        metadata,
+        datetime.fromisoformat("2021-07-04T11:50:00.000000000"),
+        300,
     )
 
+    # Transform from mm/h to dB
+    radar_dataset = transformation.dB_transform(
+        radar_dataset, threshold=0.1, zerovalue=-15.0
+    )
+    if V is not None:
+        radar_dataset["velocity_x"] = (["y", "x"], V[0])
+        radar_dataset["velocity_y"] = (["y", "x"], V[1])
+
+    if r_nwp is None:
+        model_dataset = None
+    else:
+        model_dataset = convert_input_to_xarray_dataset(
+            r_nwp,
+            None,
+            metadata,
+            datetime.fromisoformat("2021-07-04T11:50:00.000000000"),
+            300,
+        )
+
     # Calculate the blended field
-    r_blended = forecast(
-        r_input,
-        dict({"unit": "mm/h", "transform": "dB"}),
-        V,
+    blended_dataset = forecast(
+        radar_dataset,
         n_timesteps,
         timestep,
         nowcast_method,
-        r_nwp,
-        dict({"unit": "mm/h"}),
+        model_dataset,
         start_blending=start_blending,
         end_blending=end_blending,
         fill_nwp=fill_nwp,
         saliency=salient_blending,
     )
+    blended_precip_var = blended_dataset.attrs["precip_var"]
+    r_blended = blended_dataset[blended_precip_var].values
 
     # Assert that the blended field has the expected dimension
     if n_models > 1:

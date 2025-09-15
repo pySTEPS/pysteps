@@ -1,82 +1,129 @@
 # -*- coding: utf-8 -*-
 
-import os
-
-import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
+from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
-import pysteps
+precip_dataset = get_precipitation_fields(
+    num_prev_files=0,
+    num_next_files=0,
+    return_raw=True,
+    metadata=True,
+    source="mrms",
+    log_transform=False,
+    window_size=1,
+)
 
-pytest.importorskip("pygrib")
+print(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
+precip_dataarray = precip_dataset[precip_var]
 
 
 def test_io_import_mrms_grib():
     """Test the importer for NSSL data."""
+    assert precip_dataarray.shape == (1, 3500, 7000)
+    assert precip_dataarray.dtype == "single"
 
-    root_path = pysteps.rcparams.data_sources["mrms"]["root_path"]
-    filename = os.path.join(
-        root_path, "2019/06/10/", "PrecipRate_00.00_20190610-000000.grib2"
-    )
-    precip, _, metadata = pysteps.io.import_mrms_grib(filename, fillna=0, window_size=1)
 
-    assert precip.shape == (3500, 7000)
-    assert precip.dtype == "single"
+expected_proj = "+proj=longlat  +ellps=IAU76"
 
-    expected_metadata = {
-        "institution": "NOAA National Severe Storms Laboratory",
-        "xpixelsize": 0.01,
-        "ypixelsize": 0.01,
-        "unit": "mm/h",
-        "zerovalue": 0,
-        "projection": "+proj=longlat  +ellps=IAU76",
-        "yorigin": "upper",
-        "threshold": 0.1,
-        "x1": -129.99999999999997,
-        "x2": -60.00000199999991,
-        "y1": 20.000001,
-        "y2": 55.00000000000001,
-        "cartesian_unit": "degrees",
-    }
+# list of (variable,expected,tolerance) tuples
+test_attrs = [
+    (precip_dataset.attrs["projection"], expected_proj, None),
+    (
+        precip_dataset.attrs["institution"],
+        "NOAA National Severe Storms Laboratory",
+        None,
+    ),
+    (precip_dataarray.attrs["units"], "mm/h", None),
+    (precip_dataarray.attrs["transform"], None, None),
+    (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
+    (precip_dataarray.attrs["threshold"], 0.1, 1e-10),
+    (precip_dataset.x.isel(x=0).values, -129.995, 1e-10),
+    (precip_dataset.y.isel(y=0).values, 20.005001, 1e-10),
+    (precip_dataset.x.isel(x=-1).values, -60.005002, 1e-10),
+    (precip_dataset.y.isel(y=-1).values, 54.995, 1e-10),
+    (precip_dataset.x.attrs["stepsize"], 0.01, 1e-4),
+    (precip_dataset.y.attrs["stepsize"], 0.01, 1e-4),
+    (precip_dataset.x.attrs["units"], "degrees", None),
+    (precip_dataset.y.attrs["units"], "degrees", None),
+]
 
-    for key, value in expected_metadata.items():
-        if isinstance(value, float):
-            assert_array_almost_equal(metadata[key], expected_metadata[key])
-        else:
-            assert metadata[key] == expected_metadata[key]
 
-    x = np.arange(metadata["x1"], metadata["x2"], metadata["xpixelsize"])
-    y = np.arange(metadata["y1"], metadata["y2"], metadata["ypixelsize"])
+@pytest.mark.parametrize("variable, expected, tolerance", test_attrs)
+def test_io_import_mrms_grib_dataset_attrs(variable, expected, tolerance):
+    """Test the importer MRMS_GRIB."""
+    smart_assert(variable, expected, tolerance)
 
-    assert y.size == precip.shape[0]
-    assert x.size == precip.shape[1]
 
-    # The full latitude range is (20.005, 54.995)
-    # The full longitude range is (230.005, 299.995)
+def test_io_import_mrms_grib_dataset_extent():
+    """Test the importer MRMS_GRIB."""
 
-    # Test that if the bounding box is larger than the domain, all the points are returned.
-    precip2, _, _ = pysteps.io.import_mrms_grib(
-        filename, fillna=0, extent=(220, 300, 20, 55), window_size=1
-    )
-    assert precip2.shape == (3500, 7000)
-
-    assert_array_almost_equal(precip, precip2)
-
-    del precip2
-
-    # Test that a portion of the domain is returned correctly
-    precip3, _, _ = pysteps.io.import_mrms_grib(
-        filename, fillna=0, extent=(250, 260, 30, 35), window_size=1
+    precip_dataset_smaller = get_precipitation_fields(
+        num_prev_files=0,
+        num_next_files=0,
+        return_raw=True,
+        metadata=True,
+        source="mrms",
+        log_transform=False,
+        extent=(230, 300, 20, 55),
+        window_size=1,
     )
 
-    assert precip3.shape == (500, 1000)
-    assert_array_almost_equal(precip3, precip[2000:2500, 2000:3000])
-    del precip3
+    precip_var_smaller = precip_dataset_smaller.attrs["precip_var"]
+    precip_dataarray_smaller = precip_dataset_smaller[precip_var_smaller]
+    smart_assert(precip_dataarray_smaller.shape, (1, 3500, 7000), None)
+    assert_array_almost_equal(precip_dataarray.values, precip_dataarray_smaller.values)
 
-    precip4, _, _ = pysteps.io.import_mrms_grib(filename, dtype="double", fillna=0)
-    assert precip4.dtype == "double"
-    del precip4
+    precip_dataset_even_smaller = get_precipitation_fields(
+        num_prev_files=0,
+        num_next_files=0,
+        return_raw=True,
+        metadata=True,
+        source="mrms",
+        log_transform=False,
+        extent=(250, 260, 30, 35),
+        window_size=1,
+    )
 
-    precip5, _, _ = pysteps.io.import_mrms_grib(filename, dtype="single", fillna=0)
-    assert precip5.dtype == "single"
-    del precip5
+    precip_var_even_smaller = precip_dataset_even_smaller.attrs["precip_var"]
+    precip_dataarray_even_smaller = precip_dataset_even_smaller[precip_var_even_smaller]
+    smart_assert(precip_dataarray_even_smaller.shape, (1, 500, 1000), None)
+    # XR: we had to change the selection of the original field since these is a flip happening in the way the data is read in.
+    # XR: We had two ways to solve this: precip_dataarray[:,::-1, :][:, 2000:2500, 2000:3000][:,::-1, :] or switch the 2000:2500 to
+    assert_array_almost_equal(
+        precip_dataarray.values[:, 1000:1500, 2000:3000],
+        precip_dataarray_even_smaller.values,
+    )
+
+    precip_dataset_double = get_precipitation_fields(
+        num_prev_files=0,
+        num_next_files=0,
+        return_raw=True,
+        metadata=True,
+        source="mrms",
+        log_transform=False,
+        extent=(250, 260, 30, 35),
+        window_size=1,
+        dtype="double",
+    )
+
+    precip_var_double = precip_dataset_double.attrs["precip_var"]
+    precip_dataarray_double = precip_dataset_double[precip_var_double]
+    smart_assert(precip_dataarray_double.dtype, "double", None)
+
+    precip_dataset_single = get_precipitation_fields(
+        num_prev_files=0,
+        num_next_files=0,
+        return_raw=True,
+        metadata=True,
+        source="mrms",
+        log_transform=False,
+        extent=(250, 260, 30, 35),
+        window_size=1,
+        dtype="single",
+    )
+
+    precip_var_single = precip_dataset_single.attrs["precip_var"]
+    precip_dataarray_single = precip_dataset_single[precip_var_single]
+    smart_assert(precip_dataarray_single.dtype, "single", None)

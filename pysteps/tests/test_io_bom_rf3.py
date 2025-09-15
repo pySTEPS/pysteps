@@ -5,82 +5,54 @@ import os
 import pytest
 
 import pysteps
-from pysteps.tests.helpers import smart_assert
+from pysteps.tests.helpers import smart_assert, get_precipitation_fields
 
-netCDF4 = pytest.importorskip("netCDF4")
+precip_dataset = get_precipitation_fields(
+    num_prev_files=0,
+    num_next_files=0,
+    return_raw=True,
+    metadata=True,
+    source="bom",
+    log_transform=False,
+)
+
+precip_var = precip_dataset.attrs["precip_var"]
+precip_dataarray = precip_dataset[precip_var]
+
+
+def test_io_import_bom_shape():
+    """Test the shape of the read file."""
+    assert precip_dataarray.shape == (1, 512, 512)
+
 
 # Test import_bom_rf3 function
-expected_proj1 = (
+expected_proj = (
     "+proj=aea  +lon_0=144.752 +lat_0=-37.852 " "+lat_1=-18.000 +lat_2=-36.000"
 )
 
 test_metadata_bom = [
-    ("zerovalue", 0.0, 0.1),
-    ("projection", expected_proj1, None),
-    ("unit", "mm", None),
-    ("accutime", 6, 0.1),
-    ("x1", -128000.0, 0.1),
-    ("x2", 127500.0, 0.1),
-    ("y1", -127500.0, 0.1),
-    ("y2", 128000.0, 0.1),
-    ("xpixelsize", 500.0, 0.1),
-    ("ypixelsize", 500.0, 0.1),
-    ("cartesian_unit", "m", None),
-    ("yorigin", "upper", None),
-    ("institution", "Commonwealth of Australia, Bureau of Meteorology", None),
+    (precip_dataset.attrs["projection"], expected_proj, None),
+    (
+        precip_dataset.attrs["institution"],
+        "Commonwealth of Australia, Bureau of Meteorology",
+        None,
+    ),
+    (precip_dataset.x.isel(x=0).values, -127750.0, 1e-5),
+    (precip_dataset.y.isel(y=0).values, -127250.0, 1e-5),
+    (precip_dataset.x.isel(x=-1).values, 127250.0, 1e-5),
+    (precip_dataset.y.isel(y=-1).values, 127750.0, 1e-5),
+    (precip_dataset.x.attrs["stepsize"], 500.0, 1e-4),
+    (precip_dataset.y.attrs["stepsize"], 500.0, 1e-4),
+    (precip_dataset.x.attrs["units"], "m", None),
+    (precip_dataset.y.attrs["units"], "m", None),
+    (precip_dataarray.attrs["accutime"], 6, 1e-4),
+    (precip_dataarray.attrs["transform"], None, None),
+    (precip_dataarray.attrs["zerovalue"], 0.0, 1e-4),
+    (precip_dataarray.attrs["units"], "mm", None),
 ]
 
 
 @pytest.mark.parametrize("variable, expected, tolerance", test_metadata_bom)
 def test_io_import_bom_rf3_metadata(variable, expected, tolerance):
     """Test the importer Bom RF3."""
-    root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
-    rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
-    filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
-    precip, _, metadata = pysteps.io.import_bom_rf3(filename)
-    smart_assert(metadata[variable], expected, tolerance)
-    assert precip.shape == (512, 512)
-
-
-# Test _import_bom_rf3_data function
-def test_io_import_bom_rf3_shape():
-    """Test the importer Bom RF3."""
-    root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
-    rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
-    filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
-    precip, _ = pysteps.io.importers._import_bom_rf3_data(filename)
-    assert precip.shape == (512, 512)
-
-
-# Test _import_bom_rf3_geodata function
-expected_proj2 = (
-    "+proj=aea  +lon_0=144.752 +lat_0=-37.852 " "+lat_1=-18.000 +lat_2=-36.000"
-)
-# test_geodata: list of (variable,expected,tolerance) tuples
-test_geodata_bom = [
-    ("projection", expected_proj2, None),
-    ("unit", "mm", None),
-    ("accutime", 6, 0.1),
-    ("x1", -128000.0, 0.1),
-    ("x2", 127500.0, 0.1),
-    ("y1", -127500.0, 0.1),
-    ("y2", 128000.0, 0.1),
-    ("xpixelsize", 500.0, 0.1),
-    ("ypixelsize", 500.0, 0.1),
-    ("cartesian_unit", "m", None),
-    ("yorigin", "upper", None),
-    ("institution", "Commonwealth of Australia, Bureau of Meteorology", None),
-]
-
-
-@pytest.mark.parametrize("variable, expected, tolerance", test_geodata_bom)
-def test_io_import_bom_rf3_geodata(variable, expected, tolerance):
-    """Test the importer Bom RF3."""
-    root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
-    rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
-    filename = os.path.join(root_path, rel_path, "2_20180616_100000.prcp-cscn.nc")
-    ds_rainfall = netCDF4.Dataset(filename)
-    geodata = pysteps.io.importers._import_bom_rf3_geodata(ds_rainfall)
-    smart_assert(geodata[variable], expected, tolerance)
-
-    ds_rainfall.close()
+    smart_assert(variable, expected, tolerance)

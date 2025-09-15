@@ -17,38 +17,14 @@ import warnings
 
 import xarray as xr
 
+from pysteps.xarray_helpers import cf_parameters_from_unit
+
 from . import transformation
 
 # TODO: This should not be done. Instead fix the code so that it doesn't
 # produce the warnings.
 # to deactivate warnings for comparison operators with NaNs
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-
-
-def cf_parameters_from_unit(unit: str) -> tuple[str, dict[str, str | None]]:
-    if unit == "mm/h":
-        var_name = "precip_intensity"
-        var_standard_name = "instantaneous_precipitation_rate"
-        var_long_name = "instantaneous precipitation rate"
-        var_unit = "mm/h"
-    elif unit == "mm":
-        var_name = "precip_accum"
-        var_standard_name = "accumulated_precipitation"
-        var_long_name = "accumulated precipitation"
-        var_unit = "mm"
-    elif unit == "dBZ":
-        var_name = "reflectivity"
-        var_long_name = "equivalent reflectivity factor"
-        var_standard_name = "equivalent_reflectivity_factor"
-        var_unit = "dBZ"
-    else:
-        raise ValueError(f"unknown unit {unit}")
-
-    return var_name, {
-        "standard_name": var_standard_name,
-        "long_name": var_long_name,
-        "units": var_unit,
-    }
 
 
 def _change_unit(dataset: xr.Dataset, precip_var: str, new_unit: str) -> xr.Dataset:

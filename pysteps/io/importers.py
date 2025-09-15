@@ -2021,7 +2021,6 @@ def _read_hdf5_cont(f, d):
                 }
 
         else:
-
             # Save h5py.Dataset by group name
             d[key] = np.array(value)
 
