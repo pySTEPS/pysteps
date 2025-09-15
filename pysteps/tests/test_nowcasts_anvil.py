@@ -92,7 +92,6 @@ def test_anvil_rainrate(
         num_prev_files=4,
         num_next_files=0,
         return_raw=False,
-        metadata=False,
         upscale=2000,
     )
 

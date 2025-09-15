@@ -208,11 +208,12 @@ import os
 import array
 import datetime
 from functools import partial
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 from matplotlib.pyplot import imread
 
-from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
@@ -265,6 +266,26 @@ try:
     PYGRIB_IMPORTED = True
 except ImportError:
     PYGRIB_IMPORTED = False
+
+
+def _postprocess_precip(precip, fillna=np.nan, dtype="double") -> npt.NDArray[Any]:
+    accepted_precisions = ["float32", "float64", "single", "double"]
+    if dtype not in accepted_precisions:
+        raise ValueError(
+            "The selected precision does not correspond to a valid value."
+            "The accepted values are: " + str(accepted_precisions)
+        )
+
+    if isinstance(precip, np.ma.MaskedArray):
+        invalid_mask = np.ma.getmaskarray(precip)
+        precip.data[invalid_mask] = fillna
+    else:
+        # If plain numpy arrays are used, the importers should indicate
+        # the invalid values with np.nan.
+        if fillna is not np.nan:
+            mask = ~np.isfinite(precip)
+            precip[mask] = fillna
+    return precip.astype(dtype)
 
 
 def _check_coords_range(selected_range, coordinate, full_range):
@@ -354,7 +375,9 @@ def _get_threshold_value(precip):
         return np.nan
 
 
-def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
+def import_mrms_grib(
+    filename, extent=None, window_size=4, fillna=np.nan, dtype="float32"
+):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
     ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
@@ -407,13 +430,10 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         If an integer value is given, the same block shape is used for all the
         image dimensions.
         Default: window_size=4.
-
-    Other Parameters
-    ----------------
-    dtype: str
+    dtype: str, optional
         Data-type to which the array is cast.
         Valid values:  "float32", "float64", "single", and "double".
-    fillna: float or np.nan
+    fillna: float or np.nan, optional
         Value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
 
@@ -428,33 +448,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     metadata: dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
-    dataset = _import_mrms_grib(filename, extent, window_size, **kwargs)
-    # Create a function with default arguments for aggregate_fields
-    block_reduce = partial(aggregate_fields, method="mean", trim=True)
-
-    if window_size != (1, 1):
-        # Downscale data
-        precip_var = dataset.attrs["precip_var"]
-        # block_reduce does not handle nan values
-        if "fillna" in kwargs:
-            no_data_mask = dataset[precip_var].values == kwargs["fillna"]
-        else:
-            no_data_mask = np.isnan(dataset[precip_var].values)
-        dataset[precip_var].data[no_data_mask] = 0
-        dataset["no_data_mask"] = (("y", "x"), no_data_mask)
-        dataset = block_reduce(dataset, window_size, dim=("y", "x"))
-
-        # Consider that if a single invalid observation is located in the block,
-        # then mark that value as invalid.
-        no_data_mask = dataset.no_data_mask.values == 1.0
-        dataset = dataset.drop_vars("no_data_mask")
-
-    return dataset
-
-
-@postprocess_import(dtype="float32")
-def _import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
-    del kwargs
 
     if not PYGRIB_IMPORTED:
         raise MissingOptionalDependency(
@@ -550,12 +543,31 @@ def _import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         y2=y2 + ysize / 2,
         cartesian_unit="degrees",
     )
+    precip = _postprocess_precip(precip, fillna, dtype)
 
-    return convert_input_to_xarray_dataset(precip, None, metadata)
+    precip_dataset = convert_input_to_xarray_dataset(precip, None, metadata)
+
+    if window_size != (1, 1):
+        # Create a function with default arguments for aggregate_fields
+        block_reduce = partial(aggregate_fields, method="mean", trim=True)
+        # Downscale data
+        precip_var = precip_dataset.attrs["precip_var"]
+        # block_reduce does not handle nan values
+        no_data_mask = np.isnan(precip_dataset[precip_var].values)
+        precip_dataset[precip_var].data[no_data_mask] = 0
+        precip_dataset["no_data_mask"] = (("y", "x"), no_data_mask)
+        precip_dataset = block_reduce(precip_dataset, window_size, dim=("y", "x"))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = precip_dataset.no_data_mask.values == 1.0
+        precip_dataset = precip_dataset.drop_vars("no_data_mask")
+        precip_dataset[precip_var].data[no_data_mask] = fillna
+
+    return precip_dataset
 
 
-@postprocess_import()
-def import_bom_rf3(filename, **kwargs):
+def import_bom_rf3(filename, gzipped=False, fillna=np.nan, dtype="double"):
     """
     Import a NetCDF radar rainfall product from the BoM Rainfields3.
 
@@ -563,8 +575,12 @@ def import_bom_rf3(filename, **kwargs):
     ----------
     filename: str
         Name of the file to import.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -585,7 +601,9 @@ def import_bom_rf3(filename, **kwargs):
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_bom_rf3_data(filename):
@@ -682,8 +700,7 @@ def _import_bom_rf3_geodata(ds_rainfall):
     return geodata
 
 
-@postprocess_import()
-def import_fmi_geotiff(filename, **kwargs):
+def import_fmi_geotiff(filename, fillna=np.nan, dtype="double"):
     """
     Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
 
@@ -691,8 +708,12 @@ def import_fmi_geotiff(filename, **kwargs):
     ----------
     filename: str
         Name of the file to import.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -747,11 +768,12 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-@postprocess_import()
-def import_fmi_pgm(filename, gzipped=False, **kwargs):
+def import_fmi_pgm(filename, gzipped=False, fillna=np.nan, dtype="double"):
     """
     Import a 8-bit PGM radar reflectivity composite from the FMI archive.
 
@@ -761,8 +783,12 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
         Name of the file to import.
     gzipped: bool
         If True, the input file is treated as a compressed gzip file.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -806,7 +832,9 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_fmi_pgm_geodata(metadata):
@@ -877,13 +905,8 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     return metadata
 
 
-@postprocess_import()
 def import_knmi_hdf5(
-    filename,
-    qty="ACRR",
-    accutime=5.0,
-    pixelsize=1000.0,
-    **kwargs,
+    filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, fillna=np.nan, dtype="double"
 ):
     """
     Import a precipitation or reflectivity field (and optionally the quality
@@ -905,8 +928,12 @@ def import_knmi_hdf5(
         The pixel size of a raster cell in meters. The default value for the
         KNMI datasets is a 1000 m grid cell size, but datasets with 2400 m pixel
         size are also available.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1030,11 +1057,12 @@ def import_knmi_hdf5(
 
     f.close()
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-@postprocess_import()
-def import_mch_gif(filename, product, unit, accutime, **kwargs):
+def import_mch_gif(filename, product, unit, accutime, fillna=np.nan, dtype="double"):
     """
     Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
@@ -1063,8 +1091,12 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
         the physical unit of the data
     accutime: float
         the accumulation time in minutes of the data
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1160,11 +1192,12 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-@postprocess_import()
-def import_mch_hdf5(filename, qty="RATE", **kwargs):
+def import_mch_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double"):
     """
     Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
@@ -1178,8 +1211,12 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1295,7 +1332,9 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
 
     f.close()
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _read_mch_hdf5_what_group(whatgrp):
@@ -1308,7 +1347,6 @@ def _read_mch_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-@postprocess_import()
 def import_mch_metranet(filename, product, unit, accutime):
     """
     Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
@@ -1338,8 +1376,12 @@ def import_mch_metranet(filename, product, unit, accutime):
         the physical unit of the data
     accutime: float
         the accumulation time in minutes of the data
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1370,7 +1412,9 @@ def import_mch_metranet(filename, product, unit, accutime):
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_mch_geodata():
@@ -1408,8 +1452,7 @@ def _import_mch_geodata():
     return geodata
 
 
-@postprocess_import()
-def import_odim_hdf5(filename, qty="RATE", **kwargs):
+def import_odim_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwargs):
     """
     Import a precipitation field (and optionally the quality field) from a
     HDF5 file conforming to the ODIM specification.
@@ -1426,8 +1469,12 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1629,17 +1676,19 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
 
     f.close()
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-def import_opera_hdf5(filename, qty="RATE", **kwargs):
+def import_opera_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double"):
     """
     Wrapper to :py:func:`pysteps.io.importers.import_odim_hdf5`
     to maintain backward compatibility with previous pysteps versions.
 
     **Important:** Use :py:func:`~pysteps.io.importers.import_odim_hdf5` instead.
     """
-    return import_odim_hdf5(filename, qty=qty, **kwargs)
+    return import_odim_hdf5(filename, qty, fillna, dtype)
 
 
 def _read_opera_hdf5_what_group(whatgrp):
@@ -1652,8 +1701,9 @@ def _read_opera_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-@postprocess_import()
-def import_saf_crri(filename, extent=None, **kwargs):
+def import_saf_crri(
+    filename, extent=None, gzipped=False, fillna=np.nan, dtype="double"
+):
     """
     Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
@@ -1668,8 +1718,12 @@ def import_saf_crri(filename, extent=None, **kwargs):
     extent: scalars (left, right, bottom, top), optional
         The spatial extent specified in data coordinates.
         If None, the full extent is imported.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1725,7 +1779,9 @@ def import_saf_crri(filename, extent=None, **kwargs):
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
@@ -1786,8 +1842,7 @@ def _import_saf_crri_geodata(filename):
     return geodata
 
 
-@postprocess_import()
-def import_dwd_hdf5(filename, qty="RATE", **kwargs):
+def import_dwd_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwargs):
     """
     Import a DWD precipitation product field (and optionally the quality
     field) from a HDF5 file conforming to the ODIM specification
@@ -1801,8 +1856,12 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1984,7 +2043,9 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
 
     f.close()
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _read_hdf5_cont(f, d):
@@ -2062,8 +2123,7 @@ def _get_whatgrp(d, g):
     return
 
 
-@postprocess_import()
-def import_dwd_radolan(filename, product_name):
+def import_dwd_radolan(filename, product_name, fillna=np.nan, dtype="double"):
     """
     Import a RADOLAN precipitation product from a binary file.
 
@@ -2076,8 +2136,12 @@ def import_dwd_radolan(filename, product_name):
         https://www.dwd.de/DE/leistungen/radolan/radolan_info/
         radolan_radvor_op_komposit_format_pdf.pdf
         for a detailed description.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -2160,7 +2224,9 @@ def import_dwd_radolan(filename, product_name):
     geodata = _import_dwd_geodata(product_name, dims)
     metadata = geodata
 
-    return data, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _identify_info_bits(data):

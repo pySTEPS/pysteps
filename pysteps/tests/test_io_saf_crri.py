@@ -8,7 +8,6 @@ precip_dataset = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=True,
-    metadata=True,
     source="saf",
     log_transform=False,
 )
@@ -37,7 +36,6 @@ def test_io_import_saf_crri_extent(extent, expected_extent, expected_shape, tole
         num_prev_files=0,
         num_next_files=0,
         return_raw=True,
-        metadata=True,
         source="saf",
         log_transform=False,
         extent=extent,

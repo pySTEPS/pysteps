@@ -30,7 +30,7 @@ The time step of the output is taken from the inputs.
     get_method
 """
 
-from pysteps.extrapolation.interface import eulerian_persistence
+from functools import partial
 from pysteps.nowcasts import (
     anvil,
     extrapolation,
@@ -41,9 +41,11 @@ from pysteps.nowcasts import (
 )
 from pysteps.nowcasts import lagrangian_probability
 
+eulerian_persistence = partial(extrapolation.forecast, extrap_method="eulerian")
+
 _nowcast_methods = dict()
 _nowcast_methods["anvil"] = anvil.forecast
-_nowcast_methods["eulerian"] = eulerian_persistence.extrapolate
+_nowcast_methods["eulerian"] = eulerian_persistence
 _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast
