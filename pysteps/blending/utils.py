@@ -19,7 +19,7 @@ Module with common utilities used by the blending methods.
 """
 
 import datetime
-from typing import Any
+from typing import Any, Callable
 import warnings
 from pathlib import Path
 
@@ -54,24 +54,24 @@ def blend_cascades(cascades_norm, weights):
     Parameters
     ----------
     cascades_norm : array-like
-      Array of shape [number_components + 1, scale_level, ...]
-      with the cascade for each component (NWP, nowcasts, noise) and scale level,
-      obtained by calling a method implemented in pysteps.blending.utils.stack_cascades
+        Array of shape [number_components + 1, scale_level, ...]
+        with the cascade for each component (NWP, nowcasts, noise) and scale level,
+        obtained by calling a method implemented in pysteps.blending.utils.stack_cascades
 
     weights : array-like
-      An array of shape [number_components + 1, scale_level, ...]
-      containing the weights to be used in this routine
-      for each component plus noise, scale level, and optionally [y, x]
-      dimensions, obtained by calling a method implemented in
-      pysteps.blending.steps.calculate_weights
+        An array of shape [number_components + 1, scale_level, ...]
+        containing the weights to be used in this routine
+        for each component plus noise, scale level, and optionally [y, x]
+        dimensions, obtained by calling a method implemented in
+        pysteps.blending.steps.calculate_weights
 
     Returns
     -------
     combined_cascade : array-like
-      An array of shape [scale_level, y, x]
-      containing per scale level (cascade) the weighted combination of
-      cascades from multiple components (NWP, nowcasts and noise) to be used
-      in STEPS blending.
+        An array of shape [scale_level, y, x]
+        containing per scale level (cascade) the weighted combination of
+        cascades from multiple components (NWP, nowcasts and noise) to be used
+        in STEPS blending.
     """
     # check inputs
     if isinstance(cascades_norm, (list, tuple)):
@@ -115,18 +115,18 @@ def recompose_cascade(combined_cascade, combined_mean, combined_sigma):
     Parameters
     ----------
     combined_cascade : array-like
-      An array of shape [scale_level, y, x]
-      containing per scale level (cascade) the weighted combination of
-      cascades from multiple components (NWP, nowcasts and noise) to be used
-      in STEPS blending.
+        An array of shape [scale_level, y, x]
+        containing per scale level (cascade) the weighted combination of
+        cascades from multiple components (NWP, nowcasts and noise) to be used
+        in STEPS blending.
     combined_mean : array-like
-      An array of shape [scale_level, ...]
-      similar to combined_cascade, but containing the normalization parameter
-      mean.
+        An array of shape [scale_level, ...]
+        similar to combined_cascade, but containing the normalization parameter
+        mean.
     combined_sigma : array-like
-      An array of shape [scale_level, ...]
-      similar to combined_cascade, but containing the normalization parameter
-      standard deviation.
+        An array of shape [scale_level, ...]
+        similar to combined_cascade, but containing the normalization parameter
+        standard deviation.
 
     Returns
     -------
@@ -151,17 +151,17 @@ def blend_optical_flows(flows, weights):
     Parameters
     ----------
     flows : array-like
-      A stack of multiple advenction fields having shape
-      (S, 2, m, n), where flows[N, :, :, :] contains the motion vectors
-      for source N.
-      Advection fields for each source can be obtanined by
-      calling any of the methods implemented in
-      pysteps.motion and then stack all together
+        A stack of multiple advenction fields having shape
+        (S, 2, m, n), where flows[N, :, :, :] contains the motion vectors
+        for source N.
+        Advection fields for each source can be obtanined by
+        calling any of the methods implemented in
+        pysteps.motion and then stack all together
     weights : array-like
-      An array of shape [number_sources]
-      containing the weights to be used to combine
-      the advection fields of each source.
-      weights are modified to make their sum equal to one.
+        An array of shape [number_sources]
+        containing the weights to be used to combine
+        the advection fields of each source.
+        weights are modified to make their sum equal to one.
     Returns
     -------
     out: ndarray
@@ -204,7 +204,7 @@ def blend_optical_flows(flows, weights):
 
 def decompose_NWP(
     precip_nwp_dataset: xr.Dataset,
-    num_cascade_levels=8,
+    num_cascade_levels=6,
     num_workers=1,
     decomp_method="fft",
     fft_method="numpy",
@@ -219,57 +219,57 @@ def decompose_NWP(
     Parameters
     ----------
     R_NWP: array-like
-      Array of dimension (n_timesteps, x, y) containing the precipitation forecast
-      from some NWP model.
+        Array of dimension (n_timesteps, x, y) containing the precipitation forecast
+        from some NWP model.
     NWP_model: str
-      The name of the NWP model
+        The name of the NWP model
     analysis_time: numpy.datetime64
-      The analysis time of the NWP forecast. The analysis time is assumed to be a
-      numpy.datetime64 type as imported by the pysteps importer
+        The analysis time of the NWP forecast. The analysis time is assumed to be a
+        numpy.datetime64 type as imported by the pysteps importer
     output_path: str
-      The location where to save the file with the NWP cascade. Defaults to the
-      path_workdir specified in the rcparams file.
+        The location where to save the file with the NWP cascade. Defaults to the
+        path_workdir specified in the rcparams file.
     num_cascade_levels: int, optional
-      The number of frequency bands to use. Must be greater than 2. Defaults to 8.
+        The number of frequency bands to use. Must be greater than 2. Defaults to 8.
     num_workers: int, optional
-      The number of workers to use for parallel computation. Applicable if dask
-      is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
-      is advisable to disable OpenMP by setting the environment variable
-      OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
-      threads.
+        The number of workers to use for parallel computation. Applicable if dask
+        is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
+        is advisable to disable OpenMP by setting the environment variable
+        OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
+        threads.
 
     Other Parameters
     ----------------
     decomp_method: str, optional
-      A string defining the decomposition method to use. Defaults to "fft".
+        A string defining the decomposition method to use. Defaults to "fft".
     fft_method: str or tuple, optional
-      A string or a (function,kwargs) tuple defining the FFT method to use
-      (see :py:func:`pysteps.utils.interface.get_method`).
-      Defaults to "numpy". This option is not used if input_domain and
-      output_domain are both set to "spectral".
+        A string or a (function,kwargs) tuple defining the FFT method to use
+        (see :py:func:`pysteps.utils.interface.get_method`).
+        Defaults to "numpy". This option is not used if input_domain and
+        output_domain are both set to "spectral".
     domain: {"spatial", "spectral"}, optional
-      If "spatial", the output cascade levels are transformed back to the
-      spatial domain by using the inverse FFT. If "spectral", the cascade is
-      kept in the spectral domain. Defaults to "spatial".
+        If "spatial", the output cascade levels are transformed back to the
+        spatial domain by using the inverse FFT. If "spectral", the cascade is
+        kept in the spectral domain. Defaults to "spatial".
     normalize: bool, optional
-      If True, normalize the cascade levels to zero mean and unit variance.
-      Requires that compute_stats is True. Implies that compute_stats is True.
-      Defaults to False.
+        If True, normalize the cascade levels to zero mean and unit variance.
+        Requires that compute_stats is True. Implies that compute_stats is True.
+        Defaults to False.
     compute_stats: bool, optional
-      If True, the output dictionary contains the keys "means" and "stds"
-      for the mean and standard deviation of each output cascade level.
-      Defaults to False.
+        If True, the output dictionary contains the keys "means" and "stds"
+        for the mean and standard deviation of each output cascade level.
+        Defaults to False.
     compact_output: bool, optional
-      Applicable if output_domain is "spectral". If set to True, only the
-      parts of the Fourier spectrum with non-negligible filter weights are
-      stored. Defaults to False.
+        Applicable if output_domain is "spectral". If set to True, only the
+        parts of the Fourier spectrum with non-negligible filter weights are
+        stored. Defaults to False.
 
 
     Returns
     -------
     xarray.Dataset
-      The same dataset as was passed in but with the precip data replaced
-      with decomposed precip data and means and stds added
+        The same dataset as was passed in but with the precip data replaced
+        with decomposed precip data and means and stds added
     """
 
     nwp_precip_var = precip_nwp_dataset.attrs["precip_var"]
@@ -329,54 +329,20 @@ def decompose_NWP(
     )
     precip_nwp_dataset["means"] = (["time", "cascade_level"], means)
     precip_nwp_dataset["stds"] = (["time", "cascade_level"], stds)
+
+    precip_nwp_dataset[nwp_precip_var].attrs["domain"] = domain
+    precip_nwp_dataset[nwp_precip_var].attrs["normalized"] = int(normalize)
+    precip_nwp_dataset[nwp_precip_var].attrs["compact_output"] = int(compact_output)
+
     return precip_nwp_dataset
 
 
-def preprocess_and_store_nwp_data(
+def _preprocess_nwp_data_single_member(
     precip_nwp_dataset: xr.Dataset,
-    oflow_method: str,
-    nwp_model: str,
-    output_path: str | None,
+    oflow_method: Callable[..., Any],
     decompose_nwp: bool,
     decompose_kwargs: dict[str, Any] = {},
-):
-    """Computes, per forecast lead time, the velocity field of an NWP model field.
-
-    Parameters
-    ----------
-    precip_nwp_dataset: xarray.Dataset
-      xarray Dataset containing the precipitation forecast
-      from some NWP model.
-    oflow_method: {'constant', 'darts', 'lucaskanade', 'proesmans', 'vet'}, optional
-      An optical flow method from pysteps.motion.get_method.
-    nwp_model: str
-      The name of the NWP model.
-    output_path: str, optional
-      The location where to save the netcdf file with the NWP velocity fields. Defaults
-      to the path_workdir specified in the rcparams file.
-    decompose_nwp: bool
-      Defines wether or not the NWP needs to be decomposed before storing. This can
-      be beneficial for performance, because then the decomposition does not need
-      to happen during the blending anymore. It can however also be detrimental because
-      this increases the amount of storage and RAM required for the blending.
-    decompose_kwargs: dict
-      Keyword arguments passed to the decompose_NWP method.
-
-    Returns
-    -------
-    Nothing
-    """
-
-    if not NETCDF4_IMPORTED:
-        raise MissingOptionalDependency(
-            "netCDF4 package is required to save the NWP data, "
-            "but it is not installed"
-        )
-
-    # Set the output file
-    analysis_time = precip_nwp_dataset.time.values[0]
-    output_date = f"{analysis_time.astype('datetime64[us]').astype(datetime.datetime):%Y%m%d%H%M%S}"
-    outfn = Path(output_path) / f"preprocessed_{nwp_model}_{output_date}.nc"
+) -> xr.Dataset:
     nwp_precip_var = precip_nwp_dataset.attrs["precip_var"]
     precip_nwp = precip_nwp_dataset[nwp_precip_var].values
 
@@ -399,8 +365,76 @@ def preprocess_and_store_nwp_data(
     if decompose_nwp:
         precip_nwp_dataset = decompose_NWP(precip_nwp_dataset, **decompose_kwargs)
 
+    return precip_nwp_dataset
+
+
+def preprocess_nwp_data(
+    precip_nwp_dataset: xr.Dataset,
+    oflow_method: Callable[..., Any],
+    nwp_model: str,
+    output_path: str | None,
+    decompose_nwp: bool,
+    decompose_kwargs: dict[str, Any] = {},
+):
+    """Computes, per forecast lead time, the velocity field of an NWP model field.
+
+    Parameters
+    ----------
+    precip_nwp_dataset: xarray.Dataset
+        xarray Dataset containing the precipitation forecast
+        from some NWP model.
+    oflow_method: {'constant', 'darts', 'lucaskanade', 'proesmans', 'vet'}, optional
+        An optical flow method from pysteps.motion.get_method.
+    nwp_model: str
+        The name of the NWP model.
+    output_path: str, optional
+        The location where to save the netcdf file with the NWP velocity fields. Defaults
+        to the path_workdir specified in the rcparams file.
+    decompose_nwp: bool
+        Defines wether or not the NWP needs to be decomposed before storing. This can
+        be beneficial for performance, because then the decomposition does not need
+        to happen during the blending anymore. It can however also be detrimental because
+        this increases the amount of storage and RAM required for the blending.
+    decompose_kwargs: dict
+        Keyword arguments passed to the decompose_NWP method.
+
+    Returns
+    -------
+    Nothing
+    """
+
+    if not NETCDF4_IMPORTED:
+        raise MissingOptionalDependency(
+            "netCDF4 package is required to save the NWP data, "
+            "but it is not installed"
+        )
+
+    if "ens_number" in precip_nwp_dataset.dims:
+        preprocessed_nwp_datasets = []
+        for ens_number in precip_nwp_dataset["ens_number"]:
+            preprocessed_nwp_datasets.append(
+                _preprocess_nwp_data_single_member(
+                    precip_nwp_dataset.sel(ens_number=ens_number),
+                    oflow_method,
+                    decompose_nwp,
+                    decompose_kwargs,
+                ).expand_dims({"ens_number": [ens_number]}, axis=0)
+            )
+        precip_nwp_dataset = xr.concat(preprocessed_nwp_datasets, "ens_number")
+    else:
+        precip_nwp_dataset = _preprocess_nwp_data_single_member(
+            precip_nwp_dataset, oflow_method, decompose_nwp, decompose_kwargs
+        )
+
     # Save it as a numpy array
-    precip_nwp_dataset.to_netcdf(outfn)
+    if output_path:
+        analysis_time = precip_nwp_dataset.time.values[0]
+        output_date = f"{analysis_time.astype('datetime64[us]').astype(datetime.datetime):%Y%m%d%H%M%S}"
+        outfn = Path(output_path) / f"preprocessed_{nwp_model}_{output_date}.nc"
+        precip_nwp_dataset.to_netcdf(outfn)
+        return None
+    else:
+        return precip_nwp_dataset
 
 
 def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
@@ -409,17 +443,17 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
     Parameters
     ----------
     precip_arr:  array-like
-      Array containing the input precipitation field
+        Array containing the input precipitation field
     precip_thr: float, optional
-      Specifies the threshold value for minimum observable precipitation intensity. If None, the
-      minimum value over the domain is taken.
+        Specifies the threshold value for minimum observable precipitation intensity. If None, the
+        minimum value over the domain is taken.
     norain_thr: float, optional
-      Specifies the threshold value for the fraction of rainy pixels in precip_arr below which we consider there to be
-      no rain. Standard set to 0.0
+        Specifies the threshold value for the fraction of rainy pixels in precip_arr below which we consider there to be
+        no rain. Standard set to 0.0
     Returns
     -------
     norain: bool
-      Returns whether the fraction of rainy pixels is below the norain_thr threshold.
+        Returns whether the fraction of rainy pixels is below the norain_thr threshold.
 
     """
     warnings.warn(

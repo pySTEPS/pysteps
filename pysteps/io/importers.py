@@ -66,7 +66,7 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 
 # XR: Move this to appropriate place
-# XR: Add means, stds cascade level
+# XR: Add means, stds cascade level and decomposition attributes
 The data and metadata is then postprocessed into an xarray dataset. This dataset will
 always contain an x and y dimension, but can be extended with a time dimension and/or
 an ensemble member dimension over the course of the process.

@@ -309,6 +309,7 @@ def convert_output_to_xarray_dataset(
         dataset["time"][-1].values.astype("datetime64[us]").astype(datetime)
     )
     time_metadata = dataset["time"].attrs
+    time_encoding = dataset["time"].encoding
     timestep_seconds = dataset["time"].attrs["stepsize"]
     dataset = dataset.drop_vars([precip_var]).drop_dims(["time"])
     if isinstance(timesteps, int):
@@ -317,7 +318,7 @@ def convert_output_to_xarray_dataset(
         last_timestamp + timedelta(seconds=timestep_seconds * i) for i in timesteps
     ]
     dataset = dataset.assign_coords(
-        {"time": (["time"], next_timestamps, time_metadata)}
+        {"time": (["time"], next_timestamps, time_metadata, time_encoding)}
     )
 
     if output.ndim == 4:

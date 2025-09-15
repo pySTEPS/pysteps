@@ -12,7 +12,7 @@ from pysteps.blending.utils import (
     blend_cascades,
     blend_optical_flows,
     compute_smooth_dilated_mask,
-    preprocess_and_store_nwp_data,
+    preprocess_nwp_data,
     recompose_cascade,
 )
 from pysteps.utils.check_norain import check_norain
@@ -139,7 +139,7 @@ def test_blending_utils(precip_nwp_dataset, nwp_model, issue_times, weights):
     ###
     # Compute and store the motion
     ###
-    preprocess_and_store_nwp_data(
+    preprocess_nwp_data(
         precip_nwp_dataset=precip_nwp_dataset,
         oflow_method=oflow_method,
         nwp_model=nwp_model,
