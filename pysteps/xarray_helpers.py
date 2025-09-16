@@ -19,7 +19,6 @@ import numpy.typing as npt
 import pyproj
 import xarray as xr
 
-
 # TODO(converters): Write methods for converting Proj.4 projection definitions
 # into CF grid mapping attributes. Currently this has been implemented for
 # the stereographic projection.
@@ -330,17 +329,22 @@ def convert_output_to_xarray_dataset(
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
 
-    last_timestamp = (
+    forecast_reference_time = (
         dataset["time"][-1].values.astype("datetime64[us]").astype(datetime)
     )
     time_metadata = dataset["time"].attrs
     time_encoding = dataset["time"].encoding
     timestep_seconds = dataset["time"].attrs["stepsize"]
     dataset = dataset.drop_vars([precip_var]).drop_dims(["time"])
+    if "velocity_x" in dataset:
+        dataset = dataset.drop_vars(["velocity_x"])
+    if "velocity_y" in dataset:
+        dataset = dataset.drop_vars(["velocity_y"])
     if isinstance(timesteps, int):
         timesteps = list(range(1, timesteps + 1))
     next_timestamps = [
-        last_timestamp + timedelta(seconds=timestep_seconds * i) for i in timesteps
+        forecast_reference_time + timedelta(seconds=timestep_seconds * i)
+        for i in timesteps
     ]
     dataset = dataset.assign_coords(
         {"time": (["time"], next_timestamps, time_metadata, time_encoding)}
@@ -363,5 +367,16 @@ def convert_output_to_xarray_dataset(
         dataset[precip_var] = (["ens_number", "time", "y", "x"], output, metadata)
     else:
         dataset[precip_var] = (["time", "y", "x"], output, metadata)
+
+    dataset = dataset.assign_coords(
+        {
+            "forecast_reference_time": (
+                [],
+                forecast_reference_time,
+                {"long_name": "forecast reference time"},
+                time_encoding,
+            )
+        }
+    )
 
     return dataset
