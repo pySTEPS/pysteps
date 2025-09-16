@@ -214,7 +214,7 @@ def convert_input_to_xarray_dataset(
                 "units": attrs["units"],
                 "standard_name": attrs["standard_name"],
                 "long_name": attrs["long_name"],
-                "grid_mapping": "projection",
+                "grid_mapping": grid_mapping_name,
             },
         )
     }
@@ -238,7 +238,7 @@ def convert_input_to_xarray_dataset(
             {
                 "units": "1",
                 "standard_name": "quality_flag",
-                "grid_mapping": "projection",
+                "grid_mapping": grid_mapping_name,
             },
         )
     coords = {
