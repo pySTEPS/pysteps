@@ -8,13 +8,11 @@ precip_dataset = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=True,
-    metadata=True,
     source="mrms",
     log_transform=False,
     window_size=1,
 )
 
-print(precip_dataset)
 precip_var = precip_dataset.attrs["precip_var"]
 precip_dataarray = precip_dataset[precip_var]
 
@@ -36,7 +34,6 @@ test_attrs = [
         None,
     ),
     (precip_dataarray.attrs["units"], "mm/h", None),
-    (precip_dataarray.attrs["transform"], None, None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
     (precip_dataarray.attrs["threshold"], 0.1, 1e-10),
     (precip_dataset.x.isel(x=0).values, -129.995, 1e-10),
@@ -63,7 +60,6 @@ def test_io_import_mrms_grib_dataset_extent():
         num_prev_files=0,
         num_next_files=0,
         return_raw=True,
-        metadata=True,
         source="mrms",
         log_transform=False,
         extent=(230, 300, 20, 55),
@@ -79,7 +75,6 @@ def test_io_import_mrms_grib_dataset_extent():
         num_prev_files=0,
         num_next_files=0,
         return_raw=True,
-        metadata=True,
         source="mrms",
         log_transform=False,
         extent=(250, 260, 30, 35),
@@ -91,6 +86,7 @@ def test_io_import_mrms_grib_dataset_extent():
     smart_assert(precip_dataarray_even_smaller.shape, (1, 500, 1000), None)
     # XR: we had to change the selection of the original field since these is a flip happening in the way the data is read in.
     # XR: We had two ways to solve this: precip_dataarray[:,::-1, :][:, 2000:2500, 2000:3000][:,::-1, :] or switch the 2000:2500 to
+    # I think this is logical as both the extend selected data and the reference data are flipped. That is why we need the double flip
     assert_array_almost_equal(
         precip_dataarray.values[:, 1000:1500, 2000:3000],
         precip_dataarray_even_smaller.values,
@@ -100,7 +96,6 @@ def test_io_import_mrms_grib_dataset_extent():
         num_prev_files=0,
         num_next_files=0,
         return_raw=True,
-        metadata=True,
         source="mrms",
         log_transform=False,
         extent=(250, 260, 30, 35),
@@ -116,7 +111,6 @@ def test_io_import_mrms_grib_dataset_extent():
         num_prev_files=0,
         num_next_files=0,
         return_raw=True,
-        metadata=True,
         source="mrms",
         log_transform=False,
         extent=(250, 260, 30, 35),

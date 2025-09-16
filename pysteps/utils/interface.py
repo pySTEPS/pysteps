@@ -11,17 +11,21 @@ Interface for the utils module.
     get_method
 """
 
-from . import arrays
-from . import cleansing
-from . import conversion
-from . import dimension
-from . import fft
-from . import images
-from . import interpolate
-from . import reprojection
-from . import spectral
-from . import tapering
-from . import transformation
+import xarray as xr
+
+from . import (
+    arrays,
+    cleansing,
+    conversion,
+    dimension,
+    fft,
+    images,
+    interpolate,
+    reprojection,
+    spectral,
+    tapering,
+    transformation,
+)
 
 
 def get_method(name, **kwargs):
@@ -163,8 +167,8 @@ def get_method(name, **kwargs):
 
     name = name.lower()
 
-    def donothing(R, metadata=None, *args, **kwargs):
-        return R.copy(), {} if metadata is None else metadata.copy()
+    def donothing(dataset: xr.Dataset, *args, **kwargs):
+        return dataset
 
     methods_objects = dict()
     methods_objects["none"] = donothing

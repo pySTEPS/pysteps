@@ -31,11 +31,8 @@ def test_default_anvil_norain():
             "time": (
                 ["time"],
                 np.arange(4.0) * 5.0,
-                {
-                    "long_name": "forecast time",
-                    "units": "seconds since 1970-01-01 00:00:00",
-                    "stepsize": 5.0,
-                },
+                {"long_name": "forecast time", "stepsize": 5.0},
+                {"units": "seconds since 1970-01-01 00:00:00"},
             ),
             "y": (
                 ["y"],
@@ -95,7 +92,6 @@ def test_anvil_rainrate(
         num_prev_files=4,
         num_next_files=0,
         return_raw=False,
-        metadata=False,
         upscale=2000,
     )
 

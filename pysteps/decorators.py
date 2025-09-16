@@ -9,7 +9,6 @@ the behavior of some functions in pysteps.
 .. autosummary::
     :toctree: ../generated/
 
-    postprocess_import
     check_input_frames
     prepare_interpolator
     memoize
@@ -21,8 +20,6 @@ from collections import defaultdict
 from functools import wraps
 
 import numpy as np
-
-from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 
 def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
@@ -42,76 +39,6 @@ def _add_extra_kwrds_to_docstrings(target_func, extra_kwargs_doc_text):
         defaultdict(str, extra_kwargs_doc=extra_kwargs_doc)
     )
     return target_func
-
-
-def postprocess_import(fillna=np.nan, dtype="double"):
-    """
-    Postprocess the imported precipitation data.
-    Operations:
-    - Allow type casting (dtype keyword)
-    - Set invalid or missing data to predefined value (fillna keyword)
-    This decorator replaces the text "{extra_kwargs}" in the function's
-    docstring with the documentation of the keywords used in the postprocessing.
-    The additional docstrings are added as "Other Parameters" in the importer function.
-
-    Parameters
-    ----------
-    dtype: str
-        Default data type for precipitation. Double precision by default.
-    fillna: float or np.nan
-        Default value used to represent the missing data ("No Coverage").
-        By default, np.nan is used.
-        If the importer returns a MaskedArray, all the masked values are set to the
-        fillna value. If a numpy array is returned, all the invalid values (nan and inf)
-        are set to the fillna value.
-
-    """
-
-    def _postprocess_import(importer):
-        @wraps(importer)
-        def _import_with_postprocessing(*args, **kwargs):
-            precip, quality, metadata = importer(*args, **kwargs)
-
-            _dtype = kwargs.get("dtype", dtype)
-
-            accepted_precisions = ["float32", "float64", "single", "double"]
-            if _dtype not in accepted_precisions:
-                raise ValueError(
-                    "The selected precision does not correspond to a valid value."
-                    "The accepted values are: " + str(accepted_precisions)
-                )
-
-            if isinstance(precip, np.ma.MaskedArray):
-                invalid_mask = np.ma.getmaskarray(precip)
-                precip.data[invalid_mask] = fillna
-            else:
-                # If plain numpy arrays are used, the importers should indicate
-                # the invalid values with np.nan.
-                _fillna = kwargs.get("fillna", fillna)
-                if _fillna is not np.nan:
-                    mask = ~np.isfinite(precip)
-                    precip[mask] = _fillna
-
-            return convert_input_to_xarray_dataset(
-                precip.astype(_dtype), quality, metadata
-            )
-
-        extra_kwargs_doc = """
-            Other Parameters
-            ----------------
-            dtype: str
-                Data-type to which the array is cast.
-                Valid values:  "float32", "float64", "single", and "double".
-            fillna: float or np.nan
-                Value used to represent the missing data ("No Coverage").
-                By default, np.nan is used.
-            """
-
-        _add_extra_kwrds_to_docstrings(_import_with_postprocessing, extra_kwargs_doc)
-
-        return _import_with_postprocessing
-
-    return _postprocess_import
 
 
 def check_input_frames(

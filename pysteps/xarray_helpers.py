@@ -19,13 +19,37 @@ import numpy.typing as npt
 import pyproj
 import xarray as xr
 
-from pysteps.utils.conversion import cf_parameters_from_unit
-
 # TODO(converters): Write methods for converting Proj.4 projection definitions
 # into CF grid mapping attributes. Currently this has been implemented for
 # the stereographic projection.
 # The conversions implemented here are take from:
 # https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
+
+
+def cf_parameters_from_unit(unit: str) -> tuple[str, dict[str, str | None]]:
+    if unit == "mm/h":
+        var_name = "precip_intensity"
+        var_standard_name = "instantaneous_precipitation_rate"
+        var_long_name = "instantaneous precipitation rate"
+        var_unit = "mm/h"
+    elif unit == "mm":
+        var_name = "precip_accum"
+        var_standard_name = "accumulated_precipitation"
+        var_long_name = "accumulated precipitation"
+        var_unit = "mm"
+    elif unit == "dBZ":
+        var_name = "reflectivity"
+        var_long_name = "equivalent reflectivity factor"
+        var_standard_name = "equivalent_reflectivity_factor"
+        var_unit = "dBZ"
+    else:
+        raise ValueError(f"unknown unit {unit}")
+
+    return var_name, {
+        "standard_name": var_standard_name,
+        "long_name": var_long_name,
+        "units": var_unit,
+    }
 
 
 def _convert_proj4_to_grid_mapping(proj4str):
@@ -85,6 +109,7 @@ def convert_input_to_xarray_dataset(
     quality: np.ndarray | None,
     metadata: dict[str, str | float | None],
     startdate: datetime | None = None,
+    timestep: int | None = None,
 ) -> xr.Dataset:
     """
     Read a precip, quality, metadata tuple as returned by the importers
@@ -94,15 +119,18 @@ def convert_input_to_xarray_dataset(
     Parameters
     ----------
     precip: array
-        2D array containing imported precipitation data.
+        ND array containing imported precipitation data.
     quality: array, None
-        2D array containing the quality values of the imported precipitation
+        ND array containing the quality values of the imported precipitation
         data, can be None.
     metadata: dict
         Metadata dictionary containing the attributes described in the
         documentation of :py:mod:`pysteps.io.importers`.
     startdate: datetime, None
         Datetime object containing the start date and time for the nowcast
+    timestep: int, None
+        The timestep in seconds between 2 consecutive fields, mandatory if
+        the precip has 3 or more dimensions
 
     Returns
     -------
@@ -122,6 +150,8 @@ def convert_input_to_xarray_dataset(
 
         if startdate is None:
             raise Exception("startdate missing")
+        if timestep is None:
+            raise Exception("timestep missing")
 
     elif precip.ndim == 3:
         timesteps, h, w = precip.shape
@@ -129,6 +159,8 @@ def convert_input_to_xarray_dataset(
 
         if startdate is None:
             raise Exception("startdate missing")
+        if timestep is None:
+            raise Exception("timestep missing")
 
     elif precip.ndim == 2:
         h, w = precip.shape
@@ -182,7 +214,7 @@ def convert_input_to_xarray_dataset(
                 "units": attrs["units"],
                 "standard_name": attrs["standard_name"],
                 "long_name": attrs["long_name"],
-                "grid_mapping": "projection",
+                "grid_mapping": grid_mapping_name,
             },
         )
     }
@@ -206,7 +238,7 @@ def convert_input_to_xarray_dataset(
             {
                 "units": "1",
                 "standard_name": "quality_flag",
-                "grid_mapping": "projection",
+                "grid_mapping": grid_mapping_name,
             },
         )
     coords = {
@@ -268,8 +300,12 @@ def convert_input_to_xarray_dataset(
 
         coords["time"] = (
             ["time"],
-            list(range(1, timesteps + 1, 1)),
-            {"long_name": "forecast time", "units": "seconds since %s" % startdate_str},
+            [
+                startdate + timedelta(seconds=float(second))
+                for second in np.arange(timesteps) * timestep
+            ],
+            {"long_name": "forecast time", "stepsize": timestep},
+            {"units": "seconds since %s" % startdate_str},
         )
     if grid_mapping_var_name is not None:
         coords[grid_mapping_name] = (
@@ -293,19 +329,25 @@ def convert_output_to_xarray_dataset(
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
 
-    last_timestamp = (
+    forecast_reference_time = (
         dataset["time"][-1].values.astype("datetime64[us]").astype(datetime)
     )
     time_metadata = dataset["time"].attrs
+    time_encoding = dataset["time"].encoding
     timestep_seconds = dataset["time"].attrs["stepsize"]
     dataset = dataset.drop_vars([precip_var]).drop_dims(["time"])
+    if "velocity_x" in dataset:
+        dataset = dataset.drop_vars(["velocity_x"])
+    if "velocity_y" in dataset:
+        dataset = dataset.drop_vars(["velocity_y"])
     if isinstance(timesteps, int):
         timesteps = list(range(1, timesteps + 1))
     next_timestamps = [
-        last_timestamp + timedelta(seconds=timestep_seconds * i) for i in timesteps
+        forecast_reference_time + timedelta(seconds=timestep_seconds * i)
+        for i in timesteps
     ]
     dataset = dataset.assign_coords(
-        {"time": (["time"], next_timestamps, time_metadata)}
+        {"time": (["time"], next_timestamps, time_metadata, time_encoding)}
     )
 
     if output.ndim == 4:
@@ -325,5 +367,16 @@ def convert_output_to_xarray_dataset(
         dataset[precip_var] = (["ens_number", "time", "y", "x"], output, metadata)
     else:
         dataset[precip_var] = (["time", "y", "x"], output, metadata)
+
+    dataset = dataset.assign_coords(
+        {
+            "forecast_reference_time": (
+                [],
+                forecast_reference_time,
+                {"long_name": "forecast reference time"},
+                time_encoding,
+            )
+        }
+    )
 
     return dataset

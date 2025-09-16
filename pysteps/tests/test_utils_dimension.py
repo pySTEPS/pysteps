@@ -19,7 +19,6 @@ fillvalues_metadata = {
     "zerovalue": 0,
     "yorigin": "lower",
     "unit": "mm/h",
-    "transform": None,
     "accutime": 5,
     "threshold": 1.0,
     "projection": "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378.137 +b=6356.752 +x_0=0 +y_0=0",

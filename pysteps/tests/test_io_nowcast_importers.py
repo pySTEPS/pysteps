@@ -10,13 +10,8 @@ precip_dataset = get_precipitation_fields(
     num_prev_files=1,
     num_next_files=0,
     return_raw=False,
-    metadata=True,
     upscale=2000,
 )
-
-# XR: The following lines are currently needed as we don't have a dedicated xarray writer, mayve we should fix the xarray reader to disallow non types in attrs and to store datetime units as encoding instead of attributes
-precip_dataset.time.encoding = {"units": precip_dataset.time.attrs["units"]}
-del precip_dataset.time.attrs["units"]
 
 precip_var = precip_dataset.attrs["precip_var"]
 precip_dataarray = precip_dataset[precip_var]

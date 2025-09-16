@@ -18,7 +18,6 @@ def test_feature(method, max_num_features):
         num_prev_files=0,
         num_next_files=0,
         return_raw=True,
-        metadata=False,
         upscale=None,
         source="mch",
     )

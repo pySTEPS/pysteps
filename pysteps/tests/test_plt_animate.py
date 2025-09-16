@@ -14,7 +14,6 @@ precip_dataset: xr.Dataset = get_precipitation_fields(
     num_prev_files=2,
     num_next_files=0,
     return_raw=True,
-    metadata=True,
     upscale=2000,
 )
 

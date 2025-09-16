@@ -10,7 +10,7 @@ from pysteps.utils import aggregate_fields_space, square_domain, aggregate_field
 @pytest.fixture(scope="module")
 def dataset():
     precip_dataset = get_precipitation_fields(
-        num_prev_files=0, num_next_files=0, return_raw=False, metadata=True
+        num_prev_files=0, num_next_files=0, return_raw=False
     )
     precip_dataset = square_domain(precip_dataset, "crop")
     return precip_dataset
