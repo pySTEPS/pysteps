@@ -96,7 +96,7 @@ zerovalue = 0.027
 
 # Transform the zerovalue and precipitation thresholds to dBR
 log_thr_prec = 10.0 * np.log10(prec_thr)
-log_thr_min = 10.0 * np.log10(zerovalue)
+log_zerovalue = 10.0 * np.log10(zerovalue)
 
 # Reproject the DWD ICON NWP data onto a regular grid
 nwp_metadata["clon"] = nwp_precip["longitude"].values
@@ -151,10 +151,10 @@ plt.show()
 # transform the data to dB
 transformer = pysteps.utils.get_method("dB")
 radar_precip, radar_metadata = transformer(
-    radar_precip, radar_metadata, threshold=prec_thr, zerovalue=log_thr_min
+    radar_precip, radar_metadata, threshold=prec_thr, zerovalue=log_zerovalue
 )
 nwp_precip_rprj, nwp_metadata_rprj = transformer(
-    nwp_precip_rprj, nwp_metadata_rprj, threshold=prec_thr, zerovalue=log_thr_min
+    nwp_precip_rprj, nwp_metadata_rprj, threshold=prec_thr, zerovalue=log_zerovalue
 )
 
 
@@ -224,7 +224,7 @@ precip_forecast = blending_method(
     precip_mask_dilation=1,  # Dilation of precipitation mask in grid boxes
     n_cascade_levels=6,  # No. of cascade levels
     precip_thr=log_thr_prec,  # Precip threshold
-    norain_thr=log_thr_min,  # Zerovalue
+    norain_thr=0.0005,  # Minimum of 0.5% precip needed, otherwise 'zero rainfall'
     num_workers=4,  # No. of parallel threads
     noise_stddev_adj="auto",  # Standard deviation adjustment
     noise_method="ssft",  # SSFT as noise method
