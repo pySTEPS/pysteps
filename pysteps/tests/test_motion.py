@@ -40,7 +40,7 @@ def not_raises(_exception):
 
 reference_dataset = get_precipitation_fields(num_prev_files=0)
 precip_var = reference_dataset.attrs["precip_var"]
-reference_data = reference_dataset[precip_var].values[0][::-1]
+reference_data = reference_dataset[precip_var].values[0]
 reference_field = np.ma.masked_array(reference_data, reference_data == -15.0)
 
 

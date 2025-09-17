@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from pysteps.tests.helpers import smart_assert, get_precipitation_fields
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
@@ -49,11 +49,11 @@ def test_io_import_mch_gif_dataset_attrs(variable, expected, tolerance):
 # test_geodata: list of (variable,expected,tolerance) tuples
 test_geodata = [
     (precip_dataset.x.isel(x=0).values, 499.84200883, 1e-10),
-    (precip_dataset.y.isel(y=0).values, 499.8240261, 1e-10),
+    (precip_dataset.y.isel(y=-1).values, 499.8240261, 1e-10),
     (precip_dataset.x.isel(x=-1).values, 759252.4482492, 1e-10),
-    (precip_dataset.y.isel(y=-1).values, 1225044.84459724, 1e-10),
+    (precip_dataset.y.isel(y=0).values, 1225044.84459724, 1e-10),
     (precip_dataset.x.attrs["stepsize"], 999.674053, 1e-8),
-    (precip_dataset.y.attrs["stepsize"], 999.62859, 1e-8),
+    (precip_dataset.y.attrs["stepsize"], -999.62859, 1e-8),
     (precip_dataset.x.attrs["units"], "m", None),
     (precip_dataset.y.attrs["units"], "m", None),
 ]

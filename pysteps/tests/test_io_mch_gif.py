@@ -2,7 +2,7 @@
 
 import pytest
 
-from pysteps.tests.helpers import smart_assert, get_precipitation_fields
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
@@ -42,11 +42,11 @@ test_attrs = [
     (precip_dataarray.attrs["zr_a"], 316.0, None),
     (precip_dataarray.attrs["zr_b"], 1.5, None),
     (precip_dataset.x.isel(x=0).values, 255500.0, 1e-10),
-    (precip_dataset.y.isel(y=0).values, -159500.0, 1e-10),
+    (precip_dataset.y.isel(y=-1).values, -159500.0, 1e-10),
     (precip_dataset.x.isel(x=-1).values, 964500.0, 1e-10),
-    (precip_dataset.y.isel(y=-1).values, 479500.0, 1e-10),
+    (precip_dataset.y.isel(y=0).values, 479500.0, 1e-10),
     (precip_dataset.x.attrs["stepsize"], 1000.0, 0.1),
-    (precip_dataset.y.attrs["stepsize"], 1000.0, 0.1),
+    (precip_dataset.y.attrs["stepsize"], -1000.0, 0.1),
     (precip_dataset.x.attrs["units"], "m", None),
     (precip_dataset.y.attrs["units"], "m", None),
 ]

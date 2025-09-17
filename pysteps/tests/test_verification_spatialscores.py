@@ -11,8 +11,7 @@ precip_dataset = get_precipitation_fields(num_prev_files=1, return_raw=True)
 precip_var = precip_dataset.attrs["precip_var"]
 precip_dataarray = precip_dataset[precip_var]
 
-# XR: the scorring code has not been made xarray compatible, so we need to convert to numpy arrays. Once changed we can properly test these scores with xarray DataArrays
-# BUG: the tests for BMSE below reverse the arrays with [::-1], this should be fixed in the scoring code
+# BUG: The BMSE scores change when the domain is flipped
 test_data = [
     (
         precip_dataarray.isel(time=0).values,
@@ -24,8 +23,8 @@ test_data = [
         0.85161531,
     ),
     (
-        precip_dataarray.isel(time=0).values[::-1],
-        precip_dataarray.isel(time=1).values[::-1],
+        precip_dataarray.isel(time=0).values,
+        precip_dataarray.isel(time=1).values,
         "BMSE",
         [1],
         None,

@@ -28,8 +28,8 @@ from pysteps import cascade, extrapolation, noise
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 from pysteps.utils.check_norain import check_norain
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask
@@ -202,7 +202,7 @@ def forecast(
     y_units = dataset["y"].attrs["units"]
     x_stepsize = dataset["x"].attrs["stepsize"]
     y_stepsize = dataset["y"].attrs["stepsize"]
-    if x_units != y_units or x_stepsize != y_stepsize:
+    if x_units != y_units or x_stepsize != abs(y_stepsize):
         raise ValueError("units and stepsize needs to be the same for x and y")
     if x_units not in ["m", "km"]:
         raise ValueError("only m and km supported as x and y units")

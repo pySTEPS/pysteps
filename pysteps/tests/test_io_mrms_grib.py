@@ -2,7 +2,8 @@
 
 import pytest
 from numpy.testing import assert_array_almost_equal
-from pysteps.tests.helpers import smart_assert, get_precipitation_fields
+
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
@@ -37,11 +38,11 @@ test_attrs = [
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
     (precip_dataarray.attrs["threshold"], 0.1, 1e-10),
     (precip_dataset.x.isel(x=0).values, -129.995, 1e-10),
-    (precip_dataset.y.isel(y=0).values, 20.005001, 1e-10),
+    (precip_dataset.y.isel(y=-1).values, 20.005001, 1e-10),
     (precip_dataset.x.isel(x=-1).values, -60.005002, 1e-10),
-    (precip_dataset.y.isel(y=-1).values, 54.995, 1e-10),
+    (precip_dataset.y.isel(y=0).values, 54.995, 1e-10),
     (precip_dataset.x.attrs["stepsize"], 0.01, 1e-4),
-    (precip_dataset.y.attrs["stepsize"], 0.01, 1e-4),
+    (precip_dataset.y.attrs["stepsize"], -0.01, 1e-4),
     (precip_dataset.x.attrs["units"], "degrees", None),
     (precip_dataset.y.attrs["units"], "degrees", None),
 ]
@@ -84,11 +85,9 @@ def test_io_import_mrms_grib_dataset_extent():
     precip_var_even_smaller = precip_dataset_even_smaller.attrs["precip_var"]
     precip_dataarray_even_smaller = precip_dataset_even_smaller[precip_var_even_smaller]
     smart_assert(precip_dataarray_even_smaller.shape, (1, 500, 1000), None)
-    # XR: we had to change the selection of the original field since these is a flip happening in the way the data is read in.
-    # XR: We had two ways to solve this: precip_dataarray[:,::-1, :][:, 2000:2500, 2000:3000][:,::-1, :] or switch the 2000:2500 to
-    # I think this is logical as both the extend selected data and the reference data are flipped. That is why we need the double flip
+
     assert_array_almost_equal(
-        precip_dataarray.values[:, 1000:1500, 2000:3000],
+        precip_dataarray.values[:, 2000:2500, 2000:3000],
         precip_dataarray_even_smaller.values,
     )
 
@@ -120,4 +119,5 @@ def test_io_import_mrms_grib_dataset_extent():
 
     precip_var_single = precip_dataset_single.attrs["precip_var"]
     precip_dataarray_single = precip_dataset_single[precip_var_single]
+    smart_assert(precip_dataarray_single.dtype, "single", None)
     smart_assert(precip_dataarray_single.dtype, "single", None)

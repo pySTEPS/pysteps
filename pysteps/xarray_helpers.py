@@ -250,7 +250,9 @@ def convert_input_to_xarray_dataset(
                 "long_name": "y-coordinate in Cartesian system",
                 "standard_name": "projection_y_coordinate",
                 "units": metadata["cartesian_unit"],
-                "stepsize": ypixelsize,
+                "stepsize": (
+                    -ypixelsize if metadata["yorigin"] == "upper" else ypixelsize
+                ),
             },
         ),
         "x": (
@@ -320,7 +322,7 @@ def convert_input_to_xarray_dataset(
         "precip_var": var_name,
     }
     dataset = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
-    return dataset.sortby(dims)
+    return dataset
 
 
 def convert_output_to_xarray_dataset(

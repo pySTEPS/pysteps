@@ -18,11 +18,13 @@ downscaled precipitation field by means of Gaussian random fields.
 """
 
 import warnings
-import xarray as xr
+
 import numpy as np
+import xarray as xr
 from scipy.signal import convolve
-from pysteps.utils.spectral import rapsd
+
 from pysteps.utils.dimension import aggregate_fields
+from pysteps.utils.spectral import rapsd
 from pysteps.xarray_helpers import compute_lat_lon
 
 
@@ -309,7 +311,7 @@ def downscale(
     )
     x_new = np.arange(
         precip_dataset.x.values[0]
-        - precip_dataset.y.attrs["stepsize"]
+        - precip_dataset.x.attrs["stepsize"]
         + precip_dataset.x.attrs["stepsize"] / ds_factor,
         precip_dataset.x.values[-1] + precip_dataset.x.attrs["stepsize"] / ds_factor,
         precip_dataset.x.attrs["stepsize"] / ds_factor,
@@ -378,5 +380,7 @@ def downscale(
     # Return the downscaled field and optionally the spectral slope alpha
     if return_alpha:
         return precip_highres_dataset, alpha
+
+    return precip_highres_dataset
 
     return precip_highres_dataset

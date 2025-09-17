@@ -2,7 +2,7 @@
 
 import pytest
 
-from pysteps.tests.helpers import smart_assert, get_precipitation_fields
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
@@ -29,11 +29,11 @@ test_geodata = [
     (precip_dataset.attrs["projection"], expected_proj, None),
     (precip_dataset.attrs["institution"], "Finnish Meteorological Institute", None),
     (precip_dataset.x.isel(x=0).values, -196468.00230479, 1e-10),
-    (precip_dataset.y.isel(y=0).values, 6255454.70581264, 1e-10),
+    (precip_dataset.y.isel(y=-1).values, 6255454.70581264, 1e-10),
     (precip_dataset.x.isel(x=-1).values, 1044051.93934604, 1e-10),
-    (precip_dataset.y.isel(y=-1).values, 8084306.99826718, 1e-10),
+    (precip_dataset.y.isel(y=0).values, 8084306.99826718, 1e-10),
     (precip_dataset.x.attrs["stepsize"], 250.0040188736061566, 1e-10),
-    (precip_dataset.y.attrs["stepsize"], 250.0139839309011904, 1e-10),
+    (precip_dataset.y.attrs["stepsize"], -250.0139839309011904, 1e-10),
     (precip_dataset.x.attrs["units"], "m", None),
     (precip_dataset.y.attrs["units"], "m", None),
 ]

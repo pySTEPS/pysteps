@@ -259,6 +259,7 @@ test_data_space = [
             "y2": 10,
             "xpixelsize": 1,
             "ypixelsize": 1,
+            "yorigin": "upper",
         },
         2,
         False,

@@ -5,7 +5,7 @@ import os
 import pytest
 
 import pysteps
-from pysteps.tests.helpers import smart_assert, get_precipitation_fields
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
@@ -37,11 +37,11 @@ test_metadata_bom = [
         None,
     ),
     (precip_dataset.x.isel(x=0).values, -127750.0, 1e-5),
-    (precip_dataset.y.isel(y=0).values, -127250.0, 1e-5),
+    (precip_dataset.y.isel(y=-1).values, -127250.0, 1e-5),
     (precip_dataset.x.isel(x=-1).values, 127250.0, 1e-5),
-    (precip_dataset.y.isel(y=-1).values, 127750.0, 1e-5),
+    (precip_dataset.y.isel(y=0).values, 127750.0, 1e-5),
     (precip_dataset.x.attrs["stepsize"], 500.0, 1e-4),
-    (precip_dataset.y.attrs["stepsize"], 500.0, 1e-4),
+    (precip_dataset.y.attrs["stepsize"], -500.0, 1e-4),
     (precip_dataset.x.attrs["units"], "m", None),
     (precip_dataset.y.attrs["units"], "m", None),
     (precip_dataarray.attrs["accutime"], 6, 1e-4),
