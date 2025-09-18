@@ -677,7 +677,7 @@ def fss_compute(fss):
     return 1.0 - numer / denom
 
 
-def fss_ens(fcst, obs, thr, scales, version='fss'):
+def fss_ens(fcst, obs, thr, scales, version='fss', mask_obs=False):
     """
     Compute Fractions Skill Score (FSS) for ensemble or deterministic forecasts
     across multiple thresholds and spatial scales.

@@ -20,7 +20,7 @@ import collections
 import numpy as np
 from pysteps.verification.spatialscores import smooth_fields, normalize_forecast_obs
 
-def det_cat_fct(pred, obs, thr, scores="", axis=None):
+def det_cat_fct(pred, obs, thr, scores="", axis=None, return_table=False):
     """
     Calculate simple and skill scores for deterministic categorical
     (dichotomous) forecasts.
@@ -94,7 +94,7 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
 
     contab = det_cat_fct_init(thr, axis)
     det_cat_fct_accum(contab, pred, obs)
-    return det_cat_fct_compute(contab, scores)
+    return det_cat_fct_compute(contab, scores, return_table)
 
 
 def det_cat_fct_init(thr, axis=None):
@@ -198,11 +198,22 @@ def det_cat_fct_accum(contab, pred, obs):
         obs = obs[None, :]
         axis = (0,)
     axis = tuple([a for a in axis if a >= 0])
-
+    
+    # Auto-detect binary inputs: unique values subset of {0,1} or {False,True}
+    def is_binary(arr):
+        vals = np.unique(arr[~np.isnan(arr)])
+        return np.all(np.isin(vals, [0, 1, False, True]))
+    
+    binary_input = is_binary(pred) and is_binary(obs)
+    
     # apply threshold
-    predb = pred > contab["thr"]
-    obsb = obs > contab["thr"]
-
+    if binary_input:
+        predb = pred.astype(bool)
+        obsb = obs.astype(bool)
+    else:
+        predb = pred > contab["thr"]
+        obsb = obs > contab["thr"]
+    
     # calculate hits, misses, false positives, correct rejects
     H_idx = np.logical_and(predb == 1, obsb == 1)
     F_idx = np.logical_and(predb == 1, obsb == 0)
@@ -263,7 +274,7 @@ def det_cat_fct_merge(contab_1, contab_2):
     return contab
 
 
-def det_cat_fct_compute(contab, scores=""):
+def det_cat_fct_compute(contab, scores="", return_table=False):
     """
     Compute simple and skill scores for deterministic categorical
     (dichotomous) forecasts from a contingency table object.
@@ -334,10 +345,12 @@ def det_cat_fct_compute(contab, scores=""):
     R = 1.0 * contab["correct_negatives"]  # true negatives
     
     result = {}
-    result["H"] = H
-    result["M"] = M
-    result["F"] = F
-    result["R"] = R
+    if return_table:
+        result["H"] = H
+        result["M"] = M
+        result["F"] = F
+        result["R"] = R
+        
     for score in scores:
         # catch None passed as score
         if score is None:
@@ -407,7 +420,7 @@ def det_cat_fct_compute(contab, scores=""):
     return result
 
 
-def det_cat_fct_spatial(pred, obs, thr, scales, axis=None, scores="", smooth_thr=0.0):
+def det_cat_fct_spatial(pred, obs, thr, scales, scores="", axis=None, return_table=False, smooth_thr=0.01):
     """
     Perform neighborhood-based categorical verification across thresholds and scales.
 
@@ -458,15 +471,15 @@ def det_cat_fct_spatial(pred, obs, thr, scales, axis=None, scores="", smooth_thr
                 for t in range(n_leadtimes):
                     fcst_bin = (pred[m, t] > thr_val).astype(float)
                     obs_bin = (obs[t] > thr_val).astype(float)
-
+                    
                     # Smooth and re-binarize
                     S_f, S_o = smooth_fields(fcst_bin, obs_bin, scale)
                     S_f_bin = S_f > smooth_thr
                     S_o_bin = S_o > smooth_thr
-
+                    
                     # Compute scores using det_cat_fct
-                    score_dict = det_cat_fct(S_f_bin, S_o_bin, thr_val, scores, axis)
-
+                    score_dict = det_cat_fct(S_f_bin, S_o_bin, thr_val, scores, axis, return_table)
+                    
                     # Initialize results dictionary on first pass
                     if results is None:
                         results = {
