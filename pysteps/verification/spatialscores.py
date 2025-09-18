@@ -677,6 +677,250 @@ def fss_compute(fss):
     return 1.0 - numer / denom
 
 
+def fss_ens(fcst, obs, thr, scales, version='fss'):
+    """
+    Compute Fractions Skill Score (FSS) for ensemble or deterministic forecasts
+    across multiple thresholds and spatial scales.
+
+    Parameters
+    ----------
+    fcst : np.ndarray
+        Forecast field. Shape can be:
+        - (n_members, n_leadtimes, y, x)
+        - (n_leadtimes, y, x)
+        - (n_members, y, x)
+        - (y, x)
+    obs : np.ndarray
+        Observation field. Shape can be:
+        - (n_leadtimes, y, x)
+        - (y, x)
+    thr : float or list of float
+        Threshold(s) used to binarize forecast and observation fields.
+    scales : list or np.ndarray
+        List of spatial scales (window sizes) to apply smoothing.
+    version : str
+        Type of FSS computation:
+        - 'fss'   : member-wise FSS
+        - 'avfss' : average of member-wise FSS
+        - 'pfss'  : FSS of ensemble mean probability
+        - 'agfss' : FSS of aggregated ensemble fields
+
+    Returns
+    -------
+    fss_scores : np.ndarray
+        FSS scores with shape:
+        - (n_thresholds, n_scales, n_members, n_leadtimes) for 'fss'
+        - (n_thresholds, n_scales, 1, n_leadtimes) for ensemble versions
+    """
+    version = version.lower()
+    scales = np.atleast_1d(scales)
+    thr = np.atleast_1d(thr)
+
+    # Normalize input shapes
+    fcst, obs = normalize_forecast_obs(fcst, obs)
+    n_members, n_leadtimes, y, x = fcst.shape
+    n_scales = len(scales)
+    n_thresholds = len(thr)
+
+    # Initialize output array
+    if version == 'fss':
+        fss_scores = np.empty((n_thresholds, n_scales, n_members, n_leadtimes))
+    else:
+        fss_scores = np.empty((n_thresholds, n_scales, 1, n_leadtimes))
+
+    # Loop over thresholds and lead times
+    for i, thr_val in enumerate(thr):
+        for t in range(n_leadtimes):
+            obs_bin = (obs[t] >= thr_val).astype(float)
+
+            if version in ['fss', 'avfss']:
+                for m in range(n_members):
+                    fcst_bin = (fcst[m, t] >= thr_val).astype(float)
+                    for s, scale in enumerate(scales):
+                        num, denom = _compute_fss_components(fcst_bin, obs_bin, scale)
+                        fss_scores[i, s, m, t] = _compute_fss_score(num, denom)
+
+                if version == 'avfss':
+                    for s in range(n_scales):
+                        fss_scores[i, s, 0, t] = fss_scores[i, s, :, t].mean()
+
+            elif version == 'pfss':
+                fcst_bin = (fcst[:, t] >= thr_val).astype(float)
+                fcst_mean = np.mean(fcst_bin, axis=0)
+                for s, scale in enumerate(scales):
+                    num, denom = _compute_fss_components(fcst_mean, obs_bin, scale)
+                    fss_scores[i, s, 0, t] = _compute_fss_score(num, denom)
+
+            elif version == 'agfss':
+                for s, scale in enumerate(scales):
+                    num, denom = 0.0, 0.0
+                    for m in range(n_members):
+                        fcst_bin = (fcst[m, t] >= thr_val).astype(float)
+                        n, d = _compute_fss_components(fcst_bin, obs_bin, scale)
+                        num += n
+                        denom += d
+                    fss_scores[i, s, 0, t] = _compute_fss_score(num, denom)
+
+            else:
+                raise ValueError("Invalid version. Choose from 'fss', 'pfss', 'agfss', 'avfss'.")
+
+    return fss_scores
+
+
+def normalize_forecast_obs(pred, obs):
+    """
+    Normalize forecast and observation arrays to shape:
+    - pred: (n_members, n_leadtimes, y, x)
+    - obs : (n_leadtimes, y, x)
+
+    Parameters
+    ----------
+    pred : np.ndarray
+        Forecast array with shape:
+        - (y, x)
+        - (n_members, y, x)
+        - (n_leadtimes, y, x)
+        - (n_members, n_leadtimes, y, x)
+    obs : np.ndarray
+        Observation array with shape:
+        - (y, x)
+        - (n_leadtimes, y, x)
+
+    Returns
+    -------
+    pred : np.ndarray
+        Normalized forecast array of shape (n_members, n_leadtimes, y, x)
+    obs : np.ndarray
+        Normalized observation array of shape (n_leadtimes, y, x)
+    """
+    pred = np.asarray(pred)
+    obs = np.asarray(obs)
+
+    # Normalize observation shape
+    if obs.ndim == 2:  # (y, x)
+        obs = obs[np.newaxis, ...]
+    elif obs.ndim == 3:
+        pass
+    else:
+        raise ValueError(f"Unsupported observation shape: {obs.shape}")
+
+    n_leadtimes = obs.shape[0]
+
+    # Normalize forecast shape
+    if pred.ndim == 2:  # (y, x)
+        pred = pred[np.newaxis, np.newaxis, ...]
+    elif pred.ndim == 3:
+        if pred.shape[0] == n_leadtimes:  # (n_leadtimes, y, x)
+            pred = pred[np.newaxis, ...]
+        else:  # (n_members, y, x)
+            pred = pred[:, np.newaxis, ...]
+    elif pred.ndim == 4:
+        if pred.shape[1] != n_leadtimes:
+            raise ValueError(f"Forecast lead time dimension {pred.shape[1]} does not match obs {n_leadtimes}")
+    else:
+        raise ValueError(f"Unsupported forecast shape: {pred.shape}")
+
+    return pred, obs
+
+
+def smooth_fields(fcst_bin, obs_bin, scale):
+    """
+    Apply uniform smoothing to forecast and observation binary fields.
+
+    Parameters
+    ----------
+    fcst_bin : np.ndarray
+        Binary forecast field.
+    obs_bin : np.ndarray
+        Binary observation field.
+    scale : int
+        Size of the smoothing window.
+
+    Returns
+    -------
+    S_f : np.ndarray
+        Smoothed forecast field.
+    S_o : np.ndarray
+        Smoothed observation field.
+    """
+    if scale > 1:
+        S_f = uniform_filter(fcst_bin, size=scale, mode="constant", cval=0.0)
+        S_o = uniform_filter(obs_bin, size=scale, mode="constant", cval=0.0)
+    else:
+        S_f = fcst_bin
+        S_o = obs_bin
+    return S_f, S_o
+
+
+def _compute_fss_terms(S_f, S_o):
+    """
+    Compute numerator and denominator for FSS from smoothed fields.
+
+    Parameters
+    ----------
+    S_f : np.ndarray
+        Smoothed forecast field.
+    S_o : np.ndarray
+        Smoothed observation field.
+
+    Returns
+    -------
+    num : float
+        Sum of squared differences.
+    denom : float
+        Sum of squared values.
+    """
+    num = np.sum((S_f - S_o) ** 2)
+    denom = np.sum(S_f ** 2 + S_o ** 2)
+    return num, denom
+
+
+def _compute_fss_components(fcst_bin, obs_bin, scale):
+    """
+    Compute numerator and denominator for the Fractions Skill Score (FSS)
+    at a given spatial scale using smoothed binary fields.
+
+    Parameters
+    ----------
+    fcst_bin : np.ndarray
+        Binary forecast field.
+    obs_bin : np.ndarray
+        Binary observation field.
+    scale : int
+        Size of the smoothing window.
+
+    Returns
+    -------
+    num : float
+        Sum of squared differences.
+    denom : float
+        Sum of squared values.
+    """
+    S_f, S_o = smooth_fields(fcst_bin, obs_bin, scale)
+    return _compute_fss_terms(S_f, S_o)
+
+
+def _compute_fss_score(num, denom, eps=1e-10):
+    """
+    Compute the Fractions Skill Score (FSS) from numerator and denominator.
+
+    Parameters
+    ----------
+    num : float
+        Numerator of the FSS formula (error term).
+    denom : float
+        Denominator of the FSS formula (normalization term).
+    eps : float, optional
+        Small constant to avoid division by zero (default is 1e-10).
+
+    Returns
+    -------
+    fss : float
+        FSS score ranging from 0 (no skill) to 1 (perfect match).
+    """
+    return 1.0 - num / (denom + eps)
+
+
 def _wavelet_decomp(X, w):
     c = pywt.wavedec2(X, w)
 
