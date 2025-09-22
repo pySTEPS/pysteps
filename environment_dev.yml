@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.11
+  - python>=3.10
   - pip
   - jsmin
   - jsonschema
@@ -29,5 +29,6 @@ dependencies:
   - pre_commit
   - cartopy>=0.18
   - scikit-image
+  - scikit-learn
   - pandas
   - rasterio

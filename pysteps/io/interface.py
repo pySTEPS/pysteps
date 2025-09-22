@@ -149,6 +149,8 @@ def get_method(name, method_type):
         |              | archive containing precipitation intensity           |
         |              | composites.                                          |
         +--------------+------------------------------------------------------+
+        | dwd_hdf5     | HDF5 file format used by DWD.                        |
+        +--------------+------------------------------------------------------+
         | fmi_geotiff  | GeoTIFF files used in the Finnish Meteorological     |
         |              | Institute (FMI) archive, containing reflectivity     |
         |              | composites (dBZ).                                    |
