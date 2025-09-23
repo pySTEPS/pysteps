@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+
 import numpy as np
 import pytest
-from pysteps.blending.linear_blending import forecast, _get_ranked_salience, _get_ws
 from numpy.testing import assert_array_almost_equal
+
+from pysteps.blending.linear_blending import (_get_ranked_salience, _get_ws,
+                                              forecast)
 from pysteps.utils import transformation
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
@@ -223,6 +226,9 @@ def test_salient_weight(
     assert ws.shape == (
         200,
         200,
+    ), "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
+        ws.shape
+    )
     ), "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
         ws.shape
     )

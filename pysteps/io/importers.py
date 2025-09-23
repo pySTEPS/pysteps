@@ -203,10 +203,10 @@ Available Importers
     import_dwd_radolan
 """
 
-import gzip
-import os
 import array
 import datetime
+import gzip
+import os
 from functools import partial
 from typing import Any
 
@@ -457,7 +457,7 @@ def import_mrms_grib(
     try:
         grib_file = pygrib.open(filename)
     except OSError:
-        raise OSError(f"Error opening NCEP's MRMS file. " f"File Not Found: {filename}")
+        raise OSError(f"Error opening NCEP's MRMS file. File Not Found: {filename}")
 
     if isinstance(window_size, int):
         window_size = (window_size, window_size)
