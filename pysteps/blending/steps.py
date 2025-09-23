@@ -1090,11 +1090,13 @@ class StepsBlendingNowcaster:
         if self.__precip_nowcast is not None:
             self.__precip_nowcast = self.__precip_nowcast.copy()
             # TODO: check this function for ensemble nowcasts -> now made it always work with 4 dimentions
-            for m in range(self.__precip_nowcast.shape[0]):
+            for ens_mem in range(self.__precip_nowcast.shape[0]):
                 for t in range(self.__precip_nowcast.shape[1]):
                     self.__precip_nowcast[
-                        m, t, ~np.isfinite(self.__precip_nowcast[m, t, :, :])
-                    ] = np.nanmin(self.__precip_nowcast[m, t, :, :])
+                        ens_mem,
+                        t,
+                        ~np.isfinite(self.__precip_nowcast[ens_mem, t, :, :]),
+                    ] = np.nanmin(self.__precip_nowcast[ens_mem, t, :, :])
 
         # Perform the cascade decomposition for the input precip fields and,
         # if necessary, for the (NWP) model fields
@@ -1175,7 +1177,6 @@ class StepsBlendingNowcaster:
             self.__params.noise_kwargs["win_fun"],
         )
 
-        # TODO This variable is currently not used anywhere. Should we calculate it?
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
         self.__params.zero_precip_model_fields = check_norain(
@@ -2179,8 +2180,6 @@ class StepsBlendingNowcaster:
 
         # Regress the extrapolation component to the subsequent time step.
         # Iterate the AR(p) model for each cascade level
-
-        # If nowcast method seleced is external_nowcast, n_ens members has to be 1
         if self.__config.nowcasting_method == "external_nowcast":
             print("Using nowcasting method:", self.__config.nowcasting_method)
             for i in range(self.__config.n_cascade_levels):
@@ -2275,12 +2274,12 @@ class StepsBlendingNowcaster:
                 worker_state.precip_extrapolated_probability_matching
             )  # [None, :]
 
-        else:
-            # Extrapolate per sub time step
-            for t_sub in worker_state.subtimesteps:
-                if t_sub > 0:
-                    t_diff_prev_subtimestep_int = t_sub - int(t_sub)
-                    if t_diff_prev_subtimestep_int > 0.0:
+        # Extrapolate per sub time step
+        for t_sub in worker_state.subtimesteps:
+            if t_sub > 0:
+                t_diff_prev_subtimestep_int = t_sub - int(t_sub)
+                if t_diff_prev_subtimestep_int > 0.0:
+                    if self.__config.nowcasting_method == "steps":
                         precip_forecast_cascade_subtimestep = [
                             (1.0 - t_diff_prev_subtimestep_int)
                             * worker_state.precip_cascades_prev_subtimestep[j][i][-1, :]
@@ -2288,6 +2287,7 @@ class StepsBlendingNowcaster:
                             * worker_state.precip_cascades[j][i][-1, :]
                             for i in range(self.__config.n_cascade_levels)
                         ]
+                    if self.__config.noise_method is not None:
                         noise_cascade_subtimestep = [
                             (1.0 - t_diff_prev_subtimestep_int)
                             * worker_state.cascade_noise_prev_subtimestep[j][i][-1, :]
@@ -2296,239 +2296,32 @@ class StepsBlendingNowcaster:
                             for i in range(self.__config.n_cascade_levels)
                         ]
 
-                    else:
+                else:
+                    if self.__config.nowcasting_method == "steps":
                         precip_forecast_cascade_subtimestep = [
                             worker_state.precip_cascades_prev_subtimestep[j][i][-1, :]
                             for i in range(self.__config.n_cascade_levels)
                         ]
+                    if self.__config.noise_method is not None:
                         noise_cascade_subtimestep = [
                             worker_state.cascade_noise_prev_subtimestep[j][i][-1, :]
                             for i in range(self.__config.n_cascade_levels)
                         ]
 
+                if self.__config.nowcasting_method == "steps":
                     precip_forecast_cascade_subtimestep = np.stack(
                         precip_forecast_cascade_subtimestep
                     )
+                if self.__config.noise_method is not None:
                     noise_cascade_subtimestep = np.stack(noise_cascade_subtimestep)
 
-                    t_diff_prev_subtimestep = t_sub - worker_state.time_prev_timestep[j]
-                    worker_state.leadtime_since_start_forecast[
-                        j
-                    ] += t_diff_prev_subtimestep
-
-                    # compute the perturbed motion field - include the NWP
-                    # velocities and the weights. Note that we only perturb
-                    # the extrapolation velocity field, as the NWP velocity
-                    # field is present per time step
-                    if self.__config.velocity_perturbation_method is not None:
-                        velocity_perturbations_extrapolation = (
-                            self.__velocity
-                            + self.__params.generate_velocity_noise(
-                                self.__params.velocity_perturbations[j],
-                                worker_state.leadtime_since_start_forecast[j]
-                                * self.__config.timestep,
-                            )
-                        )
-
-                    # Stack the perturbed extrapolation and the NWP velocities
-                    if self.__config.blend_nwp_members:
-                        velocity_stack_all = np.concatenate(
-                            (
-                                velocity_perturbations_extrapolation[None, :, :, :],
-                                worker_state.velocity_models_timestep,
-                            ),
-                            axis=0,
-                        )
-                    else:
-                        velocity_models = worker_state.velocity_models_timestep[j]
-                        velocity_stack_all = np.concatenate(
-                            (
-                                velocity_perturbations_extrapolation[None, :, :, :],
-                                velocity_models[None, :, :, :],
-                            ),
-                            axis=0,
-                        )
-                        velocity_models = None
-
-                    # Obtain a blended optical flow, using the weights of the
-                    # second cascade following eq. 24 in BPS2006
-                    velocity_blended = blending.utils.blend_optical_flows(
-                        flows=velocity_stack_all,
-                        weights=worker_state.weights[
-                            :-1, 1
-                        ],  # [(extr_field, n_model_fields), cascade_level=2]
-                    )
-
-                    # Extrapolate both cascades to the next time step
-                    # First recompose the cascade, advect it and decompose it again
-                    # This is needed to remove the interpolation artifacts.
-                    # In addition, the number of extrapolations is greatly reduced
-                    # A. Radar Rain
-                    precip_forecast_recomp_subtimestep = (
-                        blending.utils.recompose_cascade(
-                            combined_cascade=precip_forecast_cascade_subtimestep,
-                            combined_mean=worker_state.mean_extrapolation,
-                            combined_sigma=worker_state.std_extrapolation,
-                        )
-                    )
-                    # Make sure we have values outside the mask
-                    if self.__params.zero_precip_radar:
-                        precip_forecast_recomp_subtimestep = np.nan_to_num(
-                            precip_forecast_recomp_subtimestep,
-                            copy=True,
-                            nan=self.__params.precip_zerovalue,
-                            posinf=self.__params.precip_zerovalue,
-                            neginf=self.__params.precip_zerovalue,
-                        )
-                    # Put back the mask
-                    precip_forecast_recomp_subtimestep[self.__params.domain_mask] = (
-                        np.nan
-                    )
-                    worker_state.extrapolation_kwargs["displacement_prev"] = (
-                        worker_state.previous_displacement[j]
-                    )
-                    (
-                        precip_forecast_extrapolated_recomp_subtimestep_temp,
-                        worker_state.previous_displacement[j],
-                    ) = self.__params.extrapolation_method(
-                        precip_forecast_recomp_subtimestep,
-                        velocity_blended,
-                        [t_diff_prev_subtimestep],
-                        allow_nonfinite_values=True,
-                        **worker_state.extrapolation_kwargs,
-                    )
-                    precip_extrapolated_recomp_subtimestep = (
-                        precip_forecast_extrapolated_recomp_subtimestep_temp[0].copy()
-                    )
-                    temp_mask = ~np.isfinite(precip_extrapolated_recomp_subtimestep)
-                    # TODO: WHERE DO CAN I FIND THIS -15.0
-                    precip_extrapolated_recomp_subtimestep[
-                        ~np.isfinite(precip_extrapolated_recomp_subtimestep)
-                    ] = self.__params.precip_zerovalue
-                    precip_extrapolated_decomp = self.__params.decomposition_method(
-                        precip_extrapolated_recomp_subtimestep,
-                        self.__params.bandpass_filter,
-                        mask=self.__params.mask_threshold,
-                        fft_method=self.__params.fft,
-                        output_domain=self.__config.domain,
-                        normalize=True,
-                        compute_stats=True,
-                        compact_output=True,
-                    )["cascade_levels"]
-                    # Make sure we have values outside the mask
-                    if self.__params.zero_precip_radar:
-                        precip_extrapolated_decomp = np.nan_to_num(
-                            precip_extrapolated_decomp,
-                            copy=True,
-                            nan=np.nanmin(precip_forecast_cascade_subtimestep),
-                            posinf=np.nanmin(precip_forecast_cascade_subtimestep),
-                            neginf=np.nanmin(precip_forecast_cascade_subtimestep),
-                        )
-                    for i in range(self.__config.n_cascade_levels):
-                        precip_extrapolated_decomp[i][temp_mask] = np.nan
-                    # B. Noise
-                    noise_cascade_subtimestep_recomp = blending.utils.recompose_cascade(
-                        combined_cascade=noise_cascade_subtimestep,
-                        combined_mean=worker_state.precip_mean_noise[j],
-                        combined_sigma=worker_state.precip_std_noise[j],
-                    )
-                    extrap_kwargs_noise["displacement_prev"] = (
-                        worker_state.previous_displacement_noise_cascade[j]
-                    )
-                    extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
-                    (
-                        noise_extrapolated_recomp_temp,
-                        worker_state.previous_displacement_noise_cascade[j],
-                    ) = self.__params.extrapolation_method(
-                        noise_cascade_subtimestep_recomp,
-                        velocity_blended,
-                        [t_diff_prev_subtimestep],
-                        allow_nonfinite_values=True,
-                        **extrap_kwargs_noise,
-                    )
-                    noise_extrapolated_recomp = noise_extrapolated_recomp_temp[0].copy()
-                    noise_extrapolated_decomp = self.__params.decomposition_method(
-                        noise_extrapolated_recomp,
-                        self.__params.bandpass_filter,
-                        mask=self.__params.mask_threshold,
-                        fft_method=self.__params.fft,
-                        output_domain=self.__config.domain,
-                        normalize=True,
-                        compute_stats=True,
-                        compact_output=True,
-                    )["cascade_levels"]
-                    for i in range(self.__config.n_cascade_levels):
-                        noise_extrapolated_decomp[i] *= self.__params.noise_std_coeffs[
-                            i
-                        ]
-
-                    # Append the results to the output lists
-                    worker_state.precip_extrapolated_decomp.append(
-                        precip_extrapolated_decomp.copy()
-                    )
-                    worker_state.noise_extrapolated_decomp.append(
-                        noise_extrapolated_decomp.copy()
-                    )
-                    precip_forecast_cascade_subtimestep = None
-                    precip_forecast_recomp_subtimestep = None
-                    precip_forecast_extrapolated_recomp_subtimestep_temp = None
-                    precip_extrapolated_recomp_subtimestep = None
-                    precip_extrapolated_decomp = None
-                    noise_cascade_subtimestep = None
-                    noise_cascade_subtimestep_recomp = None
-                    noise_extrapolated_recomp_temp = None
-                    noise_extrapolated_recomp = None
-                    noise_extrapolated_decomp = None
-
-                    # Finally, also extrapolate the initial radar rainfall
-                    # field. This will be blended with the rainfall field(s)
-                    # of the (NWP) model(s) for Lagrangian blended prob. matching
-                    # min_R = np.min(precip)
-                    extrap_kwargs_pb["displacement_prev"] = (
-                        worker_state.previous_displacement_prob_matching[j]
-                    )
-                    # Apply the domain mask to the extrapolation component
-                    precip_forecast_temp_for_probability_matching = self.__precip.copy()
-                    precip_forecast_temp_for_probability_matching[
-                        self.__params.domain_mask
-                    ] = np.nan
-
-                    (
-                        precip_forecast_extrapolated_probability_matching_temp,
-                        worker_state.previous_displacement_prob_matching[j],
-                    ) = self.__params.extrapolation_method(
-                        precip_forecast_temp_for_probability_matching,
-                        velocity_blended,
-                        [t_diff_prev_subtimestep],
-                        allow_nonfinite_values=True,
-                        **extrap_kwargs_pb,
-                    )
-
-                    worker_state.precip_extrapolated_probability_matching.append(
-                        precip_forecast_extrapolated_probability_matching_temp[0]
-                    )
-
-                    worker_state.time_prev_timestep[j] = t_sub
-
-            if len(worker_state.precip_extrapolated_decomp) > 0:
-                worker_state.precip_extrapolated_decomp = np.stack(
-                    worker_state.precip_extrapolated_decomp
-                )
-                worker_state.noise_extrapolated_decomp = np.stack(
-                    worker_state.noise_extrapolated_decomp
-                )
-                worker_state.precip_extrapolated_probability_matching = np.stack(
-                    worker_state.precip_extrapolated_probability_matching
-                )
-
-            # advect the forecast field by one time step if no subtimesteps in the
-            # current interval were found
-            if not worker_state.subtimesteps:
-                t_diff_prev_subtimestep = t + 1 - worker_state.time_prev_timestep[j]
+                t_diff_prev_subtimestep = t_sub - worker_state.time_prev_timestep[j]
                 worker_state.leadtime_since_start_forecast[j] += t_diff_prev_subtimestep
 
                 # compute the perturbed motion field - include the NWP
-                # velocities and the weights
+                # velocities and the weights. Note that we only perturb
+                # the extrapolation velocity field, as the NWP velocity
+                # field is present per time step
                 if self.__config.velocity_perturbation_method is not None:
                     velocity_perturbations_extrapolation = (
                         self.__velocity
@@ -2568,54 +2361,274 @@ class StepsBlendingNowcaster:
                     ],  # [(extr_field, n_model_fields), cascade_level=2]
                 )
 
-                # Extrapolate the extrapolation and noise cascade
-                extrap_kwargs_["displacement_prev"] = (
-                    worker_state.previous_displacement[j]
-                )
-                extrap_kwargs_noise["displacement_prev"] = (
-                    worker_state.previous_displacement_noise_cascade[j]
-                )
-                extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
+                # Extrapolate both cascades to the next time step
+                # First recompose the cascade, advect it and decompose it again
+                # This is needed to remove the interpolation artifacts.
+                # In addition, the number of extrapolations is greatly reduced
 
-                (
-                    _,
-                    worker_state.previous_displacement[j],
-                ) = self.__params.extrapolation_method(
-                    None,
-                    velocity_blended,
-                    [t_diff_prev_subtimestep],
-                    allow_nonfinite_values=True,
-                    **extrap_kwargs_,
-                )
+                # A. The extrapolation component
+                if self.__config.nowcasting_method == "steps":
+                    # First, recompose the cascades into one forecast
+                    precip_forecast_recomp_subtimestep = (
+                        blending.utils.recompose_cascade(
+                            combined_cascade=precip_forecast_cascade_subtimestep,
+                            combined_mean=worker_state.mean_extrapolation,
+                            combined_sigma=worker_state.std_extrapolation,
+                        )
+                    )
+                    # Make sure we have values outside the mask
+                    if self.__params.zero_precip_radar:
+                        precip_forecast_recomp_subtimestep = np.nan_to_num(
+                            precip_forecast_recomp_subtimestep,
+                            copy=True,
+                            nan=self.__params.precip_zerovalue,
+                            posinf=self.__params.precip_zerovalue,
+                            neginf=self.__params.precip_zerovalue,
+                        )
+                    # Put back the mask
+                    precip_forecast_recomp_subtimestep[self.__params.domain_mask] = (
+                        np.nan
+                    )
+                    worker_state.extrapolation_kwargs["displacement_prev"] = (
+                        worker_state.previous_displacement[j]
+                    )
+                    (
+                        precip_forecast_extrapolated_recomp_subtimestep_temp,
+                        worker_state.previous_displacement[j],
+                    ) = self.__params.extrapolation_method(
+                        precip_forecast_recomp_subtimestep,
+                        velocity_blended,
+                        [t_diff_prev_subtimestep],
+                        allow_nonfinite_values=True,
+                        **worker_state.extrapolation_kwargs,
+                    )
+                    precip_extrapolated_recomp_subtimestep = (
+                        precip_forecast_extrapolated_recomp_subtimestep_temp[0].copy()
+                    )
+                    temp_mask = ~np.isfinite(precip_extrapolated_recomp_subtimestep)
+                    # Set non-finite values to the zerovalue
+                    precip_extrapolated_recomp_subtimestep[
+                        ~np.isfinite(precip_extrapolated_recomp_subtimestep)
+                    ] = self.__params.precip_zerovalue
+                    # Decompose the forecast again into multiplicative cascades
+                    precip_extrapolated_decomp = self.__params.decomposition_method(
+                        precip_extrapolated_recomp_subtimestep,
+                        self.__params.bandpass_filter,
+                        mask=self.__params.mask_threshold,
+                        fft_method=self.__params.fft,
+                        output_domain=self.__config.domain,
+                        normalize=True,
+                        compute_stats=True,
+                        compact_output=True,
+                    )["cascade_levels"]
+                    # Make sure we have values outside the mask
+                    if self.__params.zero_precip_radar:
+                        precip_extrapolated_decomp = np.nan_to_num(
+                            precip_extrapolated_decomp,
+                            copy=True,
+                            nan=np.nanmin(precip_forecast_cascade_subtimestep),
+                            posinf=np.nanmin(precip_forecast_cascade_subtimestep),
+                            neginf=np.nanmin(precip_forecast_cascade_subtimestep),
+                        )
+                    for i in range(self.__config.n_cascade_levels):
+                        precip_extrapolated_decomp[i][temp_mask] = np.nan
 
-                (
-                    _,
-                    worker_state.previous_displacement_noise_cascade[j],
-                ) = self.__params.extrapolation_method(
-                    None,
-                    velocity_blended,
-                    [t_diff_prev_subtimestep],
-                    allow_nonfinite_values=True,
-                    **extrap_kwargs_noise,
-                )
+                    # Append the results to the output lists
+                    worker_state.precip_extrapolated_decomp.append(
+                        precip_extrapolated_decomp.copy()
+                    )
 
-                # Also extrapolate the radar observation, used for the probability
-                # matching and post-processing steps
+                    precip_forecast_cascade_subtimestep = None
+                    precip_forecast_recomp_subtimestep = None
+                    precip_forecast_extrapolated_recomp_subtimestep_temp = None
+                    precip_extrapolated_recomp_subtimestep = None
+                    precip_extrapolated_decomp = None
+
+                # B. The noise component
+                if self.__config.noise_method is not None:
+                    # First, recompose the cascades into one forecast
+                    noise_cascade_subtimestep_recomp = blending.utils.recompose_cascade(
+                        combined_cascade=noise_cascade_subtimestep,
+                        combined_mean=worker_state.precip_mean_noise[j],
+                        combined_sigma=worker_state.precip_std_noise[j],
+                    )
+                    extrap_kwargs_noise["displacement_prev"] = (
+                        worker_state.previous_displacement_noise_cascade[j]
+                    )
+                    extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
+                    (
+                        noise_extrapolated_recomp_temp,
+                        worker_state.previous_displacement_noise_cascade[j],
+                    ) = self.__params.extrapolation_method(
+                        noise_cascade_subtimestep_recomp,
+                        velocity_blended,
+                        [t_diff_prev_subtimestep],
+                        allow_nonfinite_values=True,
+                        **extrap_kwargs_noise,
+                    )
+                    noise_extrapolated_recomp = noise_extrapolated_recomp_temp[0].copy()
+                    # Decompose the noise component again into multiplicative cascades
+                    noise_extrapolated_decomp = self.__params.decomposition_method(
+                        noise_extrapolated_recomp,
+                        self.__params.bandpass_filter,
+                        mask=self.__params.mask_threshold,
+                        fft_method=self.__params.fft,
+                        output_domain=self.__config.domain,
+                        normalize=True,
+                        compute_stats=True,
+                        compact_output=True,
+                    )["cascade_levels"]
+                    for i in range(self.__config.n_cascade_levels):
+                        noise_extrapolated_decomp[i] *= self.__params.noise_std_coeffs[
+                            i
+                        ]
+
+                    # Append the results to the output lists
+                    worker_state.noise_extrapolated_decomp.append(
+                        noise_extrapolated_decomp.copy()
+                    )
+
+                    noise_cascade_subtimestep = None
+                    noise_cascade_subtimestep_recomp = None
+                    noise_extrapolated_recomp_temp = None
+                    noise_extrapolated_recomp = None
+                    noise_extrapolated_decomp = None
+
+                # Finally, also extrapolate the initial radar rainfall
+                # field. This will be blended with the rainfall field(s)
+                # of the (NWP) model(s) for Lagrangian blended prob. matching
+                # min_R = np.min(precip)
                 extrap_kwargs_pb["displacement_prev"] = (
                     worker_state.previous_displacement_prob_matching[j]
                 )
+                # Apply the domain mask to the extrapolation component
+                precip_forecast_temp_for_probability_matching = self.__precip.copy()
+                precip_forecast_temp_for_probability_matching[
+                    self.__params.domain_mask
+                ] = np.nan
+
                 (
-                    _,
+                    precip_forecast_extrapolated_probability_matching_temp,
                     worker_state.previous_displacement_prob_matching[j],
                 ) = self.__params.extrapolation_method(
-                    None,
+                    precip_forecast_temp_for_probability_matching,
                     velocity_blended,
                     [t_diff_prev_subtimestep],
                     allow_nonfinite_values=True,
                     **extrap_kwargs_pb,
                 )
 
-                worker_state.time_prev_timestep[j] = t + 1
+                worker_state.precip_extrapolated_probability_matching.append(
+                    precip_forecast_extrapolated_probability_matching_temp[0]
+                )
+
+                worker_state.time_prev_timestep[j] = t_sub
+                # TODO: continue here
+
+        if len(worker_state.precip_extrapolated_decomp) > 0:
+            worker_state.precip_extrapolated_decomp = np.stack(
+                worker_state.precip_extrapolated_decomp
+            )
+            worker_state.noise_extrapolated_decomp = np.stack(
+                worker_state.noise_extrapolated_decomp
+            )
+            worker_state.precip_extrapolated_probability_matching = np.stack(
+                worker_state.precip_extrapolated_probability_matching
+            )
+
+        # advect the forecast field by one time step if no subtimesteps in the
+        # current interval were found
+        if not worker_state.subtimesteps:
+            t_diff_prev_subtimestep = t + 1 - worker_state.time_prev_timestep[j]
+            worker_state.leadtime_since_start_forecast[j] += t_diff_prev_subtimestep
+
+            # compute the perturbed motion field - include the NWP
+            # velocities and the weights
+            if self.__config.velocity_perturbation_method is not None:
+                velocity_perturbations_extrapolation = (
+                    self.__velocity
+                    + self.__params.generate_velocity_noise(
+                        self.__params.velocity_perturbations[j],
+                        worker_state.leadtime_since_start_forecast[j]
+                        * self.__config.timestep,
+                    )
+                )
+
+            # Stack the perturbed extrapolation and the NWP velocities
+            if self.__config.blend_nwp_members:
+                velocity_stack_all = np.concatenate(
+                    (
+                        velocity_perturbations_extrapolation[None, :, :, :],
+                        worker_state.velocity_models_timestep,
+                    ),
+                    axis=0,
+                )
+            else:
+                velocity_models = worker_state.velocity_models_timestep[j]
+                velocity_stack_all = np.concatenate(
+                    (
+                        velocity_perturbations_extrapolation[None, :, :, :],
+                        velocity_models[None, :, :, :],
+                    ),
+                    axis=0,
+                )
+                velocity_models = None
+
+            # Obtain a blended optical flow, using the weights of the
+            # second cascade following eq. 24 in BPS2006
+            velocity_blended = blending.utils.blend_optical_flows(
+                flows=velocity_stack_all,
+                weights=worker_state.weights[
+                    :-1, 1
+                ],  # [(extr_field, n_model_fields), cascade_level=2]
+            )
+
+            # Extrapolate the extrapolation and noise cascade
+            extrap_kwargs_["displacement_prev"] = worker_state.previous_displacement[j]
+            extrap_kwargs_noise["displacement_prev"] = (
+                worker_state.previous_displacement_noise_cascade[j]
+            )
+            extrap_kwargs_noise["map_coordinates_mode"] = "wrap"
+
+            (
+                _,
+                worker_state.previous_displacement[j],
+            ) = self.__params.extrapolation_method(
+                None,
+                velocity_blended,
+                [t_diff_prev_subtimestep],
+                allow_nonfinite_values=True,
+                **extrap_kwargs_,
+            )
+
+            (
+                _,
+                worker_state.previous_displacement_noise_cascade[j],
+            ) = self.__params.extrapolation_method(
+                None,
+                velocity_blended,
+                [t_diff_prev_subtimestep],
+                allow_nonfinite_values=True,
+                **extrap_kwargs_noise,
+            )
+
+            # Also extrapolate the radar observation, used for the probability
+            # matching and post-processing steps
+            extrap_kwargs_pb["displacement_prev"] = (
+                worker_state.previous_displacement_prob_matching[j]
+            )
+            (
+                _,
+                worker_state.previous_displacement_prob_matching[j],
+            ) = self.__params.extrapolation_method(
+                None,
+                velocity_blended,
+                [t_diff_prev_subtimestep],
+                allow_nonfinite_values=True,
+                **extrap_kwargs_pb,
+            )
+
+            worker_state.time_prev_timestep[j] = t + 1
 
         worker_state.precip_cascades_prev_subtimestep[j] = worker_state.precip_cascades[
             j
