@@ -108,7 +108,6 @@ def test_sseps(
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
-        metadata=True,
         upscale=2000,
     )
     precip_var = dataset_input.attrs["precip_var"]

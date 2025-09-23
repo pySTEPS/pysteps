@@ -71,7 +71,7 @@ def test_io_export_netcdf_one_member_one_time_step(
     pytest.importorskip("pyproj")
 
     precip_dataset: xr.Dataset = get_precipitation_fields(
-        num_prev_files=2, return_raw=True, metadata=True, source="fmi"
+        num_prev_files=2, return_raw=True, source="fmi"
     )
 
     precip_var = precip_dataset.attrs["precip_var"]

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from functools import partial
 import numpy
 import pytest
 
@@ -61,14 +62,14 @@ def test_extrapolation_interface():
     from pysteps import extrapolation
     from pysteps.extrapolation import semilagrangian
 
-    from pysteps.extrapolation.interface import eulerian_persistence as eulerian
+    from pysteps.extrapolation import eulerian_persistence
     from pysteps.extrapolation.interface import _do_nothing as do_nothing
 
     method_getter = extrapolation.interface.get_method
 
     valid_returned_objs = dict()
     valid_returned_objs["semilagrangian"] = semilagrangian.extrapolate
-    valid_returned_objs["eulerian"] = eulerian
+    valid_returned_objs["eulerian"] = eulerian_persistence.extrapolate
     valid_returned_objs[None] = do_nothing
     valid_returned_objs["None"] = do_nothing
 
@@ -295,6 +296,7 @@ def test_nowcasts_interface():
     valid_names_func_pair = [
         ("anvil", anvil.forecast),
         ("extrapolation", extrapolation.forecast),
+        ("eulerian", pysteps.nowcasts.interface.eulerian_persistence),
         ("lagrangian", extrapolation.forecast),
         ("linda", linda.forecast),
         ("probability", lagrangian_probability.forecast),
@@ -306,15 +308,6 @@ def test_nowcasts_interface():
 
     invalid_names = ["extrap", "step", "s-prog", "pysteps"]
     _generic_interface_test(method_getter, valid_names_func_pair, invalid_names)
-
-    # Test eulerian persistence method
-    precip = numpy.random.rand(100, 100)
-    velocity = numpy.random.rand(100, 100)
-    num_timesteps = 10
-    for name in ["eulerian", "EULERIAN"]:
-        forecast = method_getter(name)(precip, velocity, num_timesteps)
-        for i in range(num_timesteps):
-            assert numpy.all(forecast[i] == precip)
 
 
 def test_utils_interface():

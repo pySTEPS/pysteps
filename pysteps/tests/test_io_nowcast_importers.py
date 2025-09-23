@@ -10,7 +10,6 @@ precip_dataset = get_precipitation_fields(
     num_prev_files=1,
     num_next_files=0,
     return_raw=False,
-    metadata=True,
     upscale=2000,
 )
 

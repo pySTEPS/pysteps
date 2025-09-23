@@ -8,10 +8,9 @@ precip_dataset = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=True,
-    metadata=True,
     source="knmi",
     log_transform=False,
-    importer_kwargs=dict(qty="ACRR"),
+    qty="ACRR",
 )
 
 precip_var = precip_dataset.attrs["precip_var"]

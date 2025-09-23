@@ -77,7 +77,6 @@ def test_steps_skill(
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
-        metadata=True,
         upscale=2000,
     )
 
@@ -133,7 +132,6 @@ def test_steps_callback(tmp_path):
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
-        metadata=True,
         upscale=2000,
     )
     precip_input = precip_input.filled()

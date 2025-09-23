@@ -11,7 +11,6 @@ precip_dataset = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=True,
-    metadata=True,
     source="bom",
     log_transform=False,
 )
@@ -46,7 +45,6 @@ test_metadata_bom = [
     (precip_dataset.x.attrs["units"], "m", None),
     (precip_dataset.y.attrs["units"], "m", None),
     (precip_dataarray.attrs["accutime"], 6, 1e-4),
-    (precip_dataarray.attrs["transform"], None, None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-4),
     (precip_dataarray.attrs["units"], "mm", None),
 ]
