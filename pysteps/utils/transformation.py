@@ -79,7 +79,7 @@ def boxcox_transform(
     precip_data = dataset[precip_var].values
 
     if not inverse:
-        if metadata["transform"] == "BoxCox":
+        if "transform" in metadata and metadata["transform"] == "BoxCox":
             return dataset
 
         if Lambda is None:
@@ -131,7 +131,7 @@ def boxcox_transform(
 
         precip_data[precip_data < threshold] = zerovalue
 
-        metadata["transform"] = None
+        del metadata["transform"]
         metadata["zerovalue"] = zerovalue
         metadata["threshold"] = threshold
 
@@ -174,7 +174,7 @@ def dB_transform(
 
     # to dB units
     if not inverse:
-        if metadata["transform"] == "dB":
+        if "transform" in metadata and metadata["transform"] == "dB":
             return dataset
 
         if threshold is None:
@@ -209,7 +209,7 @@ def dB_transform(
         threshold = 10.0 ** (threshold / 10.0)
         precip_data[precip_data < threshold] = zerovalue
 
-        metadata["transform"] = None
+        del metadata["transform"]
         metadata["threshold"] = threshold
         metadata["zerovalue"] = zerovalue
 
@@ -295,7 +295,7 @@ def NQ_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.Dat
     else:
         f = metadata.pop("inqt")
         precip_data__ = f(precip_data_)
-        metadata["transform"] = None
+        del metadata["transform"]
         metadata["zerovalue"] = precip_data__.min()
         metadata["threshold"] = precip_data__[precip_data__ > precip_data__.min()].min()
 
@@ -341,7 +341,7 @@ def sqrt_transform(dataset: xr.Dataset, inverse: bool = False, **kwargs) -> xr.D
         # inverse sqrt transform
         precip_data = precip_data**2
 
-        metadata["transform"] = None
+        del metadata["transform"]
         metadata["zerovalue"] = metadata["zerovalue"] ** 2
         metadata["threshold"] = metadata["threshold"] ** 2
 

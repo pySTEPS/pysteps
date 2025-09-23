@@ -318,7 +318,12 @@ def downscale(
     noise_dataset = xr.Dataset(
         data_vars={precip_var: (["time", "y", "x"], [noise_field])},
         coords={
-            "time": (["time"], precip_dataset.time.values, precip_dataset.time.attrs),
+            "time": (
+                ["time"],
+                precip_dataset.time.values,
+                precip_dataset.time.attrs,
+                precip_dataset.time.encoding,
+            ),
             "y": (
                 ["y"],
                 y_new,

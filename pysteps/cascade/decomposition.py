@@ -286,7 +286,7 @@ def recompose_fft(decomp, **kwargs):
     ):
         result = np.sum(levels, axis=0)
     else:
-        if decomp["compact_output"]:
+        if decomp["domain"] == "spectral" and decomp["compact_output"]:
             weight_masks = decomp["weight_masks"]
             result = np.zeros(weight_masks.shape[1:], dtype=complex)
 

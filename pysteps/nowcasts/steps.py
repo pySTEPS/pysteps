@@ -55,10 +55,10 @@ class StepsNowcasterConfig:
         Specifies the threshold value for minimum observable precipitation
         intensity. Required if mask_method is not None or conditional is True.
     norain_threshold: float
-      Specifies the threshold value for the fraction of rainy (see above) pixels
-      in the radar rainfall field below which we consider there to be no rain.
-      Depends on the amount of clutter typically present.
-      Standard set to 0.0
+        Specifies the threshold value for the fraction of rainy (see above) pixels
+        in the radar rainfall field below which we consider there to be no rain.
+        Depends on the amount of clutter typically present.
+        Standard set to 0.0
     kmperpixel: float, optional
         Spatial resolution of the input data (kilometers/pixel). Required if
         vel_pert_method is not None or mask_method is 'incremental'.

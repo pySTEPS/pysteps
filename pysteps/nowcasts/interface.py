@@ -43,7 +43,7 @@ from pysteps.nowcasts import lagrangian_probability
 
 _nowcast_methods = dict()
 _nowcast_methods["anvil"] = anvil.forecast
-_nowcast_methods["eulerian"] = eulerian_persistence
+_nowcast_methods["eulerian"] = eulerian_persistence.extrapolate
 _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast

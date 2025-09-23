@@ -22,18 +22,20 @@ def test_decompose_recompose():
     root_path = pysteps.rcparams.data_sources["bom"]["root_path"]
     rel_path = os.path.join("prcp-cscn", "2", "2018", "06", "16")
     filename = os.path.join(root_path, rel_path, "2_20180616_120000.prcp-cscn.nc")
-    precip, _, metadata = pysteps.io.import_bom_rf3(filename)
+    precip_dataset = pysteps.io.import_bom_rf3(filename)
 
     # Convert to rain rate from mm
-    precip, metadata = pysteps.utils.to_rainrate(precip, metadata)
+    precip_dataset = pysteps.utils.to_rainrate(precip_dataset)
 
     # Log-transform the data
-    precip, metadata = pysteps.utils.dB_transform(
-        precip, metadata, threshold=0.1, zerovalue=-15.0
+    precip_dataset = pysteps.utils.dB_transform(
+        precip_dataset, threshold=0.1, zerovalue=-15.0
     )
+    precip_var = precip_dataset.attrs["precip_var"]
+    precip = precip_dataset[precip_var].values
 
     # Set Nans as the fill value
-    precip[~np.isfinite(precip)] = metadata["zerovalue"]
+    precip[~np.isfinite(precip)] = precip_dataset[precip_var].attrs["zerovalue"]
 
     # Set number of cascade levels
     num_cascade_levels = 9

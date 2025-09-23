@@ -45,11 +45,8 @@ def test_default_sseps_norain():
             "time": (
                 ["time"],
                 np.arange(3.0) * 5.0,
-                {
-                    "long_name": "forecast time",
-                    "units": "seconds since 1970-01-01 00:00:00",
-                    "stepsize": 5.0,
-                },
+                {"long_name": "forecast time", "stepsize": 5.0},
+                {"units": "seconds since 1970-01-01 00:00:00"},
             ),
             "y": (
                 ["y"],
