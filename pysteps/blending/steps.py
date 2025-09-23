@@ -797,11 +797,12 @@ class StepsBlendingNowcaster:
                 "precip_models must be either a two-dimensional array containing dictionaries with decomposed model fields"
                 "or a four-dimensional array containing the original (NWP) model forecasts"
             )
-        precip_nowcast_dim = self.__precip_nowcast.ndim
-        if precip_nowcast_dim != 4:
-            raise ValueError(
-                "precip_nowcast must be a four-dimensional array containing the externally calculated nowcast"
-            )
+        if self.__precip_nowcast is not None:
+            precip_nowcast_dim = self.__precip_nowcast.ndim
+            if precip_nowcast_dim != 4:
+                raise ValueError(
+                    "precip_nowcast must be a four-dimensional array containing the externally calculated nowcast"
+                )
         if self.__config.extrapolation_kwargs is None:
             self.__state.extrapolation_kwargs = dict()
         else:
@@ -1045,8 +1046,8 @@ class StepsBlendingNowcaster:
 
         # we need to know the zerovalue of precip to replace the mask when decomposing after
         # extrapolation
+        self.__params.nowcast_zerovalue = np.nanmin(self.__precip_nowcast)
         self.__params.precip_zerovalue = np.nanmin(self.__precip)
-
         # 1. Start with the radar rainfall fields. We want the fields in a Lagrangian
         # space. Advect the previous precipitation fields to the same position with
         # the most recent one (i.e. transform them into the Lagrangian coordinates).
@@ -1128,28 +1129,32 @@ class StepsBlendingNowcaster:
         # Decompose precomputed nowcasts and rearange them again into the required components
         if self.__precip_nowcast is not None:
             if self.__precip_nowcast.shape[0] == 1:
-                precip_nowcast_decomp, precip_nowcast_means, precip_nowcast_stds = (
-                    self.__decompose_member(self.__precip_nowcast[0])
-                )
+                results = self.__decompose_member(self.__precip_nowcast[0])
             else:
                 with ThreadPool(self.__config.num_workers) as pool:
-                    precip_nowcast_decomp, precip_nowcast_means, precip_nowcast_stds = (
-                        pool.map(
-                            partial(self.__decompose_member),
-                            list(self.__precip_nowcast),
-                        )
+                    results = pool.map(
+                        partial(self.__decompose_member),
+                        list(self.__precip_nowcast),
                     )
+            precip_nowcast_decomp = []
+            precip_nowcast_means = []
+            precip_nowcast_stds = []
 
+            for i in range(self.__precip_nowcast.shape[0]):
+                precip_nowcast_decomp.append(results[i]["precip_nowcast_decomp"])
+
+                precip_nowcast_means.append(results[i]["precip_nowcast_means"])
+
+                precip_nowcast_stds.append(results[i]["precip_nowcast_stds"])
             self.__state.precip_nowcast_cascades = np.array(
-                [precip_nowcast_decomp]
+                precip_nowcast_decomp
             ).swapaxes(1, 2)
             self.__state.mean_nowcast_timestep = np.array(
-                [precip_nowcast_means]
+                precip_nowcast_means
             ).swapaxes(1, 2)
-            self.__state.std_nowcast_timestep = np.array(
-                [precip_nowcast_stds]
-            ).swapaxes(1, 2)
-
+            self.__state.std_nowcast_timestep = np.array(precip_nowcast_stds).swapaxes(
+                1, 2
+            )
         # If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
 
@@ -1207,8 +1212,13 @@ class StepsBlendingNowcaster:
             results_decomp.append(res["cascade_levels"])
             means.append(res["means"])
             stds.append(res["stds"])
+        results = {
+            "precip_nowcast_decomp": results_decomp,
+            "precip_nowcast_means": means,
+            "precip_nowcast_stds": stds,
+        }
 
-        return results_decomp, means, stds
+        return results
 
     def __zero_precipitation_forecast(self):
         """
@@ -1753,9 +1763,6 @@ class StepsBlendingNowcaster:
         With the way it is implemented at this moment: n_ens_members of the output equals
         the maximum number of (ensemble) members in the input (either the nowcasts or NWP).
         """
-        self.__state.precip_nowcast_timestep = self.__precip_nowcast[:, t, :, :].astype(
-            np.float64, copy=False
-        )
 
         self.__state.velocity_models_timestep = self.__velocity_models[
             :, t, :, :, :
@@ -1767,22 +1774,25 @@ class StepsBlendingNowcaster:
                 "The number of NWP model members is larger than the given number of ensemble members. n_model_members <= n_ens_members."
             )
 
-        n_ens_members_provided = self.__precip_nowcast.shape[0]
-        if n_ens_members_provided > self.__config.n_ens_members:
-            raise ValueError(
-                "The number of nowcast ensemble members provided is larger than the given number of ensemble members requested. n_ens_members_provided <= n_ens_members."
-            )
-
         # Check if NWP models/members should be used individually, or if all of
         # them are blended together per nowcast ensemble member.
         if self.__config.blend_nwp_members:
             self.__state.mapping_list_NWP_member_to_ensemble_member = None
 
         elif self.__config.nowcasting_method == "external_nowcast":
+
+            self.__state.precip_nowcast_timestep = self.__precip_nowcast[
+                :, t, :, :
+            ].astype(np.float64, copy=False)
+
+            n_ens_members_provided = self.__precip_nowcast.shape[0]
+            if n_ens_members_provided > self.__config.n_ens_members:
+                raise ValueError(
+                    "The number of nowcast ensemble members provided is larger than the given number of ensemble members requested. n_ens_members_provided <= n_ens_members."
+                )
+
             n_ens_members_max = max(n_ens_members_provided, n_model_members)
             n_ens_members_min = min(n_ens_members_provided, n_model_members)
-            print("Number of nowcast ensembles:", n_ens_members_provided)
-            print("Number of nwp ensembles:", n_model_members)
             # Also make a list of the model index numbers. These indices are needed
             # for indexing the right climatological skill file when pysteps calculates
             # the blended forecast in parallel.
@@ -2181,7 +2191,6 @@ class StepsBlendingNowcaster:
         # Regress the extrapolation component to the subsequent time step.
         # Iterate the AR(p) model for each cascade level
         if self.__config.nowcasting_method == "external_nowcast":
-            print("Using nowcasting method:", self.__config.nowcasting_method)
             for i in range(self.__config.n_cascade_levels):
                 # Use a deterministic Externally computed nowcasting model
                 worker_state.precip_cascades[j][i] = (
@@ -2190,7 +2199,6 @@ class StepsBlendingNowcaster:
 
         # Follow the 'standard' STEPS blending approach as described in :cite:`Imhoff2023`
         elif self.__config.nowcasting_method == "steps":
-            print("Using nowcasting method:", self.__config.nowcasting_method)
             for i in range(self.__config.n_cascade_levels):
                 # apply AR(p) process to extrapolation cascade level
                 if (
@@ -2257,14 +2265,17 @@ class StepsBlendingNowcaster:
         if self.__config.nowcasting_method == "external_nowcast":
             for i in range(self.__config.n_cascade_levels):
                 precip_extrapolated_decomp = worker_state.precip_cascades[j][i][-1, :]
+
                 worker_state.time_prev_timestep[j] = t + 1
 
                 worker_state.precip_extrapolated_decomp.append(
                     precip_extrapolated_decomp.copy()
                 )
-                worker_state.precip_extrapolated_probability_matching.append(
-                    precip_extrapolated_decomp.copy()
-                )
+
+            precip_extrapolated = self.__precip_nowcast[j][t][:, :]
+            worker_state.precip_extrapolated_probability_matching.append(
+                precip_extrapolated.copy()
+            )
 
             worker_state.precip_extrapolated_decomp = np.stack(
                 worker_state.precip_extrapolated_decomp
@@ -2665,14 +2676,14 @@ class StepsBlendingNowcaster:
             )  # [(extr_field, n_model_fields), n_cascade_levels, ...]
             means_stacked = np.concatenate(
                 (
-                    worker_state.mean_nowcast_timestep[t_sub, j],
+                    worker_state.mean_nowcast_timestep[None, j, :, t_sub],
                     worker_state.mean_models_timestep,
                 ),
                 axis=0,
             )
             sigmas_stacked = np.concatenate(
                 (
-                    worker_state.std_nowcast_timestep[t_sub, j],
+                    worker_state.std_nowcast_timestep[None, j, :, t_sub],
                     worker_state.std_models_timestep,
                 ),
                 axis=0,
@@ -2722,7 +2733,7 @@ class StepsBlendingNowcaster:
             means_stacked = np.concatenate(
                 (
                     # worker_state.mean_nowcast_timestep,
-                    worker_state.mean_nowcast_timestep[t_sub, j],
+                    worker_state.mean_nowcast_timestep[None, j, :, t_sub],
                     worker_state.mean_models_timestep[None, j],
                 ),
                 axis=0,
@@ -2730,7 +2741,7 @@ class StepsBlendingNowcaster:
             sigmas_stacked = np.concatenate(
                 (
                     # worker_state.std_nowcast_timestep,
-                    worker_state.std_nowcast_timestep[t_sub, j],
+                    worker_state.std_nowcast_timestep[None, j, :, t_sub],
                     worker_state.std_models_timestep[None, j],
                 ),
                 axis=0,
@@ -3015,7 +3026,6 @@ class StepsBlendingNowcaster:
                 ],
                 axis=0,
             )
-
             precip_forecast_probability_matching_blended = np.nansum(
                 [
                     precip_forecast_probability_matching_blended * mask_radar,
@@ -3145,9 +3155,11 @@ class StepsBlendingNowcaster:
                     worker_state.subtimestep_index
                 ]
             )
+
             # Adjust the CDF of the forecast to match the resampled distribution combined from
             # extrapolation and model fields.
             # Rainfall outside the pure extrapolation domain is not taken into account.
+
             if np.any(np.isfinite(worker_state.final_blended_forecast_recomposed)):
                 worker_state.final_blended_forecast_recomposed = (
                     probmatching.nonparam_match_empirical_cdf(
@@ -3157,6 +3169,7 @@ class StepsBlendingNowcaster:
                     )
                 )
                 precip_forecast_probability_matching_resampled = None
+
         elif self.__config.probmatching_method == "mean":
             # Use R_pm_blended as benchmark field and
             mean_probabiltity_matching_forecast = np.mean(
