@@ -1850,6 +1850,11 @@ class StepsBlendingNowcaster:
                         repeats,
                         axis=0,
                     )
+                    self.__precip_nowcast = np.repeat(
+                        self.__precip_nowcast,
+                        repeats,
+                        axis=0,
+                    )
                     self.__state.mean_nowcast_timestep = np.repeat(
                         self.__state.mean_nowcast_timestep, repeats, axis=0
                     )
