@@ -361,6 +361,8 @@ class StepsBlendingState:
     # Extrapolation states
     mean_extrapolation: np.ndarray | None = None
     std_extrapolation: np.ndarray | None = None
+    mean_nowcast: np.ndarray | None = None
+    std_nowcast: np.ndarray | None = None
     mean_nowcast_timestep: np.ndarray | None = None
     std_nowcast_timestep: np.ndarray | None = None
     rho_extrap_cascade_prev: np.ndarray | None = None
@@ -635,6 +637,8 @@ class StepsBlendingNowcaster:
             final_blended_forecast_all_members_one_timestep = [
                 None for _ in range(self.__config.n_ens_members)
             ]
+            self.__state.mean_nowcast_timestep = self.__state.mean_nowcast[:, :, t]
+            self.__state.std_nowcast_timestep = self.__state.std_nowcast[:, :, t]
 
             def worker(j):
                 worker_state = copy(self.__state)
@@ -1140,10 +1144,10 @@ class StepsBlendingNowcaster:
             self.__state.precip_nowcast_cascades = np.array(
                 [result["precip_nowcast_decomp"] for result in results]
             ).swapaxes(1, 2)
-            self.__state.mean_nowcast_timestep = np.array(
+            self.__state.mean_nowcast = np.array(
                 [result["precip_nowcast_means"] for result in results]
             ).swapaxes(1, 2)
-            self.__state.std_nowcast_timestep = np.array(
+            self.__state.std_nowcast = np.array(
                 [result["precip_nowcast_stds"] for result in results]
             ).swapaxes(1, 2)
 
@@ -1834,11 +1838,11 @@ class StepsBlendingNowcaster:
                         repeats,
                         axis=0,
                     )
-                    self.__state.mean_nowcast_timestep = np.repeat(
-                        self.__state.mean_nowcast_timestep, repeats, axis=0
+                    self.__state.mean_nowcast = np.repeat(
+                        self.__state.mean_nowcast, repeats, axis=0
                     )
-                    self.__state.std_nowcast_timestep = np.repeat(
-                        self.__state.std_nowcast_timestep, repeats, axis=0
+                    self.__state.std_nowcast = np.repeat(
+                        self.__state.std_nowcast, repeats, axis=0
                     )
                     # For the prob. matching
                     self.__state.precip_nowcast_timestep = np.repeat(
@@ -1889,11 +1893,11 @@ class StepsBlendingNowcaster:
                     #     n_ens_members_max,
                     #     axis=0,
                     # )
-                    # self.__state.mean_nowcast_timestep = np.repeat(
-                    #     self.__state.mean_nowcast_timestep, n_ens_members_max, axis=0
+                    # self.__state.mean_nowcast = np.repeat(
+                    #     self.__state.mean_nowcast, n_ens_members_max, axis=0
                     # )
-                    # self.__state.std_nowcast_timestep = np.repeat(
-                    #     self.__state.std_nowcast_timestep, n_ens_members_max, axis=0
+                    # self.__state.std_nowcast = np.repeat(
+                    #     self.__state.std_nowcast, n_ens_members_max, axis=0
                     # )
                     # # For the prob. matching
                     # self.__state.precip_nowcast_timestep = np.repeat(
@@ -1946,11 +1950,11 @@ class StepsBlendingNowcaster:
                     #     repeats,
                     #     axis=0,
                     # )
-                    # self.__state.mean_nowcast_timestep = np.repeat(
-                    #     self.__state.mean_nowcast_timestep, repeats, axis=0
+                    # self.__state.mean_nowcast = np.repeat(
+                    #     self.__state.mean_nowcast, repeats, axis=0
                     # )
-                    # self.__state.std_nowcast_timestep = np.repeat(
-                    #     self.__state.std_nowcast_timestep, repeats, axis=0
+                    # self.__state.std_nowcast = np.repeat(
+                    #     self.__state.std_nowcast, repeats, axis=0
                     # )
                     # # For the prob. matching
                     # self.__state.precip_nowcast_timestep = np.repeat(
@@ -2564,6 +2568,7 @@ class StepsBlendingNowcaster:
                 worker_state.precip_extrapolated_probability_matching = np.stack(
                     worker_state.precip_extrapolated_probability_matching
                 )
+        if len(worker_state.noise_extrapolated_decomp) > 0:
             if self.__config.noise_method is not None:
                 worker_state.noise_extrapolated_decomp = np.stack(
                     worker_state.noise_extrapolated_decomp
@@ -2741,14 +2746,14 @@ class StepsBlendingNowcaster:
                 )  # [(extr_field, n_model_fields), n_cascade_levels, ...]
             means_stacked = np.concatenate(
                 (
-                    worker_state.mean_nowcast_timestep[None, j, :, t_sub],
+                    worker_state.mean_nowcast_timestep[None, j, :],
                     worker_state.mean_models_timestep,
                 ),
                 axis=0,
             )
             sigmas_stacked = np.concatenate(
                 (
-                    worker_state.std_nowcast_timestep[None, j, :, t_sub],
+                    worker_state.std_nowcast_timestep[None, j, :],
                     worker_state.std_models_timestep,
                 ),
                 axis=0,
@@ -2811,16 +2816,14 @@ class StepsBlendingNowcaster:
                 )  # [(extr_field, n_model_fields), n_cascade_levels, ...]
             means_stacked = np.concatenate(
                 (
-                    # worker_state.mean_nowcast_timestep,
-                    worker_state.mean_nowcast_timestep[None, j, :, t_sub],
+                    worker_state.mean_nowcast_timestep[None, j, :],
                     worker_state.mean_models_timestep[None, j],
                 ),
                 axis=0,
             )
             sigmas_stacked = np.concatenate(
                 (
-                    # worker_state.std_nowcast_timestep,
-                    worker_state.std_nowcast_timestep[None, j, :, t_sub],
+                    worker_state.std_nowcast_timestep[None, j, :],
                     worker_state.std_models_timestep[None, j],
                 ),
                 axis=0,
