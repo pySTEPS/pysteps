@@ -81,7 +81,9 @@ filename = os.path.join(
 nwp_importer = io.get_method("dwd_nwp", "importer")
 kwargs = {
     "varname": "lsprate",
-    "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc",
+    "grid_file_path": os.path.join(
+        os.getcwd(), "aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
+    ),
 }
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
 
