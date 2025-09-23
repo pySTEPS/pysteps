@@ -1129,32 +1129,24 @@ class StepsBlendingNowcaster:
         # Decompose precomputed nowcasts and rearange them again into the required components
         if self.__precip_nowcast is not None:
             if self.__precip_nowcast.shape[0] == 1:
-                results = self.__decompose_member(self.__precip_nowcast[0])
+                results = [self.__decompose_member(self.__precip_nowcast[0])]
             else:
                 with ThreadPool(self.__config.num_workers) as pool:
                     results = pool.map(
                         partial(self.__decompose_member),
                         list(self.__precip_nowcast),
                     )
-            precip_nowcast_decomp = []
-            precip_nowcast_means = []
-            precip_nowcast_stds = []
 
-            for i in range(self.__precip_nowcast.shape[0]):
-                precip_nowcast_decomp.append(results[i]["precip_nowcast_decomp"])
-
-                precip_nowcast_means.append(results[i]["precip_nowcast_means"])
-
-                precip_nowcast_stds.append(results[i]["precip_nowcast_stds"])
             self.__state.precip_nowcast_cascades = np.array(
-                precip_nowcast_decomp
+                [result["precip_nowcast_decomp"] for result in results]
             ).swapaxes(1, 2)
             self.__state.mean_nowcast_timestep = np.array(
-                precip_nowcast_means
+                [result["precip_nowcast_means"] for result in results]
             ).swapaxes(1, 2)
-            self.__state.std_nowcast_timestep = np.array(precip_nowcast_stds).swapaxes(
-                1, 2
-            )
+            self.__state.std_nowcast_timestep = np.array(
+                [result["precip_nowcast_stds"] for result in results]
+            ).swapaxes(1, 2)
+
         # If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
 
