@@ -4,40 +4,45 @@ pysteps.blending.pca_ens_kalman_filter
 ======================================
 
 Implementation of the reduced-space ensemble Kalman filter method described in
-:cite:`Nerini2019MWR`. The nowcast is iteratively corrected by NWP data utilizing
-an ensemble Kalman filter in PCA space. The reduced-space ensemble Kalman filter
-method consists of the following main steps:
+:cite:`Nerini2019MWR`. The nowcast is iteratively corrected by NWP data using
+an ensemble Kalman filter in principal component (PC) space. The reduced-space
+ensemble Kalman filter method consists of the following main steps:
 
-    Initialization Step
-    ===================
-    #. Set the radar rainfall fields in a Lagrangian space.
-    #. Perform the cascade decomposition for the input radar rainfall fields.
-    #. Estimate AR parameters for the extrapolation nowcast and noise cascade.
-    #. Initialize the noise method and precompute a set of noise fields.
-    #. Initialize forecast models equal to the number of ensemble members.
-    #. Initialize the ensemble Kalman filter method.
-    #. Start the forecasting loop:
+Initialization step
+-------------------
+1. Set the radar rainfall fields in a Lagrangian space.
+2. Perform the cascade decomposition for the input radar rainfall fields.
+3. Estimate AR parameters for the extrapolation nowcast and noise cascade.
+4. Initialize the noise method and precompute a set of noise fields.
+5. Initialize forecast models equal to the number of ensemble members.
+6. Initialize the ensemble Kalman filter method.
+7. Start the forecasting loop.
 
-        Forecast Step
-        =============
-        #. Decompose rainfall forecast field of the previous timestep.
-        #. Update the common precipitation mask of Nowcast and NWP fields for noise
-           imprint.
-        #. Iterate AR model.
-        #. Recompose rainfall forecast field.
-        #. (optional) Apply probability matching.
-        #. Extrapolate the recomposed rainfall field to the current timestep.
+Forecast step
+-------------
+1. Decompose the rainfall forecast field of the previous timestep.
+2. Update the common precipitation mask of nowcast and NWP fields for noise imprint.
+3. Iterate the AR model.
+4. Recompose the rainfall forecast field.
+5. (Optional) Apply probability matching.
+6. Extrapolate the recomposed rainfall field to the current timestep.
 
-        Correction Step
-        ===============
-        #. Get grid boxes where rainfall is forecast.
-        #. Reduce Nowcast and NWP ensemble onto these grid boxes and apply principal
-           component analysis to further reduce the dimensionality.
-        #. Apply update step of ensemble Kalman filter.
+Correction step
+---------------
+1. Identify grid boxes where rainfall is forecast.
+2. Reduce nowcast and NWP ensembles onto these grid boxes and apply principal
+   component analysis to further reduce the dimensionality.
+3. Apply the update step of the ensemble Kalman filter.
 
-    #. Set no data values in final forecast fields.
-    #. The origin approach iterates between forecast and correction step. However, to
-       reduce smoothing effects in this implementation, a pure forecast step is computed at the first forecast time step and, afterwards, it is iterated between correction and forecast step. The mentioned smoothing effects arise due to the NWP effective horizontal resolution and due to the spatial decomposition at each forecast time step.
+Finalization
+------------
+1. Set no-data values in the final forecast fields.
+2. The original approach iterates between forecast and correction steps.
+   However, to reduce smoothing effects in this implementation, a pure
+   forecast step is computed at the first forecast timestep, and afterwards
+   the method alternates between correction and forecast steps. The smoothing
+   effects arise due to the NWP effective horizontal resolution and due to
+   the spatial decomposition at each forecast timestep.
 """
 import time
 import datetime

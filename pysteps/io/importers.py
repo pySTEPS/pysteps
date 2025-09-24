@@ -1673,43 +1673,60 @@ def _import_saf_crri_geodata(filename):
 def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     """
     Import a DWD precipitation product field (and optionally the quality
-    field) from a HDF5 file conforming to the ODIM specification
+    field) from an HDF5 file conforming to the ODIM specification.
 
     Parameters
     ----------
-    filename: str
+    filename : str
         Name of the file to import.
-    qty: {'RATE', 'ACRR', 'DBZH'}
-        The quantity to read from the file. The currently supported identitiers
-        are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
-        accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
-        is 'RATE'.
+    qty : {'RATE', 'ACRR', 'DBZH'}, optional
+        Quantity to read from the file. The currently supported identifiers are:
+
+        - 'RATE': instantaneous rain rate (mm/h)
+        - 'ACRR': hourly rainfall accumulation (mm)
+        - 'DBZH': maximum reflectivity (dBZ)
+
+        The default is 'RATE'.
 
     {extra_kwargs_doc}
 
     Returns
     -------
-    tuple
-        A tuple containing:
-        - data : np.ndarray
-            The requested precipitation product imported from a HDF5 file
-        - quality : None
-        - metadata : dict
-            Dictionary containing geospatial metadata such as:
-            - 'projection': PROJ.4 string defining the stereographic projection.
-            - 'll_lon', 'll_lat': Coordinates of the lower-left corner.
-            - 'ur_lon', 'ur_lat': Coordinates of the upper-right corner.
-            - 'x1', 'y1': Carthesian coordinates of the lower-left corner.
-            - 'x2', 'y2': Carthesian coordinates of the upper-right corner.
-            - 'xpixelsize', 'ypixelsize': Pixel size in meters.
-            - 'cartesian_unit': Unit of the coordinate system (meters).
-            - 'yorigin': Origin of the y-axis ('lower').
-            - 'institution': Originating institution ('DWD' or 'DWD Radolan')
-            - 'accutime': Accumulation period of the requested precipitation product
-            - 'unit': Unit.
-            - 'transform': Logarithmic transformation.
-            - 'zerovalue': No echo value.
-            - 'threshold': Precipitation threshold.
+    data : np.ndarray
+        The requested precipitation product imported from the HDF5 file.
+    quality : None
+        Placeholder for quality field (not yet implemented).
+    metadata : dict
+        Dictionary containing geospatial metadata with the following keys:
+
+        projection : str
+            PROJ.4 string defining the stereographic projection.
+        ll_lon, ll_lat : float
+            Coordinates of the lower-left corner.
+        ur_lon, ur_lat : float
+            Coordinates of the upper-right corner.
+        x1, y1 : float
+            Cartesian coordinates of the lower-left corner.
+        x2, y2 : float
+            Cartesian coordinates of the upper-right corner.
+        xpixelsize, ypixelsize : float
+            Pixel size in meters.
+        cartesian_unit : str
+            Unit of the coordinate system (meters).
+        yorigin : {'lower'}
+            Origin of the y-axis.
+        institution : {'DWD', 'DWD Radolan'}
+            Originating institution.
+        accutime : int
+            Accumulation period of the requested precipitation product.
+        unit : str
+            Unit of the data.
+        transform : str
+            Logarithmic transformation applied.
+        zerovalue : float
+            Value representing no echo.
+        threshold : float
+            Precipitation threshold.
     """
     if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
