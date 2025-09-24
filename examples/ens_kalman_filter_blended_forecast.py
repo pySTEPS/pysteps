@@ -80,6 +80,10 @@ filename = os.path.join(
 )
 nwp_importer = io.get_method("dwd_nwp", "importer")
 kwargs = nwp_data_source["importer_kwargs"]
+# Resolve grid_file_path relative to PYSTEPS_DATA_PATH
+kwargs["grid_file_path"] = os.path.join(
+    os.environ["PYSTEPS_DATA_PATH"], kwargs["grid_file_path"]
+)
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
 
 
