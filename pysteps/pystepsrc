@@ -140,7 +140,7 @@
             "importer": "dwd_nwp",
             "timestep": 5,
             "importer_kwargs": {
-                "varname": "PR_GSP",
+                "varname": "lsprate",
                 "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
             }
             
