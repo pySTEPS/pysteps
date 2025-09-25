@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams, blending
+from pysteps.utils import aggregate_fields_space
 from pysteps.visualization import plot_precip_field
 import pysteps_nwp_importers
 
@@ -115,6 +116,15 @@ nwp_precip_rprj, nwp_metadata_rprj = (
     pysteps_nwp_importers.importer_dwd_nwp.unstructured2regular(
         nwp_precip, nwp_metadata, radar_metadata
     )
+)
+
+# Upscale both the radar and NWP data to a twice as coarse resolution to lower
+# the memory needs (for this example)
+radar_precip, radar_metadata = aggregate_fields_space(
+    radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 2
+)
+nwp_precip_rprj, nwp_metadata_rprj = aggregate_fields_space(
+    nwp_precip_rprj, nwp_metadata_rprj, nwp_metadata_rprj["xpixelsize"] * 2
 )
 
 # Make sure the units are in mm/h
