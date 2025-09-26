@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams, blending
+from pysteps.utils import aggregate_fields_space
 from pysteps.visualization import plot_precip_field
 import pysteps_nwp_importers
 
@@ -79,10 +80,11 @@ filename = os.path.join(
     + nwp_data_source["fn_ext"],
 )
 nwp_importer = io.get_method("dwd_nwp", "importer")
-kwargs = {
-    "varname": "lsprate",
-    "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc",
-}
+kwargs = nwp_data_source["importer_kwargs"]
+# Resolve grid_file_path relative to PYSTEPS_DATA_PATH
+kwargs["grid_file_path"] = os.path.join(
+    os.environ["PYSTEPS_DATA_PATH"], kwargs["grid_file_path"]
+)
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
 
 
@@ -114,6 +116,15 @@ nwp_precip_rprj, nwp_metadata_rprj = (
     pysteps_nwp_importers.importer_dwd_nwp.unstructured2regular(
         nwp_precip, nwp_metadata, radar_metadata
     )
+)
+
+# Upscale both the radar and NWP data to a twice as coarse resolution to lower
+# the memory needs (for this example)
+radar_precip, radar_metadata = aggregate_fields_space(
+    radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 4
+)
+nwp_precip_rprj, nwp_metadata_rprj = aggregate_fields_space(
+    nwp_precip_rprj, nwp_metadata_rprj, nwp_metadata_rprj["xpixelsize"] * 4
 )
 
 # Make sure the units are in mm/h
@@ -200,7 +211,7 @@ combination_kwargs = dict(
     lien_criterion=True,  # Specifies wheter the Lien criterion should be applied.
     n_lien=10,  # Minimum number of ensemble members that forecast precipitation for the Lien criterion (equals half the ens. members here)
     prob_matching="iterative",  # The type of probability matching used.
-    inflation_factor_bg=1.8,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
+    inflation_factor_bg=3.0,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
     inflation_factor_obs=1.0,  # Inflation factor of the observation (NWP) covariance matrix.
     offset_bg=0.0,  # Offset of the background (NWC) covariance matrix.
     offset_obs=0.0,  # Offset of the observation (NWP) covariance matrix.
