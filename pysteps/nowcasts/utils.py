@@ -270,6 +270,7 @@ def nowcast_main_loop(
     extrap_method,
     func,
     extrap_kwargs=None,
+    motion_field_general=None,
     velocity_pert_gen=None,
     params=None,
     ensemble=False,
@@ -279,69 +280,61 @@ def nowcast_main_loop(
     num_workers=1,
     measure_time=False,
 ):
-    """Utility method for advection-based nowcast models that are applied in
-    the Lagrangian coordinates. In addition, this method allows the case, where
-    one or more components of the model (e.g. an autoregressive process) require
-    using regular integer time steps but the user-supplied values are irregular
-    or non-integer.
-
+    """
+    Utility method for advection-based nowcast models operating in Lagrangian coordinates.
+    
+    This method supports models that evolve on regular integer time steps (e.g., autoregressive
+    processes), while allowing forecast times to be irregular or non-integer. It handles temporal
+    interpolation, ensemble forecasting, velocity perturbations, and optional motion field updates.
+    Forecasts are extrapolated back to Eulerian coordinates, with support for parallel execution
+    across ensemble members.
+    
     Parameters
     ----------
     precip : array_like
-        Array of shape (m,n) containing the most recently observed precipitation
-        field.
+        Array of shape (m, n) representing the most recently observed precipitation field.
     velocity : array_like
-        Array of shape (2,m,n) containing the x- and y-components of the
-        advection field.
+        Array of shape (2, m, n) or (t, 2, m, n) containing the x- and y-components of the advection field.
     state : object
-        The initial state of the nowcast model.
-    timesteps : int or list of floats
-        Number of time steps to forecast or a list of time steps for which the
-        forecasts are computed. The elements of the list are required to be in
-        ascending order.
-    extrap_method : str, optional
-        Name of the extrapolation method to use. See the documentation of
-        :py:mod:`pysteps.extrapolation.interface`.
-    ensemble : bool
-        Set to True to produce a nowcast ensemble.
-    num_ensemble_members : int
-        Number of ensemble members. Applicable if ensemble is set to True.
-    func : function
-        A function that takes the current state of the nowcast model and its
-        parameters and returns a forecast field and the new state. The shape of
-        the forecast field is expected to be (m,n) for a deterministic nowcast
-        and (n_ens_members,m,n) for an ensemble.
+        Initial state of the nowcast model.
+    timesteps : int or list of float
+        Number of time steps to forecast, or a list of specific forecast times (must be ascending).
+    extrap_method : str
+        Name of the extrapolation method to use. See `pysteps.extrapolation.interface`.
+    func : callable
+        Function that takes the current state and parameters, returning a forecast field and updated state.
+        The forecast field should be of shape (m, n) for deterministic mode or (n_ens_members, m, n) for ensemble mode.
     extrap_kwargs : dict, optional
-        Optional dictionary containing keyword arguments for the extrapolation
-        method. See the documentation of pysteps.extrapolation.
-    velocity_pert_gen : list, optional
-        Optional list of functions that generate velocity perturbations. The
-        length of the list is expected to be n_ens_members. The functions
-        are expected to take lead time (relative to timestep index) as input
-        argument and return a perturbation field of shape (2,m,n).
+        Additional keyword arguments for the extrapolation method.
+    motion_field_general : array_like, optional
+        General motion field used to update the input velocity dynamically. If provided, velocity is updated
+        once per timestep using `update_motion_field`.
+    velocity_pert_gen : list of callable, optional
+        List of functions that generate velocity perturbations. Each function takes lead time as input and
+        returns a perturbation field of shape (2, m, n). Required if `ensemble=True`.
     params : dict, optional
-        Optional dictionary containing keyword arguments for func.
-    callback : function, optional
-        Optional function that is called after computation of each time step of
-        the nowcast. The function takes one argument: the nowcast array. This
-        can be used, for instance, writing output files.
+        Dictionary of keyword arguments passed to `func`.
+    ensemble : bool, optional
+        If True, enables ensemble forecasting.
+    num_ensemble_members : int, optional
+        Number of ensemble members. Used only if `ensemble=True`.
+    callback : callable, optional
+        Function called after each nowcast timestep. Receives the nowcast array as input.
     return_output : bool, optional
-        Set to False to disable returning the output forecast fields and return
-        None instead. This can save memory if the intermediate results are
-        instead written to files using the callback function.
+        If False, disables returning forecast fields. Useful when output is handled via `callback`.
     num_workers : int, optional
-        Number of parallel workers to use. Applicable if a nowcast ensemble is
-        generated.
+        Number of parallel workers used for ensemble computation.
     measure_time : bool, optional
-        If set to True, measure, print and return the computation time.
-
+        If True, measures and returns total computation time.
+    
     Returns
     -------
-    out : list
-        List of forecast fields for the given time steps. If measure_time is
-        True, return a pair, where the second element is the total computation
-        time in the loop.
+    out : list or tuple
+        List of forecast fields for the requested time steps. If `measure_time=True`, returns a tuple
+        `(forecast_list, computation_time)`.
     """
+
+
     precip_forecast_out = None
 
     timesteps, original_timesteps, timestep_type = create_timestep_range(timesteps)
@@ -354,7 +347,10 @@ def nowcast_main_loop(
     displacement = None
     t_prev = 0.0
     t_total = 0.0
-
+    
+    # check if velocity input is constant (2, m, n) or time varying (t, 2, m, n)
+    constant_velocity = velocity.ndim == 3
+    
     # initialize the extrapolator
     extrapolator = extrapolation.get_method(extrap_method)
 
@@ -405,7 +401,20 @@ def nowcast_main_loop(
         # call the function to iterate the integer-timestep part of the model
         # for one time step
         precip_forecast_new, state_new = func(state_cur, params)
+        
+        if constant_velocity:
+            if motion_field_general is None:
+                velocity_updated = velocity
+            else:
+                velocity_updated = update_motion_field(
+                    velocity,
+                    motion_field_general,
+                    extrapolator
+                )
+        else:
+            velocity_updated = velocity[t]
 
+            
         if not ensemble:
             precip_forecast_new = precip_forecast_new[np.newaxis, :]
 
@@ -437,18 +446,17 @@ def nowcast_main_loop(
                 precip_forecast_out_cur = [
                     None for _ in range(precip_forecast_ip.shape[0])
                 ]
-
+                
                 def worker1(i):
                     extrap_kwargs_ = extrap_kwargs.copy()
                     extrap_kwargs_["displacement_prev"] = displacement[i]
                     extrap_kwargs_["allow_nonfinite_values"] = (
                         True if np.any(~np.isfinite(precip_forecast_ip[i])) else False
                     )
-
+                    
+                    velocity_ = velocity_updated
                     if velocity_pert_gen is not None:
-                        velocity_ = velocity + velocity_pert_gen[i](t_total)
-                    else:
-                        velocity_ = velocity
+                        velocity_ += velocity_pert_gen[i](t_total)
 
                     precip_forecast_ep, displacement[i] = extrapolator(
                         precip_forecast_ip[i],
@@ -489,11 +497,10 @@ def nowcast_main_loop(
             def worker2(i):
                 extrap_kwargs_ = extrap_kwargs.copy()
                 extrap_kwargs_["displacement_prev"] = displacement[i]
-
+                
+                velocity_ = velocity_updated
                 if velocity_pert_gen is not None:
-                    velocity_ = velocity + velocity_pert_gen[i](t_total)
-                else:
-                    velocity_ = velocity
+                    velocity_ += velocity_pert_gen[i](t_total)
 
                 _, displacement[i] = extrapolator(
                     None,
@@ -531,6 +538,21 @@ def nowcast_main_loop(
         return precip_forecast_out, time.time() - starttime_total
     else:
         return precip_forecast_out
+
+
+def update_motion_field(motion_field, motion_field_general, extrapolator):
+    u0, v0 = motion_field[0], motion_field[1]
+    ug, vg = motion_field_general[0], motion_field_general[1]
+
+    # Extrapolate each component and extract the 2D array
+    u1 = extrapolator(u0, motion_field_general, timesteps=1)[0]
+    v1 = extrapolator(v0, motion_field_general, timesteps=1)[0]
+
+    u1[np.isnan(u1)] = ug[np.isnan(u1)]
+    v1[np.isnan(v1)] = vg[np.isnan(v1)]
+    
+    # Stack into shape (2, 1000, 1000)
+    return np.stack([u1, v1])
 
 
 def print_ar_params(phi):
