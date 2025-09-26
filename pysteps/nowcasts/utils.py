@@ -562,13 +562,17 @@ def update_motion_field(motion_field, motion_field_general, extrapolator):
     by replacing NaNs in the extrapolated output with corresponding values from the
     general motion field.
 
+    If `motion_field_general` is set to the string "mean", the mean of the input
+    motion field is used as the general motion field for extrapolation.
+
     Parameters
     ----------
     motion_field : array_like
         Array of shape (2, m, n) containing the x- and y-components of the motion field
         to be updated.
-    motion_field_general : array_like
-        Array of shape (2, m, n) used to advect the input motion field forward.
+    motion_field_general : array_like or str
+        Array of shape (2, m, n) used to advect the input motion field forward,
+        or the string "mean" to use the spatial mean of the input motion field.
     extrapolator : function
         Extrapolation function that takes a 2D field, a motion field, and a timestep
         argument, and returns a list of advected fields.
@@ -580,7 +584,13 @@ def update_motion_field(motion_field, motion_field_general, extrapolator):
         of advection.
     """
     u0, v0 = motion_field[0], motion_field[1]
-    ug, vg = motion_field_general[0], motion_field_general[1]
+
+    if motion_field_general == "mean":
+        ug = np.full_like(u0, np.nanmean(u0))
+        vg = np.full_like(v0, np.nanmean(v0))
+        motion_field_general = np.stack([ug, vg])
+    else:
+        ug, vg = motion_field_general[0], motion_field_general[1]
 
     # Extrapolate each component and extract the 2D array
     u1 = extrapolator(u0, motion_field_general, timesteps=1)[0]
@@ -591,6 +601,7 @@ def update_motion_field(motion_field, motion_field_general, extrapolator):
     v1[np.isnan(v1)] = vg[np.isnan(v1)]
 
     return np.stack([u1, v1])
+
 
 
 def print_ar_params(phi):
