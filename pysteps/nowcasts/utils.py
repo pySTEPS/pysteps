@@ -280,60 +280,73 @@ def nowcast_main_loop(
     num_workers=1,
     measure_time=False,
 ):
-    """
-    Utility method for advection-based nowcast models operating in Lagrangian coordinates.
-    
-    This method supports models that evolve on regular integer time steps (e.g., autoregressive
-    processes), while allowing forecast times to be irregular or non-integer. It handles temporal
-    interpolation, ensemble forecasting, velocity perturbations, and optional motion field updates.
-    Forecasts are extrapolated back to Eulerian coordinates, with support for parallel execution
-    across ensemble members.
-    
+    """Utility method for advection-based nowcast models that are applied in
+    the Lagrangian coordinates. In addition, this method allows the case, where
+    one or more components of the model (e.g. an autoregressive process) require
+    using regular integer time steps but the user-supplied values are irregular
+    or non-integer.
+
     Parameters
     ----------
     precip : array_like
-        Array of shape (m, n) representing the most recently observed precipitation field.
+        Array of shape (m,n) containing the most recently observed precipitation
+        field.
     velocity : array_like
-        Array of shape (2, m, n) or (t, 2, m, n) containing the x- and y-components of the advection field.
+        Array of shape (2,m,n) or (t,2,m,n) containing the x- and y-components of the
+        advection field. If time-varying, the first dimension must match the number
+        of forecast timesteps.
     state : object
-        Initial state of the nowcast model.
-    timesteps : int or list of float
-        Number of time steps to forecast, or a list of specific forecast times (must be ascending).
-    extrap_method : str
-        Name of the extrapolation method to use. See `pysteps.extrapolation.interface`.
-    func : callable
-        Function that takes the current state and parameters, returning a forecast field and updated state.
-        The forecast field should be of shape (m, n) for deterministic mode or (n_ens_members, m, n) for ensemble mode.
+        The initial state of the nowcast model.
+    timesteps : int or list of floats
+        Number of time steps to forecast or a list of time steps for which the
+        forecasts are computed. The elements of the list are required to be in
+        ascending order.
+    extrap_method : str, optional
+        Name of the extrapolation method to use. See the documentation of
+        :py:mod:`pysteps.extrapolation.interface`.
+    ensemble : bool
+        Set to True to produce a nowcast ensemble.
+    num_ensemble_members : int
+        Number of ensemble members. Applicable if ensemble is set to True.
+    func : function
+        A function that takes the current state of the nowcast model and its
+        parameters and returns a forecast field and the new state. The shape of
+        the forecast field is expected to be (m,n) for a deterministic nowcast
+        and (n_ens_members,m,n) for an ensemble.
     extrap_kwargs : dict, optional
-        Additional keyword arguments for the extrapolation method.
+        Optional dictionary containing keyword arguments for the extrapolation
+        method. See the documentation of pysteps.extrapolation.
     motion_field_general : array_like, optional
-        General motion field used to update the input velocity dynamically. If provided, velocity is updated
-        once per timestep using `update_motion_field`.
-    velocity_pert_gen : list of callable, optional
-        List of functions that generate velocity perturbations. Each function takes lead time as input and
-        returns a perturbation field of shape (2, m, n). Required if `ensemble=True`.
+        Optional general motion field used to update the input velocity field
+        when it is constant. Ignored if velocity is time-varying.
+    velocity_pert_gen : list, optional
+        Optional list of functions that generate velocity perturbations. The
+        length of the list is expected to be n_ens_members. The functions
+        are expected to take lead time (relative to timestep index) as input
+        argument and return a perturbation field of shape (2,m,n).
     params : dict, optional
-        Dictionary of keyword arguments passed to `func`.
-    ensemble : bool, optional
-        If True, enables ensemble forecasting.
-    num_ensemble_members : int, optional
-        Number of ensemble members. Used only if `ensemble=True`.
-    callback : callable, optional
-        Function called after each nowcast timestep. Receives the nowcast array as input.
+        Optional dictionary containing keyword arguments for func.
+    callback : function, optional
+        Optional function that is called after computation of each time step of
+        the nowcast. The function takes one argument: the nowcast array. This
+        can be used, for instance, writing output files.
     return_output : bool, optional
-        If False, disables returning forecast fields. Useful when output is handled via `callback`.
+        Set to False to disable returning the output forecast fields and return
+        None instead. This can save memory if the intermediate results are
+        instead written to files using the callback function.
     num_workers : int, optional
-        Number of parallel workers used for ensemble computation.
+        Number of parallel workers to use. Applicable if a nowcast ensemble is
+        generated.
     measure_time : bool, optional
-        If True, measures and returns total computation time.
-    
+        If set to True, measure, print and return the computation time.
+
     Returns
     -------
-    out : list or tuple
-        List of forecast fields for the requested time steps. If `measure_time=True`, returns a tuple
-        `(forecast_list, computation_time)`.
+    out : list
+        List of forecast fields for the given time steps. If measure_time is
+        True, return a pair, where the second element is the total computation
+        time in the loop.
     """
-
 
     precip_forecast_out = None
 
@@ -541,6 +554,31 @@ def nowcast_main_loop(
 
 
 def update_motion_field(motion_field, motion_field_general, extrapolator):
+    """
+    Update a constant motion field by advecting it forward using a general motion field.
+
+    This function applies one timestep of extrapolation to each component of the input
+    motion field using the provided general motion field. It handles missing values
+    by replacing NaNs in the extrapolated output with corresponding values from the
+    general motion field.
+
+    Parameters
+    ----------
+    motion_field : array_like
+        Array of shape (2, m, n) containing the x- and y-components of the motion field
+        to be updated.
+    motion_field_general : array_like
+        Array of shape (2, m, n) used to advect the input motion field forward.
+    extrapolator : function
+        Extrapolation function that takes a 2D field, a motion field, and a timestep
+        argument, and returns a list of advected fields.
+
+    Returns
+    -------
+    updated_motion_field : ndarray
+        Array of shape (2, m, n) containing the updated motion field after one timestep
+        of advection.
+    """
     u0, v0 = motion_field[0], motion_field[1]
     ug, vg = motion_field_general[0], motion_field_general[1]
 
@@ -548,10 +586,10 @@ def update_motion_field(motion_field, motion_field_general, extrapolator):
     u1 = extrapolator(u0, motion_field_general, timesteps=1)[0]
     v1 = extrapolator(v0, motion_field_general, timesteps=1)[0]
 
+    # Fill missing values with general motion field
     u1[np.isnan(u1)] = ug[np.isnan(u1)]
     v1[np.isnan(v1)] = vg[np.isnan(v1)]
-    
-    # Stack into shape (2, 1000, 1000)
+
     return np.stack([u1, v1])
 
 
