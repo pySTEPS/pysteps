@@ -121,10 +121,10 @@ nwp_precip_rprj, nwp_metadata_rprj = (
 # Upscale both the radar and NWP data to a twice as coarse resolution to lower
 # the memory needs (for this example)
 radar_precip, radar_metadata = aggregate_fields_space(
-    radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 2
+    radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 4
 )
 nwp_precip_rprj, nwp_metadata_rprj = aggregate_fields_space(
-    nwp_precip_rprj, nwp_metadata_rprj, nwp_metadata_rprj["xpixelsize"] * 2
+    nwp_precip_rprj, nwp_metadata_rprj, nwp_metadata_rprj["xpixelsize"] * 4
 )
 
 # Make sure the units are in mm/h
@@ -211,7 +211,7 @@ combination_kwargs = dict(
     lien_criterion=True,  # Specifies wheter the Lien criterion should be applied.
     n_lien=10,  # Minimum number of ensemble members that forecast precipitation for the Lien criterion (equals half the ens. members here)
     prob_matching="iterative",  # The type of probability matching used.
-    inflation_factor_bg=1.8,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
+    inflation_factor_bg=3.0,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
     inflation_factor_obs=1.0,  # Inflation factor of the observation (NWP) covariance matrix.
     offset_bg=0.0,  # Offset of the background (NWC) covariance matrix.
     offset_obs=0.0,  # Offset of the observation (NWP) covariance matrix.
