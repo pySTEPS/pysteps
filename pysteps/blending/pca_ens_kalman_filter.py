@@ -940,7 +940,7 @@ class EnKFCombinationNowcaster:
 
         References
         ----------
-        :cite:`Nerini2019`
+        :cite:`Nerini2019MWR`
 
         Notes
         -----
@@ -1496,7 +1496,7 @@ def forecast(
 ):
     """
     Generate a combined nowcast ensemble by using the reduced-space ensemble Kalman
-    filter method.
+    filter method described in Nerini et al. 2019.
 
     Parameters
     ----------
@@ -1632,7 +1632,7 @@ def forecast(
 
     References
     ----------
-    :cite:`Nerini2019`
+    :cite:`Nerini2019MWR`
 
     Notes
     -----
