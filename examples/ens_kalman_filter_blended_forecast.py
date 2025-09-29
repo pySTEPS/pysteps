@@ -86,6 +86,7 @@ kwargs["grid_file_path"] = os.path.join(
     os.environ["PYSTEPS_DATA_PATH"], kwargs["grid_file_path"]
 )
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
+nwp_precip = nwp_precip.astype("single")
 
 
 ################################################################################
@@ -108,7 +109,7 @@ nwp_metadata["clat"] = nwp_precip["latitude"].values
 # only contains 1 hour of DWD forecast data (to minimize storage).
 nwp_metadata["accutime"] = 15.0
 nwp_precip = (
-    nwp_precip.values * 3.0
+    nwp_precip.values.astype("single") * 3.0
 )  # (to account for the change in time step from 5 to 15 min)
 
 # Reproject ID2 data onto a regular grid
@@ -117,6 +118,7 @@ nwp_precip_rprj, nwp_metadata_rprj = (
         nwp_precip, nwp_metadata, radar_metadata
     )
 )
+nwp_precip = None
 
 # Upscale both the radar and NWP data to a twice as coarse resolution to lower
 # the memory needs (for this example)
