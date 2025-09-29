@@ -3,17 +3,17 @@
 Ensemble-based Blending
 =======================
 
-This tutorial demonstrates how to construct a blended rainfall forecast by combining 
-an ensemble nowcast with an ensemble Numerical Weather Prediction (NWP) forecast. 
-The method follows the Reduced-Space Ensemble Kalman Filter approach described in 
+This tutorial demonstrates how to construct a blended rainfall forecast by combining
+an ensemble nowcast with an ensemble Numerical Weather Prediction (NWP) forecast.
+The method follows the Reduced-Space Ensemble Kalman Filter approach described in
 :cite:`Nerini2019MWR`.
 
-The procedure starts from the most recent radar observations. In the **prediction step**, 
-a stochastic radar extrapolation technique generates short-term forecasts. In the 
-**correction step**, these forecasts are updated using information from the latest 
+The procedure starts from the most recent radar observations. In the **prediction step**,
+a stochastic radar extrapolation technique generates short-term forecasts. In the
+**correction step**, these forecasts are updated using information from the latest
 ensemble NWP run. To make the matrix operations tractable, the Bayesian update is carried
 out in the subspace defined by the leading principal components—hence the term *reduced
-space*. 
+space*.
 
 The datasets used in this tutorial are provided by the German Weather Service (DWD).
 """

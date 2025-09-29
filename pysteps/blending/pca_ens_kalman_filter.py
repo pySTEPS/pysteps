@@ -43,6 +43,11 @@ Finalization
    the method alternates between correction and forecast steps. The smoothing
    effects arise due to the NWP effective horizontal resolution and due to
    the spatial decomposition at each forecast timestep.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    forecast
 """
 import time
 import datetime
