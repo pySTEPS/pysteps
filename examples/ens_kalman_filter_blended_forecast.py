@@ -86,7 +86,7 @@ kwargs["grid_file_path"] = os.path.join(
     os.environ["PYSTEPS_DATA_PATH"], kwargs["grid_file_path"]
 )
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
-nwp_precip = nwp_precip.astype("single")
+nwp_precip = nwp_precip[:, 0:10, :].astype("single")
 
 
 ################################################################################
@@ -126,7 +126,9 @@ radar_precip, radar_metadata = aggregate_fields_space(
     radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 4
 )
 nwp_precip_rprj, nwp_metadata_rprj = aggregate_fields_space(
-    nwp_precip_rprj, nwp_metadata_rprj, nwp_metadata_rprj["xpixelsize"] * 4
+    nwp_precip_rprj.astype("single"),
+    nwp_metadata_rprj,
+    nwp_metadata_rprj["xpixelsize"] * 4,
 )
 
 # Make sure the units are in mm/h
@@ -211,7 +213,7 @@ combination_kwargs = dict(
     non_precip_mask=True,  # Specifies whether the computation should be truncated on grid boxes where at least a minimum number of ens. members forecast precipitation.
     n_ens_prec=1,  # Minimum number of ens. members that forecast precip for the above-mentioned mask.
     lien_criterion=True,  # Specifies wheter the Lien criterion should be applied.
-    n_lien=10,  # Minimum number of ensemble members that forecast precipitation for the Lien criterion (equals half the ens. members here)
+    n_lien=5,  # Minimum number of ensemble members that forecast precipitation for the Lien criterion (equals half the ens. members here)
     prob_matching="iterative",  # The type of probability matching used.
     inflation_factor_bg=3.0,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
     inflation_factor_obs=1.0,  # Inflation factor of the observation (NWP) covariance matrix.
@@ -233,7 +235,7 @@ precip_forecast = blending_method(
     velocity=velocity_radar,  # Velocity vector field
     forecast_horizon=120,  # Forecast length (horizon) in minutes - only a short forecast horizon due to the limited dataset length stored here.
     issuetime=date_radar,  # Forecast issue time as datetime object
-    n_ens_members=20,  # No. of ensemble members
+    n_ens_members=10,  # No. of ensemble members
     precip_mask_dilation=1,  # Dilation of precipitation mask in grid boxes
     n_cascade_levels=6,  # No. of cascade levels
     precip_thr=log_thr_prec,  # Precip threshold
