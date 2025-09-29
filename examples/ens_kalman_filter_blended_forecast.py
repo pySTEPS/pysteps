@@ -86,6 +86,9 @@ kwargs["grid_file_path"] = os.path.join(
     os.environ["PYSTEPS_DATA_PATH"], kwargs["grid_file_path"]
 )
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
+# We lower the number of ens members to 10 to reduce the memory needs in the
+# example here. However, it is advised to have a minimum of 20 members for the
+# Reduced-Space Ensemble Kalman filter approach
 nwp_precip = nwp_precip[:, 0:10, :].astype("single")
 
 
