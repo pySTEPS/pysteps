@@ -30,50 +30,48 @@ def pca_transform(
     **kwargs: dict,
 ):
     """
-    Transform a two-dimensional array into PC space.
+    Transform ensemble forecasts from physical space into principal component (PC) space.
 
     Parameters
     ----------
-    forecast_ens: np.ndarray
-        Two-dimensional array of shape (n_ens, n_gridpoints) containing the
-        precipitation ensemble forecast that should be decomposed in principal component
-        (PC) space.
-
-    Other Parameters
-    ----------------
-    mask: np.ndarray
-        Optional mask to transform only grid points at which at least 10 ensemble
-        members have forecast precipitaton to fulfill the Lien criterion (Lien et al.,
-        2013) that is mentioned in Nerini et al., 2019. Defaults to None.
-    pca_params: dict
-        Optional output dictionary containing the preconstructed Principal Component
-        Analysis, since this construction is performed on the full precipitation
-        forecast dataset. Defaults to None.
-    get_params: bool
-        Optional flag whether pca_params should output or not. Defaults to False.
-    n_components: int
-        Number of principal components.
-    svd_solver: {'auto', 'full', 'covariance_eigh', 'arpack', 'randomized'}
-        Solver for the singular vector decomposition. For a detailed description see
-        the documentation of sklearn.decomposition.PCA.
+    forecast_ens : np.ndarray
+        Array of shape (n_ens, n_features) containing the ensemble forecasts
+        in physical space.
+    mask : np.ndarray, optional
+        Mask to transform only grid points at which at least 10 ensemble
+        members have forecast precipitation, to fulfill the Lien criterion
+        (Lien et al., 2013) mentioned in Nerini et al., 2019.
+        The default is None.
+    pca_params : dict, optional
+        Preconstructed Principal Component Analysis (PCA) object. If given,
+        this is used instead of fitting a new PCA. The default is None.
+    get_params : bool, optional
+        If True, return the PCA parameters in addition to the transformed data.
+        The default is False.
+    n_components : int
+        Number of principal components to retain.
+    svd_solver : {'auto', 'full', 'covariance_eigh', 'arpack', 'randomized'}
+        Solver to use for the singular value decomposition. For details, see
+        the documentation of ``sklearn.decomposition.PCA``.
 
     Returns
     -------
-    forecast_ens_pc: np.ndarray
-        Two-dimensional array of shape (n_components, n_ens) containing the input data
-        transformed into PC space. If not a mask is given as input, the full dataset is
-        transformed, otherwise only the mask-filtered values are transformed.
-    pca_params: dict (optional)
-        If the respective flag (get_params) is set to True, a dictionary is returned
-        containing:
-        -principal_components: np.ndarray
-            Two-dimensional array of shape (n_components, n_features) containing the
-            principal components in feature space.
-        -mean: np.ndarray
-            One-dimensional array of shape (n_features) containing the per-feature
+    forecast_ens_pc : np.ndarray
+        Array of shape (n_components, n_ens) containing the ensemble forecasts
+        transformed into PC space. If no mask is given, the full dataset is
+        transformed; otherwise only the mask-filtered values are transformed.
+    pca_params : dict, optional
+        Dictionary containing the PCA parameters, returned if
+        ``get_params=True``. The dictionary has the following keys:
+
+        principal_components : np.ndarray
+            Array of shape (n_components, n_features) containing the
+            principal component vectors in feature space.
+        mean : np.ndarray
+            Array of shape (n_features,) containing the per-feature
             empirical mean estimated from the input data.
-        -explained_variance: np.ndarray
-            One-dimensional array of shape (n_features) containg the per-feature
+        explained_variance : np.ndarray
+            Array of shape (n_features,) containing the per-feature
             explained variance ratio.
     """
 
@@ -137,28 +135,28 @@ def pca_transform(
 
 def pca_backtransform(forecast_ens_pc: np.ndarray, pca_params: dict):
     """
-    Transform a given PC transformation back into physical space.
+    Reconstruct ensemble forecasts from principal component (PC) space back into physical space.
 
     Parameters
     ----------
-    forecast_ens_pc: np.ndarray
-        Two-dimensional array of shape (n_components, n_ens) containing the full input
-        data transformed into PC space.
-    pca_params: dict
-        If the respective flag (get_params) is set to True, a dictionary is returned
-        containing:
-        -principal_components: np.ndarray
-            Two-dimensional array of shape (n_components, n_features) containing the
-            principal components in feature space.
-        -mean: np.ndarray
-            One-dimensional array of shape (n_features) containing the per-feature
-            empirical mean estimated from the input data.
+    forecast_ens_pc : np.ndarray
+        Array of shape (n_components, n_ens) containing the ensemble forecasts
+        represented in PC space.
+    pca_params : dict
+        Parameters of the PCA transformation. The dictionary contains the following keys:
+
+        principal_components : np.ndarray
+            Array of shape (n_components, n_features) containing the principal
+            component vectors in feature space.
+        mean : np.ndarray
+            Array of shape (n_features,) containing the per-feature empirical mean
+            estimated from the training data.
 
     Returns
     -------
-    forecast_ens: np.ndarray
-        Two-dimensional of shape (n_ens, n_gridpoints) containing the backtransformed
-        precipitation forecast.
+    forecast_ens : np.ndarray
+        Array of shape (n_ens, n_features) containing the ensemble forecasts
+        reconstructed in physical space.
     """
 
     # If output dict is given, check whether principal components and mean are included

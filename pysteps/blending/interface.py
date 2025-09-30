@@ -50,7 +50,7 @@ def get_method(name):
     |                  | currently follows :cite:`BPS2006`.                   |
     +------------------+------------------------------------------------------+
     | pca_enkf         | the reduced-space EnKF combination method described  |
-    |                  | in :cite:`Nerini2019`.                               |
+    |                  | in :cite:`Nerini2019MWR`.                               |
     +------------------+------------------------------------------------------+
     """
     if isinstance(name, str):

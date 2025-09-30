@@ -124,6 +124,7 @@ if "READTHEDOCS" in os.environ:
     dir = os.path.abspath(dir)
     subprocess.check_call(["rm", "-rf", dir])
     subprocess.check_call(["git", "clone", repourl, dir])
+    os.environ["PYSTEPS_DATA_PATH"] = dir
     set_root()
     pystepsrc = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
     os.environ["PYSTEPSRC"] = pystepsrc

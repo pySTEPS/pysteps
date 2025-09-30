@@ -1,13 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Blended forecast
-====================
+Ensemble-based Blending
+=======================
 
-This tutorial shows how to construct a blended forecast between an ensemble nowcast
-and an ensemble Numerical Weather Prediction (NWP) rainfall forecast using the
-Reduced-Space Ensemble Kalman filter approach in :cite:`Nerini2019MWR`. The used
-datasets are from the German Weather Service (DWD).
+This tutorial demonstrates how to construct a blended rainfall forecast by combining
+an ensemble nowcast with an ensemble Numerical Weather Prediction (NWP) forecast.
+The method follows the Reduced-Space Ensemble Kalman Filter approach described in
+:cite:`Nerini2019MWR`.
 
+The procedure starts from the most recent radar observations. In the **prediction step**,
+a stochastic radar extrapolation technique generates short-term forecasts. In the
+**correction step**, these forecasts are updated using information from the latest
+ensemble NWP run. To make the matrix operations tractable, the Bayesian update is carried
+out in the subspace defined by the leading principal components—hence the term *reduced
+space*.
+
+The datasets used in this tutorial are provided by the German Weather Service (DWD).
 """
 
 import os
@@ -18,6 +26,7 @@ from matplotlib import pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams, blending
+from pysteps.utils import aggregate_fields_space
 from pysteps.visualization import plot_precip_field
 import pysteps_nwp_importers
 
@@ -79,11 +88,16 @@ filename = os.path.join(
     + nwp_data_source["fn_ext"],
 )
 nwp_importer = io.get_method("dwd_nwp", "importer")
-kwargs = {
-    "varname": "lsprate",
-    "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc",
-}
+kwargs = nwp_data_source["importer_kwargs"]
+# Resolve grid_file_path relative to PYSTEPS_DATA_PATH
+kwargs["grid_file_path"] = os.path.join(
+    os.environ["PYSTEPS_DATA_PATH"], kwargs["grid_file_path"]
+)
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
+# We lower the number of ens members to 10 to reduce the memory needs in the
+# example here. However, it is advised to have a minimum of 20 members for the
+# Reduced-Space Ensemble Kalman filter approach
+nwp_precip = nwp_precip[:, 0:10, :].astype("single")
 
 
 ################################################################################
@@ -106,7 +120,7 @@ nwp_metadata["clat"] = nwp_precip["latitude"].values
 # only contains 1 hour of DWD forecast data (to minimize storage).
 nwp_metadata["accutime"] = 15.0
 nwp_precip = (
-    nwp_precip.values * 3.0
+    nwp_precip.values.astype("single") * 3.0
 )  # (to account for the change in time step from 5 to 15 min)
 
 # Reproject ID2 data onto a regular grid
@@ -114,6 +128,18 @@ nwp_precip_rprj, nwp_metadata_rprj = (
     pysteps_nwp_importers.importer_dwd_nwp.unstructured2regular(
         nwp_precip, nwp_metadata, radar_metadata
     )
+)
+nwp_precip = None
+
+# Upscale both the radar and NWP data to a twice as coarse resolution to lower
+# the memory needs (for this example)
+radar_precip, radar_metadata = aggregate_fields_space(
+    radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 4
+)
+nwp_precip_rprj, nwp_metadata_rprj = aggregate_fields_space(
+    nwp_precip_rprj.astype("single"),
+    nwp_metadata_rprj,
+    nwp_metadata_rprj["xpixelsize"] * 4,
 )
 
 # Make sure the units are in mm/h
@@ -194,13 +220,13 @@ timestamps_nwp = np.array(
 
 # Set the combination kwargs
 combination_kwargs = dict(
-    n_tapering=0,  # No. of principal components of the ens. forecast for which the cov. matrix is computed
+    n_tapering=0,  # Tapering parameter: controls how many diagonals of the covariance matrix are kept (0 = no tapering)
     non_precip_mask=True,  # Specifies whether the computation should be truncated on grid boxes where at least a minimum number of ens. members forecast precipitation.
     n_ens_prec=1,  # Minimum number of ens. members that forecast precip for the above-mentioned mask.
     lien_criterion=True,  # Specifies wheter the Lien criterion should be applied.
-    n_lien=10,  # Minimum number of ensemble members that forecast precipitation for the Lien criterion (equals half the ens. members here)
+    n_lien=5,  # Minimum number of ensemble members that forecast precipitation for the Lien criterion (equals half the ens. members here)
     prob_matching="iterative",  # The type of probability matching used.
-    inflation_factor_bg=1.8,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
+    inflation_factor_bg=3.0,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
     inflation_factor_obs=1.0,  # Inflation factor of the observation (NWP) covariance matrix.
     offset_bg=0.0,  # Offset of the background (NWC) covariance matrix.
     offset_obs=0.0,  # Offset of the observation (NWP) covariance matrix.
@@ -220,7 +246,7 @@ precip_forecast = blending_method(
     velocity=velocity_radar,  # Velocity vector field
     forecast_horizon=120,  # Forecast length (horizon) in minutes - only a short forecast horizon due to the limited dataset length stored here.
     issuetime=date_radar,  # Forecast issue time as datetime object
-    n_ens_members=20,  # No. of ensemble members
+    n_ens_members=10,  # No. of ensemble members
     precip_mask_dilation=1,  # Dilation of precipitation mask in grid boxes
     n_cascade_levels=6,  # No. of cascade levels
     precip_thr=log_thr_prec,  # Precip threshold
