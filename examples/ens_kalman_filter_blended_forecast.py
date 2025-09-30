@@ -220,7 +220,7 @@ timestamps_nwp = np.array(
 
 # Set the combination kwargs
 combination_kwargs = dict(
-    n_tapering=0,  # No. of principal components of the ens. forecast for which the cov. matrix is computed
+    n_tapering=0,  # Tapering parameter: controls how many diagonals of the covariance matrix are kept (0 = no tapering)
     non_precip_mask=True,  # Specifies whether the computation should be truncated on grid boxes where at least a minimum number of ens. members forecast precipitation.
     n_ens_prec=1,  # Minimum number of ens. members that forecast precip for the above-mentioned mask.
     lien_criterion=True,  # Specifies wheter the Lien criterion should be applied.
