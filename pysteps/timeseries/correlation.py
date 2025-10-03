@@ -118,9 +118,12 @@ def temporal_autocorrelation(
             if window_radius == np.inf:
                 cc = np.corrcoef(x[-1, :][mask], x[-(k + 2), :][mask])[0, 1]
             else:
+                #Compute global autocorrelation coefficient to fill nan values
+                ccg = np.corrcoef(x[-1, :][mask], x[-(k + 2), :][mask])[0, 1]
                 cc = _moving_window_corrcoef(
-                    x[-1, :], x[-(k + 2), :], window_radius, mask=mask
+                    x[-1, :], x[-(k + 2), :], window_radius, window=window, mask=mask
                 )
+                cc[~np.isfinite(cc)] = ccg
         else:
             cc = spectral.corrcoef(
                 x[-1, :, :], x[-(k + 2), :], x_shape, use_full_fft=use_full_fft
@@ -237,14 +240,11 @@ def _moving_window_corrcoef(x, y, window_radius, window="gaussian", mask=None):
 
     if window == "gaussian":
         convol_filter = ndimage.gaussian_filter
-    else:
-        convol_filter = ndimage.uniform_filter
-
-    if window == "uniform":
-        window_size = 2 * window_radius + 1
-    else:
         window_size = window_radius
-
+    else: #window == "uniform"
+        convol_filter = ndimage.uniform_filter
+        window_size = 2 * window_radius + 1
+        
     n = convol_filter(mask, window_size, mode="constant") * window_size**2
 
     sx = convol_filter(x, window_size, mode="constant") * window_size**2
