@@ -637,8 +637,9 @@ class StepsBlendingNowcaster:
             final_blended_forecast_all_members_one_timestep = [
                 None for _ in range(self.__config.n_ens_members)
             ]
-            self.__state.mean_nowcast_timestep = self.__state.mean_nowcast[:, :, t]
-            self.__state.std_nowcast_timestep = self.__state.std_nowcast[:, :, t]
+            if self.__config.nowcasting_method == "external_nowcast":
+                self.__state.mean_nowcast_timestep = self.__state.mean_nowcast[:, :, t]
+                self.__state.std_nowcast_timestep = self.__state.std_nowcast[:, :, t]
 
             def worker(j):
                 worker_state = copy(self.__state)

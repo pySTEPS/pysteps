@@ -66,8 +66,10 @@ steps_arg_values = [
     (5, 10, 5, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
     (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
     (1, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", "cdf", False, "spn", True, 5, False, False, 0, False, None, None)
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", "obs", False, "spn", True, 5, False, False, 0, False, None, None)
 ]
+
 # fmt:on
 
 steps_arg_names = (
@@ -391,9 +393,7 @@ def test_steps_blending(
     )
 
     assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in forecast output"
+
     assert (
         precip_forecast.shape[1] == n_timesteps
     ), "Wrong amount of output time steps in forecast output"
@@ -404,9 +404,15 @@ def test_steps_blending(
     assert (
         precip_forecast.ndim == 4
     ), "Wrong amount of dimensions in converted forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in converted forecast output"
+    if nowcasting_method != "external_nowcast":
+        assert (
+            precip_forecast.shape[0] == expected_n_ens_members
+        ), "Wrong amount of output ensemble members in forecast output"
+
+        assert (
+            precip_forecast.shape[0] == expected_n_ens_members
+        ), "Wrong amount of output ensemble members in converted forecast output"
+
     assert (
         precip_forecast.shape[1] == n_timesteps
     ), "Wrong amount of output time steps in converted forecast output"
