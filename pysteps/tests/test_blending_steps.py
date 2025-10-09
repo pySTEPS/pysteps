@@ -55,19 +55,19 @@ steps_arg_values = [
     (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 40),
     (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 60),
     #Test the externally provided nowcast
-    (1, 10, 1, 8,'external_nowcast_ens', None, None, False, "spn", True, 1, False, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 1, False, False, 80, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "bps", True, 1, True, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 1, False, True, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "bps", True, 1, True, True, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", "cdf", False, "spn", True, 1, False, False, 0, True, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", "obs", False, "bps", True, 1, False, False, 0, False, None, None),
-    (5, 10, 5, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', None, None, False, "spn", True, 1, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 1, False, False, 80, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, True, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 1, False, True, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, True, True, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", "cdf", False, "spn", True, 1, False, False, 0, True, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", "obs", False, "bps", True, 1, False, False, 0, False, None, None),
+    (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
     (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
     (1, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", "obs", False, "spn", True, 5, False, False, 0, False, None, None)
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None),
+    (5, 10, 1, 8,'external_nowcast_ens', "incremental", "obs", False, "spn", True, 5, False, False, 0, False, None, None)
 ]
 
 # fmt:on
@@ -216,6 +216,8 @@ def test_steps_blending(
                 precip_nowcast[
                     n_ens_member, i, 30:165, 41 + 1 * (i + 1) * n_ens_member
                 ] = 0.1
+        if n_ens_members < expected_n_ens_members:
+            n_ens_members = expected_n_ens_members
 
     elif nowcasting_method == "external_nowcast_det":
         nowcasting_method = "external_nowcast"
@@ -395,6 +397,10 @@ def test_steps_blending(
     assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
 
     assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in forecast output"
+
+    assert (
         precip_forecast.shape[1] == n_timesteps
     ), "Wrong amount of output time steps in forecast output"
 
@@ -404,14 +410,10 @@ def test_steps_blending(
     assert (
         precip_forecast.ndim == 4
     ), "Wrong amount of dimensions in converted forecast output"
-    if nowcasting_method != "external_nowcast":
-        assert (
-            precip_forecast.shape[0] == expected_n_ens_members
-        ), "Wrong amount of output ensemble members in forecast output"
 
-        assert (
-            precip_forecast.shape[0] == expected_n_ens_members
-        ), "Wrong amount of output ensemble members in converted forecast output"
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in converted forecast output"
 
     assert (
         precip_forecast.shape[1] == n_timesteps
