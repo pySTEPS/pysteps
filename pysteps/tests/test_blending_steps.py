@@ -55,17 +55,18 @@ steps_arg_values = [
     (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 40),
     (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 60),
     #Test the externally provided nowcast
-    (1, 10, 1, 8,'external_nowcast', None, None, False, "spn", True, 1, False, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast', "incremental", None, False, "spn", True, 1, False, False, 80, False, None, None),
-    (1, 10, 1, 8,'external_nowcast', "incremental", None, False, "bps", True, 1, True, False, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast', "incremental", None, False, "spn", True, 1, False, True, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast', "incremental", None, False, "bps", True, 1, True, True, 0, False, None, None),
-    (1, 10, 1, 8,'external_nowcast', "incremental", "cdf", False, "spn", True, 1, False, False, 0, True, None, None),
-    (1, 10, 1, 8,'external_nowcast', "incremental", "obs", False, "bps", True, 1, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', None, None, False, "spn", True, 1, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 1, False, False, 80, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "bps", True, 1, True, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 1, False, True, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", None, False, "bps", True, 1, True, True, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", "cdf", False, "spn", True, 1, False, False, 0, True, None, None),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", "obs", False, "bps", True, 1, False, False, 0, False, None, None),
     (5, 10, 5, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
     (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
-    (1, 10, 5, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
+    (1, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", "cdf", False, "spn", True, 5, False, False, 0, False, None, None)
 ]
 # fmt:on
 
@@ -214,7 +215,7 @@ def test_steps_blending(
                     n_ens_member, i, 30:165, 41 + 1 * (i + 1) * n_ens_member
                 ] = 0.1
 
-    elif nowcasting_method[:16] == "external_nowcast":
+    elif nowcasting_method == "external_nowcast_det":
         nowcasting_method = "external_nowcast"
         for i in range(precip_nowcast.shape[1]):
             precip_nowcast[0, i, 30:165, 30 + 1 * i] = 0.1
