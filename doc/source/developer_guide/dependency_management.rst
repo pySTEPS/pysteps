@@ -142,13 +142,27 @@ Version constraints follow these principles:
 Automated Dependency Updates
 -----------------------------
 
-Consider using dependabot or similar tools to:
+Pysteps uses GitHub's Dependabot to automatically monitor dependencies for:
 
-- Monitor for security vulnerabilities
-- Suggest updates to dependency versions
-- Test compatibility with newer versions
+- Security vulnerabilities
+- Available updates
+- Compatibility with newer versions
 
-To enable dependabot, add a ``.github/dependabot.yml`` configuration file.
+Dependabot is configured in ``.github/dependabot.yml`` to:
+
+- Check for updates monthly
+- Group minor and patch updates together
+- Automatically create pull requests for updates
+- Monitor both Python dependencies and GitHub Actions
+
+When Dependabot creates a pull request:
+
+1. Review the changes and check the changelog of updated packages
+2. Ensure CI tests pass
+3. Merge if everything looks good
+4. The generated requirements files will be automatically updated via CI
+
+To manually enable or configure dependabot, edit ``.github/dependabot.yml``.
 
 Troubleshooting
 ---------------
