@@ -1,0 +1,56 @@
+name: Validate Requirements Files
+
+# This workflow ensures that requirements files are up-to-date with pyproject.toml
+# It runs on every push and pull request to catch any manual edits to generated files
+
+on:
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'requirements_dev.txt'
+      - 'environment.yml'
+      - 'environment_dev.yml'
+      - 'scripts/generate_requirements.py'
+  push:
+    branches:
+      - master
+    paths:
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'requirements_dev.txt'
+      - 'environment.yml'
+      - 'environment_dev.yml'
+      - 'scripts/generate_requirements.py'
+
+jobs:
+  validate-requirements:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Regenerate requirements files
+      run: |
+        python scripts/generate_requirements.py
+        
+    - name: Check if requirements files are up-to-date
+      run: |
+        # Check if there are any differences
+        if ! git diff --exit-code requirements.txt requirements_dev.txt environment.yml environment_dev.yml; then
+          echo "❌ Requirements files are out of date!"
+          echo ""
+          echo "The generated files don't match pyproject.toml."
+          echo "Please run 'python scripts/generate_requirements.py' and commit the changes."
+          exit 1
+        else
+          echo "✅ All requirements files are up-to-date!"
+        fi
