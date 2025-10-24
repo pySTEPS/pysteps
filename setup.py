@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+Setup script for pysteps package.
+
+Note: All project metadata and dependencies are now defined in pyproject.toml
+following PEP 621 standards. This setup.py is maintained primarily for building
+Cython extensions.
+"""
 
 import sys
 
@@ -60,46 +67,10 @@ for name, data in extensions_data.items():
 
 external_modules = cythonize(extensions, force=True, language_level=3)
 
-requirements = [
-    "numpy",
-    "jsmin",
-    "scipy",
-    "matplotlib",
-    "jsonschema",
-]
-
+# All metadata and dependencies are now defined in pyproject.toml
+# This setup() call is minimal and primarily for Cython extension building
 setup(
-    name="pysteps",
-    version="1.18.1",
-    author="PySteps developers",
-    packages=find_packages(),
-    license="LICENSE",
-    include_package_data=True,
-    description="Python framework for short-term ensemble prediction systems",
-    long_description=open("README.rst").read(),
-    long_description_content_type="text/x-rst",
-    url="https://pysteps.github.io/",
-    project_urls={
-        "Source": "https://github.com/pySTEPS/pysteps",
-        "Issues": "https://github.com/pySTEPS/pysteps/issues",
-        "CI": "https://github.com/pySTEPS/pysteps/actions",
-        "Changelog": "https://github.com/pySTEPS/pysteps/releases",
-        "Documentation": "https://pysteps.readthedocs.io",
-    },
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Science/Research",
-        "Topic :: Scientific/Engineering",
-        "Topic :: Scientific/Engineering :: Atmospheric Science",
-        "Topic :: Scientific/Engineering :: Hydrology",
-        "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3.13",
-        "Operating System :: OS Independent",
-    ],
     ext_modules=external_modules,
-    setup_requires=requirements,
-    install_requires=requirements,
+    packages=find_packages(),
+    include_package_data=True,
 )

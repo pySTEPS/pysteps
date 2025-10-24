@@ -362,6 +362,23 @@ This will help to reduce the time needed to process the PR. For changes outside 
 recommend opening a new PR.
 
 
+Managing dependencies
+~~~~~~~~~~~~~~~~~~~~~
+
+Pysteps uses **pyproject.toml** as the single source of truth for all dependencies.
+The files ``requirements.txt``, ``requirements_dev.txt``, ``environment.yml``, and
+``environment_dev.yml`` are auto-generated and should **NOT** be edited manually.
+
+To update dependencies:
+
+1. Edit the appropriate section in ``pyproject.toml``
+2. Run ``python scripts/generate_requirements.py`` to regenerate all requirement files
+3. Commit both ``pyproject.toml`` and the generated files
+
+For more information, see the
+`Dependency Management Guide <https://pysteps.readthedocs.io/en/latest/developer_guide/dependency_management.html>`__.
+
+
 Testing your changes
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -437,12 +454,13 @@ Core developers should follow the steps to prepare a new release (version):
 
 1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
 
-    * In the file setup.py, update the **version="X.X.X"** keyword in the setup
-      function.
+    * In the file pyproject.toml, update the **version="X.X.X"** in the
+      [project] section.
     * Update the version in PKG-INFO file.
     * If new dependencies were added to pysteps since the last release, add
-      them to the **environment.yml, requirements.txt**, and
-      **requirements_dev.txt** files.
+      them to **pyproject.toml** in the appropriate section ([project.dependencies]
+      or [project.optional-dependencies]), then regenerate the requirements files by
+      running ``python scripts/generate_requirements.py``.
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.

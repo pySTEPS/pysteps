@@ -10,11 +10,129 @@ requires = [
 build-backend = "setuptools.build_meta:__legacy__"
 #https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
 
+[project]
+name = "pysteps"
+version = "1.18.1"
+description = "Python framework for short-term ensemble prediction systems"
+readme = "README.rst"
+license = {text = "BSD-3-Clause"}
+authors = [
+    {name = "PySteps developers"}
+]
+requires-python = ">=3.11,<3.14"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+
+# Core runtime dependencies (pinned for reproducibility)
+dependencies = [
+    "numpy>=1.24.0,<3.0",
+    "opencv-python>=4.7.0,<5.0",
+    "pillow>=10.0.0,<12.0",
+    "pyproj>=3.5.0,<4.0",
+    "scipy>=1.10.0,<2.0",
+    "matplotlib>=3.7.0,<4.0",
+    "jsmin>=3.0.0,<4.0",
+    "jsonschema>=4.0.0,<5.0",
+    "netCDF4>=1.6.0,<2.0",
+]
+
+[project.optional-dependencies]
+# Performance enhancements
+performance = [
+    "dask>=2023.5.0,<2025.0",
+    "pyfftw>=0.13.0,<1.0",
+]
+
+# Visualization and geospatial
+geo = [
+    "cartopy>=0.22.0,<1.0",
+    "rasterio>=1.3.0,<2.0",
+]
+
+# Data I/O
+io = [
+    "h5py>=3.8.0,<4.0",
+    "pygrib>=2.1.0,<3.0; sys_platform != 'win32'",
+]
+
+# Advanced analysis
+analysis = [
+    "scikit-image>=0.20.0,<1.0",
+    "scikit-learn>=1.3.0,<2.0",
+    "pandas>=2.0.0,<3.0",
+    "PyWavelets>=1.4.0,<2.0",
+]
+
+# All optional dependencies
+all = [
+    "dask>=2023.5.0,<2025.0",
+    "pyfftw>=0.13.0,<1.0",
+    "cartopy>=0.22.0,<1.0",
+    "rasterio>=1.3.0,<2.0",
+    "h5py>=3.8.0,<4.0",
+    "pygrib>=2.1.0,<3.0; sys_platform != 'win32'",
+    "scikit-image>=0.20.0,<1.0",
+    "scikit-learn>=1.3.0,<2.0",
+    "pandas>=2.0.0,<3.0",
+    "PyWavelets>=1.4.0,<2.0",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.3.0,<9.0",
+    "pytest-cov>=4.1.0,<7.0",
+    "black>=23.3.0,<25.0",
+    "pre-commit>=3.3.0,<5.0",
+    "Cython>=0.29.2,<4.0",
+    # Include all optional dependencies for testing
+    "dask>=2023.5.0,<2025.0",
+    "pyfftw>=0.13.0,<1.0",
+    "cartopy>=0.22.0,<1.0",
+    "rasterio>=1.3.0,<2.0",
+    "h5py>=3.8.0,<4.0",
+    "pygrib>=2.1.0,<3.0; sys_platform != 'win32'",
+    "scikit-image>=0.20.0,<1.0",
+    "scikit-learn>=1.3.0,<2.0",
+    "pandas>=2.0.0,<3.0",
+    "PyWavelets>=1.4.0,<2.0",
+]
+
+# Documentation dependencies
+docs = [
+    "sphinx>=5.0.0,<9.0",
+    "sphinxcontrib-bibtex>=2.5.0,<3.0",
+    "sphinx-book-theme>=1.0.0,<2.0",
+    "sphinx-gallery>=0.13.0,<1.0",
+    "scikit-image>=0.20.0,<1.0",
+    "scikit-learn>=1.3.0,<2.0",
+    "pandas>=2.0.0,<3.0",
+    "pygrib>=2.1.0,<3.0; sys_platform != 'win32'",
+    "h5py>=3.8.0,<4.0",
+]
+
+[project.urls]
+Homepage = "https://pysteps.github.io/"
+Documentation = "https://pysteps.readthedocs.io"
+Repository = "https://github.com/pySTEPS/pysteps"
+Issues = "https://github.com/pySTEPS/pysteps/issues"
+Changelog = "https://github.com/pySTEPS/pysteps/releases"
+CI = "https://github.com/pySTEPS/pysteps/actions"
 
 # Define black parameters for the project
 # https://black.readthedocs.io/en/stable/pyproject_toml.html#configuration-format
 [tool.black]
-target-version = ['py36']
+target-version = ['py311']
 line-length = 88
 exclude = '''
 /(
