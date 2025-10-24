@@ -9,8 +9,6 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
-    reviewers:
-      - "pySTEPS/maintainers"
     labels:
       - "dependencies"
       - "python"
@@ -32,8 +30,6 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 3
-    reviewers:
-      - "pySTEPS/maintainers"
     labels:
       - "dependencies"
       - "github-actions"

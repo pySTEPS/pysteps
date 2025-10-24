@@ -7,10 +7,10 @@ repos:
 
 -   repo: local
     hooks:
-    - id: validate-requirements
-      name: Validate requirements files are up-to-date
-      entry: python scripts/generate_requirements.py
-      language: system
-      files: ^pyproject\.toml$
-      pass_filenames: false
-      always_run: false
+      - id: validate-requirements
+        name: Validate requirements files are up-to-date
+        entry: python scripts/generate_requirements.py
+        language: system
+        files: ^pyproject\.toml$
+        pass_filenames: false
+        always_run: false
