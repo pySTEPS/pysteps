@@ -1095,7 +1095,6 @@ class StepsBlendingNowcaster:
             )
         if self.__precip_nowcast is not None:
             self.__precip_nowcast = self.__precip_nowcast.copy()
-            # TODO: check this function for ensemble nowcasts -> now made it always work with 4 dimentions
             for ens_mem in range(self.__precip_nowcast.shape[0]):
                 for t in range(self.__precip_nowcast.shape[1]):
                     self.__precip_nowcast[
@@ -1861,49 +1860,8 @@ class StepsBlendingNowcaster:
             if n_ens_members_min != n_ens_members_max:
                 if n_model_members == 1:
                     repeat_precip_to_match_ensemble_size(n_ens_members_max, "nwp")
-                    # print("Repeating the NWP model for all ensemble members")
-                    # self.__state.precip_models_cascades_timestep = np.repeat(
-                    #     self.__state.precip_models_cascades_timestep,
-                    #     n_ens_members_max,
-                    #     axis=0,
-                    # )
-                    # self.__state.mean_models_timestep = np.repeat(
-                    #     self.__state.mean_models_timestep, n_ens_members_max, axis=0
-                    # )
-                    # self.__state.std_models_timestep = np.repeat(
-                    #     self.__state.std_models_timestep, n_ens_members_max, axis=0
-                    # )
-                    # self.__state.velocity_models_timestep = np.repeat(
-                    #     self.__state.velocity_models_timestep, n_ens_members_max, axis=0
-                    # )
-                    # # For the prob. matching
-                    # self.__state.precip_models_timestep = np.repeat(
-                    #     self.__state.precip_models_timestep, n_ens_members_max, axis=0
-                    # )
-                    # # Finally, for the model indices
-                    # self.__state.mapping_list_NWP_member_to_ensemble_member = np.repeat(
-                    #     self.__state.mapping_list_NWP_member_to_ensemble_member,
-                    #     n_ens_members_max,
-                    #     axis=0,
-                    # )
                 if n_ens_members_provided == 1:
                     repeat_precip_to_match_ensemble_size(n_ens_members_max, "nowcast")
-                    # print("Repeating the nowcast for all ensemble members")
-                    # self.__state.precip_nowcast_cascades = np.repeat(
-                    #     self.__state.precip_nowcast_cascades,
-                    #     n_ens_members_max,
-                    #     axis=0,
-                    # )
-                    # self.__state.mean_nowcast = np.repeat(
-                    #     self.__state.mean_nowcast, n_ens_members_max, axis=0
-                    # )
-                    # self.__state.std_nowcast = np.repeat(
-                    #     self.__state.std_nowcast, n_ens_members_max, axis=0
-                    # )
-                    # # For the prob. matching
-                    # self.__state.precip_nowcast_timestep = np.repeat(
-                    #     self.__state.precip_nowcast_timestep, n_ens_members_max, axis=0
-                    # )
 
                 if n_model_members == n_ens_members_min and n_model_members != 1:
                     print("Repeating the NWP model for all ensemble members")
@@ -1912,55 +1870,12 @@ class StepsBlendingNowcaster:
                         for i in range(n_ens_members_min)
                     ]
                     repeat_precip_to_match_ensemble_size(repeats, "nwp")
-                    # self.__state.precip_models_cascades_timestep = np.repeat(
-                    #     self.__state.precip_models_cascades_timestep,
-                    #     repeats,
-                    #     axis=0,
-                    # )
-                    # self.__state.mean_models_timestep = np.repeat(
-                    #     self.__state.mean_models_timestep, repeats, axis=0
-                    # )
-                    # self.__state.std_models_timestep = np.repeat(
-                    #     self.__state.std_models_timestep, repeats, axis=0
-                    # )
-                    # self.__state.velocity_models_timestep = np.repeat(
-                    #     self.__state.velocity_models_timestep, repeats, axis=0
-                    # )
-                    # # For the prob. matching
-                    # self.__state.precip_models_timestep = np.repeat(
-                    #     self.__state.precip_models_timestep, repeats, axis=0
-                    # )
-                    # # Finally, for the model indices
-                    # self.__state.mapping_list_NWP_member_to_ensemble_member = np.repeat(
-                    #     self.__state.mapping_list_NWP_member_to_ensemble_member,
-                    #     repeats,
-                    #     axis=0,
-                    # )
+
                 if (
                     n_ens_members_provided == n_ens_members_min
                     and n_ens_members_provided != 1
                 ):
                     repeat_precip_to_match_ensemble_size(repeats, "nowcast")
-                    # print("Repeating the nowcast for all ensemble members")
-                    # repeats = [
-                    #     (n_ens_members_max + i) // n_ens_members_min
-                    #     for i in range(n_ens_members_min)
-                    # ]
-                    # self.__state.precip_nowcast_cascades = np.repeat(
-                    #     self.__state.precip_nowcast_cascades,
-                    #     repeats,
-                    #     axis=0,
-                    # )
-                    # self.__state.mean_nowcast = np.repeat(
-                    #     self.__state.mean_nowcast, repeats, axis=0
-                    # )
-                    # self.__state.std_nowcast = np.repeat(
-                    #     self.__state.std_nowcast, repeats, axis=0
-                    # )
-                    # # For the prob. matching
-                    # self.__state.precip_nowcast_timestep = np.repeat(
-                    #     self.__state.precip_nowcast_timestep, repeats, axis=0
-                    # )
 
         else:
             # Start with determining the maximum and mimimum number of members/models
