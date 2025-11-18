@@ -99,6 +99,15 @@ class EnKFCombinationConfig:
     precip_mask_dilation: int
         Number of grid boxes by which the precipitation mask should be extended per
         timestep.
+    smooth_radar_mask_range: int, Default is 0.
+        Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+        blend near the edge of the radar domain (radar mask), where the radar data is either
+        not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+        normal forecast without smoothing. To create a smooth mask, this range should be a
+        positive value, representing a buffer band of a number of pixels by which the mask
+        is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+        and radar in the final blended product. Typically, a value between 50 and 100 km
+        can be used. 80 km generally gives good results.
     extrapolation_method: str
         Name of the extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
@@ -186,6 +195,7 @@ class EnKFCombinationConfig:
     precip_threshold: float | None
     norain_threshold: float
     precip_mask_dilation: int
+    smooth_radar_mask_range: int
     extrapolation_method: str
     decomposition_method: str
     bandpass_filter_method: str
@@ -685,6 +695,39 @@ class ForecastModel:
 
         # Extrapolate the precipitation field onto the position of the current timestep.
         self.__advect()
+
+        # The extrapolation components are NaN outside the advected
+        # radar domain. This results in NaN values in the blended
+        # forecast outside the radar domain. Therefore, fill these
+        # areas with NWP, if requested.
+        if self.__forecast_state.config.smooth_radar_mask_range != 0:
+            nan_indices = np.isnan(
+                self.__forecast_state.nwc_prediction[self.__ens_member]
+            )
+            # Compute the smooth dilated mask
+            new_mask = blending.utils.compute_smooth_dilated_mask(
+                nan_indices,
+                max_padding_size_in_px=self.__forecast_state.config.smooth_radar_mask_range,
+            )
+
+            # Ensure mask values are between 0 and 1
+            mask_model = np.clip(new_mask, 0, 1)
+            mask_radar = np.clip(1 - new_mask, 0, 1)
+
+            # Handle NaNs in precip_forecast_new and precip_forecast_new_mod_only by setting NaNs to 0 in the blending step
+            nwp_temp = np.nan_to_num(nwp, nan=0)
+            nwc_temp = np.nan_to_num(
+                self.__forecast_state.nwc_prediction[self.__ens_member], nan=0
+            )
+
+            # Perform the blending of radar and model inside the radar domain using a weighted combination
+            self.__forecast_state.nwc_prediction[self.__ens_member] = np.nansum(
+                [
+                    mask_model * nwp_temp,
+                    mask_radar * nwc_temp,
+                ],
+                axis=0,
+            )
 
     # Create the resulting precipitation field and set no data area. In future, when
     # transformation between linear and logarithmic scale will be necessary, it will be
@@ -1471,6 +1514,7 @@ def forecast(
     issuetime,
     n_ens_members,
     precip_mask_dilation=1,
+    smooth_radar_mask_range=0,
     n_cascade_levels=6,
     precip_thr=-10.0,
     norain_thr=0.01,
@@ -1529,6 +1573,15 @@ def forecast(
     precip_mask_dilation: int
         Range by which the precipitation mask within the forecast step should be
         extended per time step. Defaults to 1.
+    smooth_radar_mask_range: int, Default is 0.
+        Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+        blend near the edge of the radar domain (radar mask), where the radar data is either
+        not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+        normal forecast without smoothing. To create a smooth mask, this range should be a
+        positive value, representing a buffer band of a number of pixels by which the mask
+        is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+        and radar in the final blended product. Typically, a value between 50 and 100 km
+        can be used. 80 km generally gives good results.
     n_cascade_levels: int, optional
         The number of cascade levels to use. Defaults to 6, see issue #385 on GitHub.
     precip_thr: float, optional
@@ -1646,6 +1699,7 @@ def forecast(
         precip_threshold=precip_thr,
         norain_threshold=norain_thr,
         precip_mask_dilation=precip_mask_dilation,
+        smooth_radar_mask_range=smooth_radar_mask_range,
         extrapolation_method=extrap_method,
         decomposition_method=decomp_method,
         bandpass_filter_method=bandpass_filter_method,
