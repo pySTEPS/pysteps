@@ -694,19 +694,28 @@ class ForecastModel:
             self.__probability_matching()
 
         # Extrapolate the precipitation field onto the position of the current timestep.
+        # If smooth_radar_mask_range is not zero, ensure the extrapolation kwargs use
+        # a constant value instead of "nearest" for the coordinate mapping, otherwise
+        # there are possibly no nans in the domain.
+        if self.__forecast_state.config.smooth_radar_mask_range != 0:
+            self.__forecast_state.params.extrapolation_kwargs[
+                "map_coordinates_mode"
+            ] = "constant"
         self.__advect()
 
         # The extrapolation components are NaN outside the advected
         # radar domain. This results in NaN values in the blended
         # forecast outside the radar domain. Therefore, fill these
         # areas with NWP, if requested.
+        nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
+        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = nwp
+        # For a smoother transition at the edge, we can slowly dilute the nowcast
+        # component into NWP at the edges
         if self.__forecast_state.config.smooth_radar_mask_range != 0:
-            nan_indices = np.isnan(
-                self.__forecast_state.nwc_prediction[self.__ens_member]
-            )
+            nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
             # Compute the smooth dilated mask
             new_mask = blending.utils.compute_smooth_dilated_mask(
-                nan_indices,
+                nan_mask,
                 max_padding_size_in_px=self.__forecast_state.config.smooth_radar_mask_range,
             )
 
@@ -721,7 +730,7 @@ class ForecastModel:
             )
 
             # Perform the blending of radar and model inside the radar domain using a weighted combination
-            self.__forecast_state.nwc_prediction[self.__ens_member] = np.nansum(
+            self.__forecast_state.nwc_prediction_btf[self.__ens_member] = np.nansum(
                 [
                     mask_model * nwp_temp,
                     mask_radar * nwc_temp,
@@ -732,13 +741,16 @@ class ForecastModel:
     # Create the resulting precipitation field and set no data area. In future, when
     # transformation between linear and logarithmic scale will be necessary, it will be
     # implemented in this function.
+    # TODO: once this transformation is needed, adjust the smoothed transition between
+    # radar mask and NWP as performed at the end of the run_forecast_step function.
     def backtransform(self):
 
         # Set the resulting field as shallow copy of the field that is used
         # continuously for forecast computation.
-        self.__forecast_state.nwc_prediction_btf[self.__ens_member] = (
-            self.__forecast_state.nwc_prediction[self.__ens_member]
-        )
+        if self.__forecast_state.config.smooth_radar_mask_range == 0:
+            self.__forecast_state.nwc_prediction_btf[self.__ens_member] = (
+                self.__forecast_state.nwc_prediction[self.__ens_member]
+            )
 
         # Set no data area
         self.__set_no_data()
