@@ -755,8 +755,8 @@ class ForecastModel:
                 self.__forecast_state.nwc_prediction[self.__ens_member]
             )
 
-        # Set no data area
-        self.__set_no_data()
+            # Set no data area
+            self.__set_no_data()
 
     # Call spatial decomposition function and compute an adjusted standard deviation of
     # each spatial scale at timesteps where NWP information is incorporated.
