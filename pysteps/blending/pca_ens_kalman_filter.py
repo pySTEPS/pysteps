@@ -708,7 +708,7 @@ class ForecastModel:
         # forecast outside the radar domain. Therefore, fill these
         # areas with NWP, if requested.
         nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
-        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = nwp
+        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = nwp[nan_mask]
         # For a smoother transition at the edge, we can slowly dilute the nowcast
         # component into NWP at the edges
         if self.__forecast_state.config.smooth_radar_mask_range != 0:
