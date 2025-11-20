@@ -701,45 +701,26 @@ class ForecastModel:
             self.__forecast_state.params.extrapolation_kwargs[
                 "map_coordinates_mode"
             ] = "constant"
+            self.__nwp_for_filling = nwp
         self.__advect()
 
         # The extrapolation components are NaN outside the advected
         # radar domain. This results in NaN values in the blended
         # forecast outside the radar domain. Therefore, fill these
-        # areas with NWP, if requested.
+        # areas with the defined minimum value, if requested.
         nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
-        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = nwp[
-            nan_mask
-        ]
-        # For a smoother transition at the edge, we can slowly dilute the nowcast
-        # component into NWP at the edges
+        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = (
+            self.__forecast_state.config.precip_threshold - 2.0
+        )
+
         if self.__forecast_state.config.smooth_radar_mask_range != 0:
-            # nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
-            # Compute the smooth dilated mask
-            new_mask = blending.utils.compute_smooth_dilated_mask(
-                self.__forecast_state.params.domain_mask,
-                max_padding_size_in_px=self.__forecast_state.config.smooth_radar_mask_range,
-            )
-            new_mask = np.nan_to_num(new_mask, nan=0)
+            self.__fill_periphery_with_nwp()
 
-            # Ensure mask values are between 0 and 1
-            mask_model = np.clip(new_mask, 0, 1)
-            mask_radar = np.clip(1 - new_mask, 0, 1)
+    # Simple setter function to get NWP data for timestep 0. It's necessary if
+    # smooth_radar_mask_range is > 0
+    def set_nwp_data_for_filling(self, nwp):
 
-            # Handle NaNs in precip_forecast_new and precip_forecast_new_mod_only by setting NaNs to 0 in the blending step
-            nwp_temp = np.nan_to_num(nwp, nan=0)
-            nwc_temp = np.nan_to_num(
-                self.__forecast_state.nwc_prediction[self.__ens_member], nan=0
-            )
-
-            # Perform the blending of radar and model inside the radar domain using a weighted combination
-            self.__forecast_state.nwc_prediction_btf[self.__ens_member] = np.nansum(
-                [
-                    mask_model * nwp_temp,
-                    mask_radar * nwc_temp,
-                ],
-                axis=0,
-            )
+        self.__nwp_for_filling = nwp
 
     # Create the resulting precipitation field and set no data area. In future, when
     # transformation between linear and logarithmic scale will be necessary, it will be
@@ -914,6 +895,38 @@ class ForecastModel:
         self.__forecast_state.nwc_prediction_btf[self.__ens_member][
             self.__forecast_state.params.domain_mask
         ] = np.nan
+
+    # Fill edge zones of the domain with NWP data if smooth_radar_mask_range is > 0
+    def __fill_periphery_with_nwp(self):
+
+        # For a smoother transition at the edge, we can slowly dilute the nowcast
+        # component into NWP at the edges
+
+        # Compute the smooth dilated mask
+        new_mask = blending.utils.compute_smooth_dilated_mask(
+            self.__forecast_state.params.domain_mask,
+            max_padding_size_in_px=self.__forecast_state.config.smooth_radar_mask_range,
+        )
+        new_mask = np.nan_to_num(new_mask, nan=0)
+
+        # Ensure mask values are between 0 and 1
+        mask_model = np.clip(new_mask, 0, 1)
+        mask_radar = np.clip(1 - new_mask, 0, 1)
+
+        # Handle NaNs in precip_forecast_new and precip_forecast_new_mod_only by setting NaNs to 0 in the blending step
+        nwp_temp = np.nan_to_num(self.__nwp_for_filling, nan=0)
+        nwc_temp = np.nan_to_num(
+            self.__forecast_state.nwc_prediction[self.__ens_member], nan=0
+        )
+
+        # Perform the blending of radar and model inside the radar domain using a weighted combination
+        self.__forecast_state.nwc_prediction_btf[self.__ens_member] = np.nansum(
+            [
+                mask_model * nwp_temp,
+                mask_radar * nwc_temp,
+            ],
+            axis=0,
+        )
 
 
 class EnKFCombinationNowcaster:
@@ -1375,6 +1388,11 @@ class EnKFCombinationNowcaster:
 
         self.__params.extrapolation_kwargs["return_displacement"] = True
         is_correction_timestep = False
+
+        [
+            self.FC_Models[j].set_nwp_data_for_filling(self.__nwp_precip[j, 0])
+            for j in range(self.__config.n_ens_members)
+        ]
 
         for t, fc_leadtime in enumerate(self.__forecast_leadtimes):
             if self.__config.measure_time:
