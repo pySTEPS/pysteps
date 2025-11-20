@@ -708,14 +708,16 @@ class ForecastModel:
         # forecast outside the radar domain. Therefore, fill these
         # areas with NWP, if requested.
         nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
-        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = nwp[nan_mask]
+        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = nwp[
+            nan_mask
+        ]
         # For a smoother transition at the edge, we can slowly dilute the nowcast
         # component into NWP at the edges
         if self.__forecast_state.config.smooth_radar_mask_range != 0:
-            nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
+            # nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
             # Compute the smooth dilated mask
             new_mask = blending.utils.compute_smooth_dilated_mask(
-                nan_mask,
+                self.__forecast_state.params.domain_mask,
                 max_padding_size_in_px=self.__forecast_state.config.smooth_radar_mask_range,
             )
             new_mask = np.nan_to_num(new_mask, nan=0)
