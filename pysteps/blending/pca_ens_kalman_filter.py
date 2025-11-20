@@ -718,6 +718,7 @@ class ForecastModel:
                 nan_mask,
                 max_padding_size_in_px=self.__forecast_state.config.smooth_radar_mask_range,
             )
+            new_mask = np.nan_to_num(new_mask, nan=0)
 
             # Ensure mask values are between 0 and 1
             mask_model = np.clip(new_mask, 0, 1)
