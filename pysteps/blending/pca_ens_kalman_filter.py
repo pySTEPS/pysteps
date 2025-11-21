@@ -713,15 +713,6 @@ class ForecastModel:
             self.__forecast_state.config.precip_threshold - 2.0
         )
 
-        if self.__forecast_state.config.smooth_radar_mask_range != 0:
-            self.__fill_periphery_with_nwp()
-
-    # Simple setter function to get NWP data for timestep 0. It's necessary if
-    # smooth_radar_mask_range is > 0
-    def set_nwp_data_for_filling(self, nwp):
-
-        self.__nwp_for_filling = nwp
-
     # Create the resulting precipitation field and set no data area. In future, when
     # transformation between linear and logarithmic scale will be necessary, it will be
     # implemented in this function.
@@ -897,7 +888,7 @@ class ForecastModel:
         ] = np.nan
 
     # Fill edge zones of the domain with NWP data if smooth_radar_mask_range is > 0
-    def __fill_periphery_with_nwp(self):
+    def fill_backtransform(self, nwp):
 
         # For a smoother transition at the edge, we can slowly dilute the nowcast
         # component into NWP at the edges
@@ -914,7 +905,7 @@ class ForecastModel:
         mask_radar = np.clip(1 - new_mask, 0, 1)
 
         # Handle NaNs in precip_forecast_new and precip_forecast_new_mod_only by setting NaNs to 0 in the blending step
-        nwp_temp = np.nan_to_num(self.__nwp_for_filling, nan=0)
+        nwp_temp = np.nan_to_num(nwp, nan=0)
         nwc_temp = np.nan_to_num(
             self.__forecast_state.nwc_prediction[self.__ens_member], nan=0
         )
@@ -1263,7 +1254,7 @@ class EnKFCombinationNowcaster:
         self.__nwp_precip = np.delete(
             self.__nwp_precip,
             np.logical_or(
-                self.__nwp_timestamps <= self.__fc_init,
+                self.__nwp_timestamps < self.__fc_init,
                 self.__nwp_timestamps
                 > self.__fc_init + datetime.timedelta(minutes=self.__fc_period),
             ),
@@ -1278,7 +1269,7 @@ class EnKFCombinationNowcaster:
         trunc_nwp_timestamps = (
             self.__nwp_timestamps[
                 np.logical_and(
-                    self.__nwp_timestamps > self.__fc_init,
+                    self.__nwp_timestamps >= self.__fc_init,
                     self.__nwp_timestamps
                     <= self.__fc_init + datetime.timedelta(minutes=self.__fc_period),
                 )
@@ -1389,9 +1380,6 @@ class EnKFCombinationNowcaster:
         self.__params.extrapolation_kwargs["return_displacement"] = True
         is_correction_timestep = False
 
-        for j in range(self.__config.n_ens_members):
-            self.FC_Models[j].set_nwp_data_for_filling(self.__nwp_precip[j, 0])
-
         for t, fc_leadtime in enumerate(self.__forecast_leadtimes):
             if self.__config.measure_time:
                 starttime = time.time()
@@ -1438,8 +1426,39 @@ class EnKFCombinationNowcaster:
                 self.__forecast_loop(t, is_correction_timestep, is_nowcasting_timestep)
 
             # Apply back transformation
-            for FC_Model in self.FC_Models.values():
-                FC_Model.backtransform()
+            if self.__config.smooth_radar_mask_range == 0:
+                for j, FC_Model in enumerate(self.FC_Models.values()):
+                    FC_Model.backtransform()
+            else:
+                try:
+                    t_fill_nwp
+                except NameError:
+                    t_fill_nwp = 0
+                if self.__forecast_leadtimes[t] in self.__correction_leadtimes:
+                    t_fill_nwp = np.where(
+                        self.__correction_leadtimes == self.__forecast_leadtimes[t]
+                    )[0][0]
+
+                def worker(j):
+
+                    self.FC_Models[j].fill_backtransform(
+                        self.__nwp_precip[j, t_fill_nwp]
+                    )
+
+                dask_worker_collection = []
+
+                if DASK_IMPORTED and self.__config.n_ens_members > 1:
+                    for j in range(self.__config.n_ens_members):
+                        dask_worker_collection.append(dask.delayed(worker)(j))
+                    dask.compute(
+                        *dask_worker_collection,
+                        num_workers=self.__params.num_ensemble_workers,
+                    )
+                else:
+                    for j in range(self.__config.n_ens_members):
+                        worker(j)
+
+                dask_worker_collection = None
 
             self.__write_output()
 
