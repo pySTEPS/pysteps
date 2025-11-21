@@ -1389,10 +1389,8 @@ class EnKFCombinationNowcaster:
         self.__params.extrapolation_kwargs["return_displacement"] = True
         is_correction_timestep = False
 
-        [
+        for j in range(self.__config.n_ens_members):
             self.FC_Models[j].set_nwp_data_for_filling(self.__nwp_precip[j, 0])
-            for j in range(self.__config.n_ens_members)
-        ]
 
         for t, fc_leadtime in enumerate(self.__forecast_leadtimes):
             if self.__config.measure_time:
