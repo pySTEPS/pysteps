@@ -694,7 +694,6 @@ class ForecastModel:
             self.__forecast_state.params.extrapolation_kwargs[
                 "map_coordinates_mode"
             ] = "constant"
-            self.__nwp_for_filling = nwp
         self.__advect()
 
         # The extrapolation components are NaN outside the advected
@@ -786,15 +785,16 @@ class ForecastModel:
             displacement_previous=self.__previous_displacement,
             **self.__forecast_state.params.extrapolation_kwargs,
         )
-        self.__forecast_state.params.domain_mask = (
-            self.__forecast_state.params.extrapolation_method(
-                self.__forecast_state.params.domain_mask,
-                self.__velocity,
-                [1],
-                interp_order=1,
-                outval=True,
-            )[0]
-        )
+        if self.__forecast_state.config.smooth_radar_mask_range > 0:
+            self.__forecast_state.params.domain_mask = (
+                self.__forecast_state.params.extrapolation_method(
+                    self.__forecast_state.params.domain_mask,
+                    self.__velocity,
+                    [1],
+                    interp_order=1,
+                    outval=True,
+                )[0]
+            )
 
         # Get the difference of the previous displacement field.
         self.__previous_displacement -= displacement_tmp
