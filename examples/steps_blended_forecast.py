@@ -265,7 +265,9 @@ fc_lagrangian_extrapolation[~np.isfinite(fc_lagrangian_extrapolation)] = (
 
 precip_forecast = blending.steps.forecast(
     precip=radar_precip,
-    precip_nowcast=fc_lagrangian_extrapolation,
+    precip_nowcast=np.array(
+        [fc_lagrangian_extrapolation]
+    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
     precip_models=nwp_precip,
     velocity=velocity_radar,
     velocity_models=velocity_nwp,
@@ -304,7 +306,7 @@ nwp_precipfc_lagrangian_extrapolation_mmh_mmh, _ = converter(nwp_precip, nwp_met
 # forecast has become more important and the forecast starts to resemble the
 # NWP forecast more.
 
-fig = plt.figure(figsize=(5, 12))
+fig = plt.figure(figsize=(6, 12))
 
 leadtimes_min = [30, 60, 90, 120, 150, 180]
 n_leadtimes = len(leadtimes_min)
@@ -329,7 +331,7 @@ for n, leadtime in enumerate(leadtimes_min):
     plot_precip_field(
         fc_lagrangian_extrapolation_mmh[idx, :, :],
         geodata=radar_metadata,
-        title=f"Extrapolated +{leadtime} min",
+        title=f"NWC +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
         colorbar=False,
@@ -355,7 +357,9 @@ for n, leadtime in enumerate(leadtimes_min):
 
 precip_forecast = blending.steps.forecast(
     precip=radar_precip,
-    precip_nowcast=fc_lagrangian_extrapolation,
+    precip_nowcast=np.array(
+        [fc_lagrangian_extrapolation]
+    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
     precip_models=nwp_precip,
     velocity=velocity_radar,
     velocity_models=velocity_nwp,
@@ -387,7 +391,7 @@ nwp_precipfc_lagrangian_extrapolation_mmh_mmh, _ = converter(nwp_precip, nwp_met
 # Visualize the output
 # ~~~~~~~~~~~~~~~~~~~~
 
-fig = plt.figure(figsize=(5, 12))
+fig = plt.figure(figsize=(8, 12))
 
 leadtimes_min = [30, 60, 90, 120, 150, 180]
 n_leadtimes = len(leadtimes_min)
@@ -422,7 +426,7 @@ for n, leadtime in enumerate(leadtimes_min):
     # Raw extrapolated nowcast
     ax3 = plt.subplot(n_leadtimes, 4, n * 4 + 3)
     plot_precip_field(
-        fc_lagrangian_extrapolation_mmh[0, idx, :, :],
+        fc_lagrangian_extrapolation_mmh[idx, :, :],
         geodata=radar_metadata,
         title=f"NWC + {leadtime} min",
         axis="off",
