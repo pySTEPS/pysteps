@@ -10,37 +10,39 @@ from pysteps import blending, motion, utils
 # fmt: off
 pca_enkf_arg_values = [
     # Standard setting
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
+    # Smooth radar mask
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,20),
     # Coarser NWP temporal resolution
-    (20,30,0,-60,False,False,5,15,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,30,0,-60,False,False,5,15,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Coarser Obs temporal resolution
-    (20,30,0,-60,False,False,10,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,30,0,-60,False,False,10,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Larger shift of the NWP init
-    (20,30,0,-30,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,30,0,-30,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Zero rain case in observation
-    (20,30,0,-60,True,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,30,0,-60,True,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Zero rain case in NWP
-    (20,30,0,-60,False,True,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,30,0,-60,False,True,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Zero rain in both
-    (20,30,0,-60,True,True,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,30,0,-60,True,True,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Accumulated sampling probability
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",True,False),
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",True,False,0),
     # Use full NWP weight
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,True),
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,True,0),
     # Both
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",True,True),
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",True,True,0),
     # Explained variance as sampling probability source
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"explained_var",False,False),
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"explained_var",False,False,0),
     # No combination
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",False,None,1.0,"ensemble",False,False),
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",False,None,1.0,"ensemble",False,False,0),
     # Standard deviation adjustment
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,"auto",1.0,"ensemble",False,False),
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,"auto",1.0,"ensemble",False,False,0),
     # Other number of ensemble members
-    (10,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (10,30,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Other forecast length
-    (20,35,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False),
+    (20,35,0,-60,False,False,5,5,0.05,0.01,"ssft","masked_enkf",True,None,1.0,"ensemble",False,False,0),
     # Other noise method
-    (20,30,0,-60,False,False,5,5,0.05,0.01,"nonparametric","masked_enkf",True,None,1.0,"ensemble",False,False),]
+    (20,30,0,-60,False,False,5,5,0.05,0.01,"nonparametric","masked_enkf",True,None,1.0,"ensemble",False,False,0),]
 # fmt: on
 
 pca_enkf_arg_names = (
@@ -62,6 +64,7 @@ pca_enkf_arg_names = (
     "sampling_prob_source",
     "use_accum_sampling_prob",
     "ensure_full_nwp_weight",
+    "smooth_radar_mask_range",
 )
 
 
@@ -85,6 +88,7 @@ def test_pca_enkf_combination(
     sampling_prob_source,
     use_accum_sampling_prob,
     ensure_full_nwp_weight,
+    smooth_radar_mask_range,
 ):
     pytest.importorskip("sklearn")
 
@@ -221,6 +225,7 @@ def test_pca_enkf_combination(
         issuetime=forecast_init,
         n_ens_members=n_ens_members,
         precip_mask_dilation=1,
+        smooth_radar_mask_range=smooth_radar_mask_range,
         n_cascade_levels=6,
         precip_thr=metadata["threshold"],
         norain_thr=norain_thr,

@@ -49,8 +49,9 @@ Finalization
 
     forecast
 """
-import time
+
 import datetime
+import time
 from copy import deepcopy
 
 import numpy as np
@@ -60,10 +61,10 @@ from scipy.ndimage import (
 )
 
 from pysteps import blending, cascade, extrapolation, noise, utils
-from pysteps.nowcasts import utils as nowcast_utils
-from pysteps.timeseries import autoregression, correlation
 from pysteps.blending.ens_kalman_filter_methods import MaskedEnKF
+from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
+from pysteps.timeseries import autoregression, correlation
 from pysteps.utils.check_norain import check_norain
 
 try:
@@ -99,6 +100,15 @@ class EnKFCombinationConfig:
     precip_mask_dilation: int
         Number of grid boxes by which the precipitation mask should be extended per
         timestep.
+    smooth_radar_mask_range: int, Default is 0.
+        Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+        blend near the edge of the radar domain (radar mask), where the radar data is either
+        not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+        normal forecast without smoothing. To create a smooth mask, this range should be a
+        positive value, representing a buffer band of a number of pixels by which the mask
+        is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+        and radar in the final blended product. Typically, a value between 50 and 100 km
+        can be used. 80 km generally gives good results.
     extrapolation_method: str
         Name of the extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
@@ -186,6 +196,7 @@ class EnKFCombinationConfig:
     precip_threshold: float | None
     norain_threshold: float
     precip_mask_dilation: int
+    smooth_radar_mask_range: int
     extrapolation_method: str
     decomposition_method: str
     bandpass_filter_method: str
@@ -278,7 +289,6 @@ class ForecastInitialization:
     # Initialize FFT, bandpass filters, decomposition methods, and extrapolation
     # method.
     def __initialize_nowcast_components(self):
-
         # Initialize number of ensemble workers
         self.__params.num_ensemble_workers = min(
             self.__config.n_ens_members,
@@ -421,11 +431,9 @@ class ForecastInitialization:
         self.std_extrapolation = np.array(precip_forecast_decomp["stds"])
 
         if self.__params.no_rain_case == "obs":
-
             GAMMA = np.ones((self.__config.n_cascade_levels, self.__config.ar_order))
 
         else:
-
             # If there are values in the radar fields, compute the auto-correlations
             GAMMA = np.empty((self.__config.n_cascade_levels, self.__config.ar_order))
 
@@ -466,7 +474,6 @@ class ForecastInitialization:
             self.__config.noise_method is not None
             and self.__params.no_rain_case != "obs"
         ):
-
             # get methods for perturbations
             init_noise, self.__params.noise_generator = noise.get_method(
                 self.__config.noise_method
@@ -551,7 +558,6 @@ class ForecastInitialization:
             )
 
         if self.__params.noise_generator is not None:
-
             # Determine the noise field for each ensemble member
             for j in range(self.__config.n_noise_fields):
                 epsilon = self.__params.noise_generator(
@@ -586,7 +592,6 @@ class ForecastState:
         latest_obs: np.ndarray,
         precip_mask: np.ndarray,
     ):
-
         self.config = enkf_combination_config
         self.params = enkf_combination_params
         self.noise_field_pool = noise_field_pool
@@ -622,7 +627,6 @@ class ForecastModel:
         sigma: np.ndarray,
         ens_member: int,
     ):
-
         # Initialize instance variables
         self.__forecast_state = forecast_state
         self.__precip_cascades = precip_cascades
@@ -660,7 +664,6 @@ class ForecastModel:
 
     # Bundle single steps of the forecast.
     def run_forecast_step(self, nwp, is_correction_timestep=False):
-
         # Decompose precipitation field.
         self.__decompose(is_correction_timestep)
 
@@ -684,26 +687,43 @@ class ForecastModel:
             self.__probability_matching()
 
         # Extrapolate the precipitation field onto the position of the current timestep.
+        # If smooth_radar_mask_range is not zero, ensure the extrapolation kwargs use
+        # a constant value instead of "nearest" for the coordinate mapping, otherwise
+        # there are possibly no nans in the domain.
+        if self.__forecast_state.config.smooth_radar_mask_range != 0:
+            self.__forecast_state.params.extrapolation_kwargs[
+                "map_coordinates_mode"
+            ] = "constant"
         self.__advect()
+
+        # The extrapolation components are NaN outside the advected
+        # radar domain. This results in NaN values in the blended
+        # forecast outside the radar domain. Therefore, fill these
+        # areas with the defined minimum value, if requested.
+        nan_mask = np.isnan(self.__forecast_state.nwc_prediction[self.__ens_member])
+        self.__forecast_state.nwc_prediction[self.__ens_member][nan_mask] = (
+            self.__forecast_state.config.precip_threshold - 2.0
+        )
 
     # Create the resulting precipitation field and set no data area. In future, when
     # transformation between linear and logarithmic scale will be necessary, it will be
     # implemented in this function.
+    # TODO: once this transformation is needed, adjust the smoothed transition between
+    # radar mask and NWP as performed at the end of the run_forecast_step function.
     def backtransform(self):
-
         # Set the resulting field as shallow copy of the field that is used
         # continuously for forecast computation.
-        self.__forecast_state.nwc_prediction_btf[self.__ens_member] = (
-            self.__forecast_state.nwc_prediction[self.__ens_member]
-        )
+        if self.__forecast_state.config.smooth_radar_mask_range == 0:
+            self.__forecast_state.nwc_prediction_btf[self.__ens_member] = (
+                self.__forecast_state.nwc_prediction[self.__ens_member]
+            )
 
-        # Set no data area
-        self.__set_no_data()
+            # Set no data area
+            self.__set_no_data()
 
     # Call spatial decomposition function and compute an adjusted standard deviation of
     # each spatial scale at timesteps where NWP information is incorporated.
     def __decompose(self, is_correction_timestep):
-
         # Call spatial decomposition method.
         precip_extrap_decomp = self.__forecast_state.params.decomposition_method(
             self.__forecast_state.nwc_prediction[self.__ens_member],
@@ -748,7 +768,6 @@ class ForecastModel:
     # Call extrapolation function to extrapolate the precipitation field onto the
     # position of the current timestep.
     def __advect(self):
-
         # Since previous displacement is the sum of displacement over all previous
         # timesteps, we have to compute the differences between the displacements to
         # get the motion vector field for one time step.
@@ -766,6 +785,16 @@ class ForecastModel:
             displacement_previous=self.__previous_displacement,
             **self.__forecast_state.params.extrapolation_kwargs,
         )
+        if self.__forecast_state.config.smooth_radar_mask_range > 0:
+            self.__forecast_state.params.domain_mask = (
+                self.__forecast_state.params.extrapolation_method(
+                    self.__forecast_state.params.domain_mask,
+                    self.__velocity,
+                    [1],
+                    interp_order=1,
+                    outval=True,
+                )[0]
+            )
 
         # Get the difference of the previous displacement field.
         self.__previous_displacement -= displacement_tmp
@@ -773,7 +802,6 @@ class ForecastModel:
     # Get a noise field out of the respective pool and iterate through the AR(1)
     # process.
     def __iterate(self):
-
         # Get a noise field out of the noise field pool and multiply it with
         # precipitation mask and the standard deviation coefficients.
         epsilon = (
@@ -786,7 +814,6 @@ class ForecastModel:
 
         # Iterate through the AR(1) process for each cascade level.
         for i in range(self.__forecast_state.config.n_cascade_levels):
-
             self.__precip_cascades[i] = autoregression.iterate_ar_model(
                 self.__precip_cascades[i],
                 self.__forecast_state.params.PHI[i],
@@ -796,7 +823,6 @@ class ForecastModel:
     # Update the precipitation mask for the forecast step by incorporating areas
     # where the NWP model forecast precipitation.
     def __update_precip_mask(self, nwp):
-
         # Get the area where the NWP ensemble member forecast precipitation above
         # precipitation threshold and dilate it by a configurable range.
         precip_mask = (
@@ -841,7 +867,6 @@ class ForecastModel:
 
     # Apply probability matching
     def __probability_matching(self):
-
         # Apply probability matching
         self.__forecast_state.nwc_prediction[self.__ens_member] = (
             probmatching.nonparam_match_empirical_cdf(
@@ -852,10 +877,40 @@ class ForecastModel:
 
     # Set no data area in the resulting precipitation field.
     def __set_no_data(self):
-
         self.__forecast_state.nwc_prediction_btf[self.__ens_member][
             self.__forecast_state.params.domain_mask
         ] = np.nan
+
+    # Fill edge zones of the domain with NWP data if smooth_radar_mask_range is > 0
+    def fill_backtransform(self, nwp):
+        # For a smoother transition at the edge, we can slowly dilute the nowcast
+        # component into NWP at the edges
+
+        # Compute the smooth dilated mask
+        new_mask = blending.utils.compute_smooth_dilated_mask(
+            self.__forecast_state.params.domain_mask,
+            max_padding_size_in_px=self.__forecast_state.config.smooth_radar_mask_range,
+        )
+        new_mask = np.nan_to_num(new_mask, nan=0)
+
+        # Ensure mask values are between 0 and 1
+        mask_model = np.clip(new_mask, 0, 1)
+        mask_radar = np.clip(1 - new_mask, 0, 1)
+
+        # Handle NaNs in precip_forecast_new and precip_forecast_new_mod_only by setting NaNs to 0 in the blending step
+        nwp_temp = np.nan_to_num(nwp, nan=0)
+        nwc_temp = np.nan_to_num(
+            self.__forecast_state.nwc_prediction[self.__ens_member], nan=0
+        )
+
+        # Perform the blending of radar and model inside the radar domain using a weighted combination
+        self.__forecast_state.nwc_prediction_btf[self.__ens_member] = np.nansum(
+            [
+                mask_model * nwp_temp,
+                mask_radar * nwc_temp,
+            ],
+            axis=0,
+        )
 
 
 class EnKFCombinationNowcaster:
@@ -1192,7 +1247,7 @@ class EnKFCombinationNowcaster:
         self.__nwp_precip = np.delete(
             self.__nwp_precip,
             np.logical_or(
-                self.__nwp_timestamps <= self.__fc_init,
+                self.__nwp_timestamps < self.__fc_init,
                 self.__nwp_timestamps
                 > self.__fc_init + datetime.timedelta(minutes=self.__fc_period),
             ),
@@ -1207,7 +1262,7 @@ class EnKFCombinationNowcaster:
         trunc_nwp_timestamps = (
             self.__nwp_timestamps[
                 np.logical_and(
-                    self.__nwp_timestamps > self.__fc_init,
+                    self.__nwp_timestamps >= self.__fc_init,
                     self.__nwp_timestamps
                     <= self.__fc_init + datetime.timedelta(minutes=self.__fc_period),
                 )
@@ -1219,7 +1274,6 @@ class EnKFCombinationNowcaster:
         )
 
     def __check_no_rain_case(self):
-
         print("Test for no rain cases")
         print("======================")
         print("")
@@ -1311,7 +1365,6 @@ class EnKFCombinationNowcaster:
         print(f"No rain forecast:                   {self.__params.no_rain_case}")
 
     def __integrated_nowcast_main_loop(self):
-
         if self.__config.measure_time:
             starttime_mainloop = time.time()
 
@@ -1344,7 +1397,6 @@ class EnKFCombinationNowcaster:
             # If full NWP weight is reached, set pure NWP ensemble forecast in combined
             # forecast output
             if is_full_nwp_weight:
-
                 # Set t_corr to the first available NWP data timestep and that is 0
                 try:
                     t_corr
@@ -1364,8 +1416,38 @@ class EnKFCombinationNowcaster:
                 self.__forecast_loop(t, is_correction_timestep, is_nowcasting_timestep)
 
             # Apply back transformation
-            for FC_Model in self.FC_Models.values():
-                FC_Model.backtransform()
+            if self.__config.smooth_radar_mask_range == 0:
+                for j, FC_Model in enumerate(self.FC_Models.values()):
+                    FC_Model.backtransform()
+            else:
+                try:
+                    t_fill_nwp
+                except NameError:
+                    t_fill_nwp = 0
+                if self.__forecast_leadtimes[t] in self.__correction_leadtimes:
+                    t_fill_nwp = np.where(
+                        self.__correction_leadtimes == self.__forecast_leadtimes[t]
+                    )[0][0]
+
+                def worker(j):
+                    self.FC_Models[j].fill_backtransform(
+                        self.__nwp_precip[j, t_fill_nwp]
+                    )
+
+                dask_worker_collection = []
+
+                if DASK_IMPORTED and self.__config.n_ens_members > 1:
+                    for j in range(self.__config.n_ens_members):
+                        dask_worker_collection.append(dask.delayed(worker)(j))
+                    dask.compute(
+                        *dask_worker_collection,
+                        num_workers=self.__params.num_ensemble_workers,
+                    )
+                else:
+                    for j in range(self.__config.n_ens_members):
+                        worker(j)
+
+                dask_worker_collection = None
 
             self.__write_output()
 
@@ -1383,7 +1465,6 @@ class EnKFCombinationNowcaster:
         return
 
     def __forecast_loop(self, t, is_correction_timestep, is_nowcasting_timestep):
-
         # If the temporal resolution of the NWP data is equal to those of the
         # observation, the correction step can be applied after the forecast
         # step for the current forecast leadtime.
@@ -1405,7 +1486,6 @@ class EnKFCombinationNowcaster:
 
         # Run nowcasting time step
         if is_nowcasting_timestep:
-
             # Set t_corr to the first available NWP data timestep and that is 0
             try:
                 t_corr
@@ -1413,7 +1493,6 @@ class EnKFCombinationNowcaster:
                 t_corr = 0
 
             def worker(j):
-
                 self.FC_Models[j].run_forecast_step(
                     nwp=self.__nwp_precip[j, t_corr],
                     is_correction_timestep=is_correction_timestep,
@@ -1435,7 +1514,6 @@ class EnKFCombinationNowcaster:
             dask_worker_collection = None
 
     def __write_output(self):
-
         if (
             self.__config.callback is not None
             and self.FS.nwc_prediction_btf.shape[1] > 0
@@ -1443,7 +1521,6 @@ class EnKFCombinationNowcaster:
             self.__config.callback(self.FS.nwc_prediction_btf)
 
         if self.__config.return_output:
-
             self.FS.final_combined_forecast.append(self.FS.nwc_prediction_btf.copy())
 
     def __measure_time(self, label, start_time):
@@ -1471,6 +1548,7 @@ def forecast(
     issuetime,
     n_ens_members,
     precip_mask_dilation=1,
+    smooth_radar_mask_range=0,
     n_cascade_levels=6,
     precip_thr=-10.0,
     norain_thr=0.01,
@@ -1529,6 +1607,15 @@ def forecast(
     precip_mask_dilation: int
         Range by which the precipitation mask within the forecast step should be
         extended per time step. Defaults to 1.
+    smooth_radar_mask_range: int, Default is 0.
+        Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+        blend near the edge of the radar domain (radar mask), where the radar data is either
+        not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+        normal forecast without smoothing. To create a smooth mask, this range should be a
+        positive value, representing a buffer band of a number of pixels by which the mask
+        is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+        and radar in the final blended product. Typically, a value between 50 and 100 km
+        can be used. 80 km generally gives good results.
     n_cascade_levels: int, optional
         The number of cascade levels to use. Defaults to 6, see issue #385 on GitHub.
     precip_thr: float, optional
@@ -1646,6 +1733,7 @@ def forecast(
         precip_threshold=precip_thr,
         norain_threshold=norain_thr,
         precip_mask_dilation=precip_mask_dilation,
+        smooth_radar_mask_range=smooth_radar_mask_range,
         extrapolation_method=extrap_method,
         decomposition_method=decomp_method,
         bandpass_filter_method=bandpass_filter_method,
