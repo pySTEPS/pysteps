@@ -10,9 +10,10 @@ ensemble Kalman filter from :cite:`Nerini2019MWR` is available.
 
 Additional keyword arguments for the ensemble Kalman filter are:
 
-n_tapering: int, (0)
-    Number of grid boxes/principal components of the ensemble forecast for which
-    the covariance matrix is computed. Defaults to 0.
+n_tapering: int, default=0
+    Tapering parameter controlling the number of covariance pairs (i, i ± n_tapering)
+    retained in the covariance matrix. With n_tapering=0, only the variances
+    (main diagonal) of the principal components are kept.
 non_precip_mask: bool, (True)
     Flag to specify whether the computation should be truncated on grid boxes where at
     least a minimum number (configurable) of ensemble members forecast precipitation.
