@@ -427,7 +427,7 @@ def ROC_curve_compute(ROC, compute_area=False):
         return POFD_vals, POD_vals
 
 
-def PR_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False, compute_prevalence=False):
+def PR_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     """
     Compute the Precision-Recall curve, its area, and optionally the prevalence baseline.
 
@@ -445,15 +445,12 @@ def PR_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False, compute_preval
       The interval [0,1] is divided into n_prob_thrs evenly spaced values.
     compute_area: bool, optional
       If True, compute the area under the Precision-Recall curve.
-    compute_prevalence: bool, optional
-      If True, compute and return the prevalence baseline (fraction of positives).
-
+    
     Returns
     -------
     out: tuple
       A two-element tuple containing precision and recall for the probability thresholds.
       If compute_area is True, return the area under the PR curve as an extra element.
-      If compute_prevalence is True, return the prevalence baseline as an extra element.
     """
     P_f = P_f.copy()
     X_o = X_o.copy()
