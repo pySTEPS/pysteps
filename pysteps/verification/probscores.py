@@ -547,26 +547,29 @@ def PR_curve_compute(PR, X_o, X_min, compute_area=False, compute_prevalence=Fals
     """
     precision_vals = []
     recall_vals = []
+
     for i in range(len(PR["prob_thrs"])):
         hits = PR["hits"][i]
         misses = PR["misses"][i]
         false_alarms = PR["false_alarms"][i]
-        recall = hits/(hits+misses) if (hits+misses)>0 else 0.0
-        precision = hits/(hits+false_alarms) if (hits+false_alarms)>0 else 1.0
+
+        recall = hits / (hits + misses) if (hits + misses) > 0 else 0.0
+        precision = hits / (hits + false_alarms) if (hits + false_alarms) > 0 else 1.0
+
         recall_vals.append(recall)
         precision_vals.append(precision)
+
+    # Add endpoints: (0,1) and (1, prevalence)
+    prevalence = np.sum(X_o >= X_min) / len(X_o)
+    recall_vals = [0.0] + recall_vals + [1.0]
+    precision_vals = [1.0] + precision_vals + [prevalence]
 
     results = (precision_vals, recall_vals)
 
     if compute_area:
-        area = 0.0
-        for i in range(len(PR["prob_thrs"])-1):
-            area += (recall_vals[i+1]-recall_vals[i])*(precision_vals[i+1]+precision_vals[i])/2.0
+        # Sort by recall before integration
+        recall_sorted, precision_sorted = zip(*sorted(zip(recall_vals, precision_vals)))
+        area = np.trapz(precision_sorted, recall_sorted)
         results = results + (area,)
 
-    if compute_prevalence:
-        prevalence = np.sum(X_o >= X_min) / len(X_o)
-        results = results + (prevalence,)
-
     return results
-
