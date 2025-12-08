@@ -521,7 +521,7 @@ def PR_curve_accum(PR, P_f, X_o):
         PR["corr_neg"][i]+=np.sum(np.logical_and(~forecast_yes, ~obs_yes))
 
 
-def PR_curve_compute(PR, X_o, X_min, compute_area=False, compute_prevalence=False):
+def PR_curve_compute(PR, X_o, X_min, compute_area=False):
     """
     Compute the Precision-Recall curve, its area, and optionally prevalence baseline.
 
@@ -535,15 +535,12 @@ def PR_curve_compute(PR, X_o, X_min, compute_area=False, compute_prevalence=Fals
       Precipitation intensity threshold for yes/no prediction.
     compute_area: bool, optional
       If True, compute the area under the Precision-Recall curve.
-    compute_prevalence: bool, optional
-      If True, compute and return the prevalence baseline (fraction of positives).
-
+    
     Returns
     -------
     out: tuple
       Precision values and recall values for the probability thresholds.
       If compute_area is True, return the area under the PR curve as an extra element.
-      If compute_prevalence is True, return the prevalence baseline as an extra element.
     """
     precision_vals = []
     recall_vals = []
