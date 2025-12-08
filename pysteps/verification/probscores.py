@@ -456,7 +456,7 @@ def PR_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     X_o = X_o.copy()
     pr = PR_curve_init(X_min, n_prob_thrs)
     PR_curve_accum(pr, P_f, X_o)
-    return PR_curve_compute(pr, X_o, X_min, compute_area, compute_prevalence)
+    return PR_curve_compute(pr, X_o, X_min, compute_area)
 
 
 def PR_curve_init(X_min, n_prob_thrs=10):
