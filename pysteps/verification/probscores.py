@@ -429,28 +429,29 @@ def ROC_curve_compute(ROC, compute_area=False):
 
 def PR_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     """
-    Compute the Precision-Recall curve, its area, and optionally the prevalence baseline.
+    Compute the Precision–Recall (PR) curve and optionally its area.
 
     Parameters
     ----------
-    P_f: array_like
-      Forecasted probabilities for exceeding the threshold specified in the PR object.
-      Non-finite values are ignored.
-    X_o: array_like
-      Observed values. Non-finite values are ignored.
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_prob_thrs: int
-      The number of probability thresholds to use.
-      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
-    compute_area: bool, optional
-      If True, compute the area under the Precision-Recall curve.
-    
+    P_f : array_like
+        Forecasted probabilities for exceeding the threshold X_min.
+        Non-finite values are ignored.
+    X_o : array_like
+        Observed values. Non-finite values are ignored.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction.
+    n_prob_thrs : int, optional
+        Number of probability thresholds to evaluate.
+        The interval [0, 1] is divided into n_prob_thrs evenly spaced values.
+    compute_area : bool, optional
+        If True, compute the area under the PR curve using trapezoidal integration.
+
     Returns
     -------
-    out: tuple
-      A two-element tuple containing precision and recall for the probability thresholds.
-      If compute_area is True, return the area under the PR curve as an extra element.
+    out : tuple
+        (precision_vals, recall_vals) for each probability threshold.
+        If compute_area is True, return (precision_vals, recall_vals, area),
+        where area is the trapezoidal estimate of the PR curve area.
     """
     P_f = P_f.copy()
     X_o = X_o.copy()
@@ -461,21 +462,24 @@ def PR_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
 
 def PR_curve_init(X_min, n_prob_thrs=10):
     """
-    Initialize a Precision-Recall curve object.
+    Initialize a Precision–Recall curve object.
 
     Parameters
     ----------
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_prob_thrs: int
-      The number of probability thresholds to use.
-      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction.
+    n_prob_thrs : int, optional
+        Number of probability thresholds to evaluate.
 
     Returns
     -------
-    out: dict
-      The PR curve object containing counters for hits, misses, false alarms,
-      correct negatives, and the probability thresholds.
+    PR : dict
+        Dictionary containing counters for hits, misses, false alarms,
+        correct negatives, and the probability thresholds.
+        Keys:
+            - "X_min" : threshold value
+            - "hits", "misses", "false_alarms", "corr_neg" : arrays of counts
+            - "prob_thrs" : array of evenly spaced thresholds in [0, 1]
     """
     PR = {}
     PR["X_min"] = X_min
@@ -489,22 +493,21 @@ def PR_curve_init(X_min, n_prob_thrs=10):
 
 def PR_curve_accum(PR, P_f, X_o):
     """
-    Accumulate the given probability-observation pairs into the given PR object.
+    Accumulate forecast–observation pairs into the PR object.
 
     Parameters
     ----------
-    PR: dict
-      A PR curve object created with PR_curve_init.
-    P_f: array_like
-      Forecasted probabilities for exceeding the threshold specified in the PR object.
-      Non-finite values are ignored.
-    X_o: array_like
-      Observed values. Non-finite values are ignored.
+    PR : dict
+        A PR curve object created with PR_curve_init.
+    P_f : array_like
+        Forecasted probabilities for exceeding X_min.
+    X_o : array_like
+        Observed values.
 
     Notes
     -----
-    Updates the counters (hits, misses, false alarms, correct negatives) for each
-    probability threshold.
+    Updates the counters (hits, misses, false alarms, correct negatives)
+    for each probability threshold in PR["prob_thrs"].
     """
     mask = np.logical_and(np.isfinite(P_f), np.isfinite(X_o))
     P_f = P_f[mask]
@@ -520,24 +523,25 @@ def PR_curve_accum(PR, P_f, X_o):
 
 def PR_curve_compute(PR, X_o, X_min, compute_area=False):
     """
-    Compute the Precision-Recall curve, its area, and optionally prevalence baseline.
+    Compute precision and recall values from the PR object.
 
     Parameters
     ----------
-    PR: dict
-      A PR curve object created with PR_curve_init.
-    X_o: array_like
-      Observed values used to compute prevalence.
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    compute_area: bool, optional
-      If True, compute the area under the Precision-Recall curve.
-    
+    PR : dict
+        A PR curve object created with PR_curve_init.
+    X_o : array_like
+        Observed values (used only if prevalence or area is computed).
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction.
+    compute_area : bool, optional
+        If True, compute the area under the PR curve.
+
     Returns
     -------
-    out: tuple
-      Precision values and recall values for the probability thresholds.
-      If compute_area is True, return the area under the PR curve as an extra element.
+    out : tuple
+        (precision_vals, recall_vals) for each probability threshold.
+        If compute_area is True, return (precision_vals, recall_vals, area),
+        where area is the trapezoidal estimate of the PR curve area.
     """
     precision_vals = []
     recall_vals = []
