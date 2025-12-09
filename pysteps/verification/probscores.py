@@ -512,10 +512,10 @@ def PR_curve_accum(PR, P_f, X_o):
     for i, p in enumerate(PR["prob_thrs"]):
         forecast_yes = P_f >= p
         obs_yes = X_o >= PR["X_min"]
-        PR["hits"][i]+=np.sum(np.logical_and(forecast_yes, obs_yes))
-        PR["misses"][i]+=np.sum(np.logical_and(~forecast_yes, obs_yes))
-        PR["false_alarms"][i]+=np.sum(np.logical_and(forecast_yes, ~obs_yes))
-        PR["corr_neg"][i]+=np.sum(np.logical_and(~forecast_yes, ~obs_yes))
+        PR["hits"][i] += np.sum(np.logical_and(forecast_yes, obs_yes))
+        PR["misses"][i] += np.sum(np.logical_and(~forecast_yes, obs_yes))
+        PR["false_alarms"][i] += np.sum(np.logical_and(forecast_yes, ~obs_yes))
+        PR["corr_neg"][i] += np.sum(np.logical_and(~forecast_yes, ~obs_yes))
 
 
 def PR_curve_compute(PR, X_o, X_min, compute_area=False):
@@ -553,17 +553,10 @@ def PR_curve_compute(PR, X_o, X_min, compute_area=False):
         recall_vals.append(recall)
         precision_vals.append(precision)
 
-    # Add endpoints: (0,1) and (1, prevalence)
-    prevalence = np.sum(X_o >= X_min) / len(X_o)
-    recall_vals = [0.0] + recall_vals + [1.0]
-    precision_vals = [1.0] + precision_vals + [prevalence]
-
-    results = (precision_vals, recall_vals)
-
     if compute_area:
         # Sort by recall before integration
         recall_sorted, precision_sorted = zip(*sorted(zip(recall_vals, precision_vals)))
         area = np.trapz(precision_sorted, recall_sorted)
-        results = results + (area,)
-
-    return results
+        return precision_vals, recall_vals, area
+    else:
+        return precision_vals, recall_vals
