@@ -176,6 +176,8 @@ class EnKFCombinationConfig:
         :py:mod:`pysteps.blending.ens_kalman_filter_methods`.
     measure_time: bool
         If set to True, measure, print and return the computation time.
+    verbose_output: bool
+        If set to True, return additionally the background ensemble of the EnKF for further statistics.
     callback: function, optional
       Optional function that is called after computation of each time step of
       the nowcast. The function takes one argument: a three-dimensional array
@@ -214,6 +216,7 @@ class EnKFCombinationConfig:
     noise_kwargs: dict[str, Any] = field(default_factory=dict)
     combination_kwargs: dict[str, Any] = field(default_factory=dict)
     measure_time: bool = False
+    verbose_output: bool = False
     callback: Any | None = None
     return_output: bool = True
     n_noise_fields: int = 30
@@ -609,6 +612,7 @@ class ForecastState:
         self.nwc_prediction_btf = self.nwc_prediction.copy()
 
         self.final_combined_forecast = []
+        self.background_ensemble = {}
 
         return
 
@@ -785,7 +789,10 @@ class ForecastModel:
             displacement_previous=self.__previous_displacement,
             **self.__forecast_state.params.extrapolation_kwargs,
         )
-        if self.__forecast_state.config.smooth_radar_mask_range > 0:
+        if (
+            self.__forecast_state.config.smooth_radar_mask_range > 0
+            and self.__ens_member == 0
+        ):
             self.__forecast_state.params.domain_mask = (
                 self.__forecast_state.params.extrapolation_method(
                     self.__forecast_state.params.domain_mask,
@@ -1082,7 +1089,9 @@ class EnKFCombinationNowcaster:
                     self.__fc_init,
                     self.__mainloop_time,
                 )
-            return self.FS.final_combined_forecast
+            if self.__config.verbose_output:
+                return self.FS.final_combined_forecast, self.FS.background_ensemble
+            return self.FC.final_combined_forecast
 
         # Else, return None
         return None
@@ -1406,7 +1415,7 @@ class EnKFCombinationNowcaster:
                 print(f"Full NWP weight is reached for lead time + {fc_leadtime} min")
                 if is_correction_timestep:
                     t_corr = np.where(
-                        self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
+                        self.__correction_leadtimes == self.__forecast_leadtimes[t]
                     )[0][0]
                 self.FS.nwc_prediction = self.__nwp_precip[:, t_corr]
 
@@ -1475,6 +1484,11 @@ class EnKFCombinationNowcaster:
             t_corr = np.where(
                 self.__correction_leadtimes == self.__forecast_leadtimes[t - 1]
             )[0][0]
+
+            if self.__config.verbose_output:
+                self.FS.background_ensemble[self.__correction_leadtimes[t_corr]] = (
+                    self.FS.nwc_prediction.copy()
+                )
 
             self.FS.nwc_prediction, self.FS.fc_resampled = (
                 self.KalmanFilterModel.correct_step(
@@ -1571,6 +1585,7 @@ def forecast(
     noise_kwargs=None,
     combination_kwargs=None,
     measure_time=False,
+    verbose_output=False,
 ):
     """
     Generate a combined nowcast ensemble by using the reduced-space ensemble Kalman
@@ -1700,7 +1715,9 @@ def forecast(
         ensemble Kalman filter method. See the documentation of
         :py:mod:`pysteps.blending.ens_kalman_filter_methods`.
     measure_time: bool
-      If set to True, measure, print and return the computation time.
+        If set to True, measure, print and return the computation time.
+    verbose_output: bool
+        If set to True, return additionally the background ensemble of the EnKF for further statistics.
 
     Returns
     -------
@@ -1751,6 +1768,7 @@ def forecast(
         noise_kwargs=noise_kwargs,
         combination_kwargs=combination_kwargs,
         measure_time=measure_time,
+        verbose_output=verbose_output,
         callback=callback,
         return_output=return_output,
         n_noise_fields=30,
