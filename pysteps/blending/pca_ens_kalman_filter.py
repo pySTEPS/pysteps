@@ -1091,7 +1091,7 @@ class EnKFCombinationNowcaster:
                 )
             if self.__config.verbose_output:
                 return self.FS.final_combined_forecast, self.FS.background_ensemble
-            return self.FC.final_combined_forecast
+            return self.FS.final_combined_forecast
 
         # Else, return None
         return None
