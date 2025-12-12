@@ -195,7 +195,7 @@ leadtimes_min = [30, 60, 90, 120, 150, 180]
 n_leadtimes = len(leadtimes_min)
 for n, leadtime in enumerate(leadtimes_min):
     # Nowcast with blending into NWP
-    plt.subplot(n_leadtimes, 2, n * 2 + 1)
+    ax1 = plt.subplot(n_leadtimes, 2, n * 2 + 1)
     plot_precip_field(
         precip_forecast[0, int(leadtime / timestep) - 1, :, :],
         geodata=radar_metadata,
@@ -204,10 +204,11 @@ for n, leadtime in enumerate(leadtimes_min):
         colorscale="STEPS-NL",
         colorbar=False,
     )
+    ax1.axis("off")
 
     # Raw NWP forecast
     plt.subplot(n_leadtimes, 2, n * 2 + 2)
-    plot_precip_field(
+    ax2 = plot_precip_field(
         nwp_precip_mmh[0, int(leadtime / timestep) - 1, :, :],
         geodata=nwp_metadata,
         title=f"NWP +{leadtime} min",
@@ -215,26 +216,27 @@ for n, leadtime in enumerate(leadtimes_min):
         colorscale="STEPS-NL",
         colorbar=False,
     )
+    ax2.axis("off")
 
 plt.tight_layout()
 plt.show()
 
 
 ###############################################################################
-# It is also possible to blend a deterministic external nowcast (e.g. a pre-
-# made nowcast or a deterministic AI-based nowcast) with NWP using the STEPS
-# algorithm. In that case, we add a `precip_nowcast` to `blending.steps.forecast`.
-# By providing an external nowcast, the STEPS blending method will omit the
-# autoregression and advection step for the extrapolation cascade and use the
-# existing external nowcast instead (which will thus be decomposed into
-# multiplicative cascades!). The weights determination and possible post-
-# processings steps will remain the same.
+# It is also possible to blend a deterministic or probabilistic external nowcast
+# (e.g. a pre-made nowcast or a deterministic AI-based nowcast) with NWP using
+# the STEPS algorithm. In that case, we add a `precip_nowcast` to
+# `blending.steps.forecast`. By providing an external nowcast, the STEPS blending
+# method will omit the autoregression and advection step for the extrapolation
+# cascade and use the existing external nowcast instead (which will thus be
+# decomposed into multiplicative cascades!). The weights determination and
+# possible post-processings steps will remain the same.
 #
 # Start with creating an external nowcast
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # We go for a simple advection-only nowcast for the example, but this setup can
-# be replaced with any external deterministic nowcast.
+# be replaced with any external deterministic or probabilistic nowcast.
 extrapolate = nowcasts.get_method("extrapolation")
 radar_precip_to_advect = radar_precip.copy()
 radar_metadata_to_advect = radar_metadata.copy()
@@ -258,12 +260,14 @@ fc_lagrangian_extrapolation[~np.isfinite(fc_lagrangian_extrapolation)] = (
 
 
 ################################################################################
-# Blend the external nowcast with NWP
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Blend the external nowcast with NWP - deterministic mode
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 precip_forecast = blending.steps.forecast(
     precip=radar_precip,
-    precip_nowcast=fc_lagrangian_extrapolation,
+    precip_nowcast=np.array(
+        [fc_lagrangian_extrapolation]
+    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
     precip_models=nwp_precip,
     velocity=velocity_radar,
     velocity_models=velocity_nwp,
@@ -302,7 +306,7 @@ nwp_precipfc_lagrangian_extrapolation_mmh_mmh, _ = converter(nwp_precip, nwp_met
 # forecast has become more important and the forecast starts to resemble the
 # NWP forecast more.
 
-fig = plt.figure(figsize=(5, 12))
+fig = plt.figure(figsize=(6, 12))
 
 leadtimes_min = [30, 60, 90, 120, 150, 180]
 n_leadtimes = len(leadtimes_min)
@@ -311,7 +315,7 @@ for n, leadtime in enumerate(leadtimes_min):
     idx = int(leadtime / timestep) - 1
 
     # Blended nowcast
-    plt.subplot(n_leadtimes, 3, n * 3 + 1)
+    ax1 = plt.subplot(n_leadtimes, 3, n * 3 + 1)
     plot_precip_field(
         precip_forecast[0, idx, :, :],
         geodata=radar_metadata,
@@ -320,21 +324,23 @@ for n, leadtime in enumerate(leadtimes_min):
         colorscale="STEPS-NL",
         colorbar=False,
     )
+    ax1.axis("off")
 
     # Raw extrapolated nowcast
-    plt.subplot(n_leadtimes, 3, n * 3 + 2)
+    ax2 = plt.subplot(n_leadtimes, 3, n * 3 + 2)
     plot_precip_field(
         fc_lagrangian_extrapolation_mmh[idx, :, :],
         geodata=radar_metadata,
-        title=f"Extrapolated +{leadtime} min",
+        title=f"NWC +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
         colorbar=False,
     )
+    ax2.axis("off")
 
     # Raw NWP forecast
     plt.subplot(n_leadtimes, 3, n * 3 + 3)
-    plot_precip_field(
+    ax3 = plot_precip_field(
         nwp_precip_mmh[0, idx, :, :],
         geodata=nwp_metadata,
         title=f"NWP +{leadtime} min",
@@ -342,6 +348,108 @@ for n, leadtime in enumerate(leadtimes_min):
         colorscale="STEPS-NL",
         colorbar=False,
     )
+    ax3.axis("off")
+
+
+################################################################################
+# Blend the external nowcast with NWP - ensemble mode
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+precip_forecast = blending.steps.forecast(
+    precip=radar_precip,
+    precip_nowcast=np.array(
+        [fc_lagrangian_extrapolation]
+    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
+    precip_models=nwp_precip,
+    velocity=velocity_radar,
+    velocity_models=velocity_nwp,
+    timesteps=18,
+    timestep=timestep,
+    issuetime=date_radar,
+    n_ens_members=5,
+    precip_thr=radar_metadata["threshold"],
+    kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
+    noise_stddev_adj="auto",
+    vel_pert_method=None,
+    nowcasting_method="external_nowcast",
+    noise_method="nonparametric",
+    probmatching_method="cdf",
+    mask_method="incremental",
+    weights_method="bps",
+)
+
+# Transform the data back into mm/h
+precip_forecast, _ = converter(precip_forecast, radar_metadata)
+radar_precip_mmh, _ = converter(radar_precip, radar_metadata)
+fc_lagrangian_extrapolation_mmh, _ = converter(
+    fc_lagrangian_extrapolation, radar_metadata_to_advect
+)
+nwp_precipfc_lagrangian_extrapolation_mmh_mmh, _ = converter(nwp_precip, nwp_metadata)
+
+
+################################################################################
+# Visualize the output
+# ~~~~~~~~~~~~~~~~~~~~
+
+fig = plt.figure(figsize=(8, 12))
+
+leadtimes_min = [30, 60, 90, 120, 150, 180]
+n_leadtimes = len(leadtimes_min)
+
+for n, leadtime in enumerate(leadtimes_min):
+    idx = int(leadtime / timestep) - 1
+
+    # Blended nowcast member 1
+    ax1 = plt.subplot(n_leadtimes, 4, n * 4 + 1)
+    plot_precip_field(
+        precip_forecast[0, idx, :, :],
+        geodata=radar_metadata,
+        title="Blend Mem. 1",
+        axis="off",
+        colorscale="STEPS-NL",
+        colorbar=False,
+    )
+    ax1.axis("off")
+
+    # Blended nowcast member 5
+    ax2 = plt.subplot(n_leadtimes, 4, n * 4 + 2)
+    plot_precip_field(
+        precip_forecast[4, idx, :, :],
+        geodata=radar_metadata,
+        title="Blend Mem. 5",
+        axis="off",
+        colorscale="STEPS-NL",
+        colorbar=False,
+    )
+    ax2.axis("off")
+
+    # Raw extrapolated nowcast
+    ax3 = plt.subplot(n_leadtimes, 4, n * 4 + 3)
+    plot_precip_field(
+        fc_lagrangian_extrapolation_mmh[idx, :, :],
+        geodata=radar_metadata,
+        title=f"NWC + {leadtime} min",
+        axis="off",
+        colorscale="STEPS-NL",
+        colorbar=False,
+    )
+    ax3.axis("off")
+
+    # Raw NWP forecast
+    ax4 = plt.subplot(n_leadtimes, 4, n * 4 + 4)
+    plot_precip_field(
+        nwp_precip_mmh[0, idx, :, :],
+        geodata=nwp_metadata,
+        title=f"NWP + {leadtime} min",
+        axis="off",
+        colorscale="STEPS-NL",
+        colorbar=False,
+    )
+    ax4.axis("off")
+
+plt.show()
+
+print("Done.")
 
 
 ################################################################################
