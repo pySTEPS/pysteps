@@ -30,7 +30,6 @@ from pysteps.utils import aggregate_fields_space
 from pysteps.visualization import plot_precip_field
 import pysteps_nwp_importers
 
-
 ################################################################################
 # Read the radar images and the NWP forecast
 # ------------------------------------------

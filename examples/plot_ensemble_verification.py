@@ -18,7 +18,6 @@ from pysteps.postprocessing import ensemblestats
 from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 
-
 ###############################################################################
 # Read precipitation field
 # ------------------------

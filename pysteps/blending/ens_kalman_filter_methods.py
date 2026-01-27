@@ -63,7 +63,6 @@ ensure_full_nwp_weight: bool, (True)
     forecast. Defaults to True.
 """
 
-
 import numpy as np
 
 from pysteps import utils
