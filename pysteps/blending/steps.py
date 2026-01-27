@@ -43,6 +43,7 @@ The STEPS blending method consists of the following main steps:
     calculate_weights_spn
     blend_means_sigmas
 """
+
 import math
 import time
 from copy import copy, deepcopy
@@ -3446,7 +3447,7 @@ def forecast(
       Defaults to bps.
     timestep_start_full_nwp_weight: int, optional.
       The timestep, which should be smaller than timesteps, at which a linear
-      transition takes place from the calculated weights to full NWP weight
+      transition takes place from the calculated weights to full (1.0) NWP weight
       (and zero extrapolation and noise weight) to ensure the blending
       procedure becomes equal to the NWP forecast(s) at the last timestep
       of the blending procedure. If not provided, the blending stick to the
