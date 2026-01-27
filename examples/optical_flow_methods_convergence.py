@@ -17,6 +17,7 @@ To test the convergence, using an example precipitation field we will:
 
 Let's first load the libraries that we will use.
 """
+
 from datetime import datetime
 import time
 

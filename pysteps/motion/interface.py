@@ -23,6 +23,7 @@ input array R.
 
     get_method
 """
+
 import numpy as np
 
 from pysteps.motion.constant import constant

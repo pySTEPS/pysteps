@@ -19,7 +19,6 @@ from pysteps import io, rcparams, nowcasts, blending
 from pysteps.utils import conversion
 from pysteps.visualization import plot_precip_field
 
-
 ################################################################################
 # Read the radar images and the NWP forecast
 # ------------------------------------------

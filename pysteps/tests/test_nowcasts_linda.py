@@ -7,7 +7,6 @@ from pysteps import io, motion, nowcasts, verification
 from pysteps.nowcasts.linda import forecast
 from pysteps.tests.helpers import get_precipitation_fields
 
-
 linda_arg_names = (
     "timesteps",
     "add_perturbations",
