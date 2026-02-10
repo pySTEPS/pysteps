@@ -540,10 +540,15 @@ def PR_curve_compute(PR, compute_area=False):
     
     Notes
     -----
-    - Precision is set to 1.0 when no positive predictions are made 
-      (hits + false_alarms == 0). This follows the scikit-learn convention 
-      to ensure the PR curve starts at the top-left (Recall=0, Precision=1).
-    - Recall is set to 0.0 if no positive observations exist.
+    - Precision uses the formula hits / (hits + false alarms). When a
+      threshold produces no predicted positives, the denominator becomes zero
+      and precision is undefined. The standard convention is to set precision
+      to 1.0. It represents a classifier that predicts nothing positive and
+      keeps the curve anchored at high precision when recall is zero.
+    - Recall uses the formula hits / (hits + misses). When the dataset
+      contains no actual positives, recall cannot be computed, so it is set
+      to 0.0 for all thresholds. In this situation the PR curve does not
+      carry meaningful information, but the value is kept consistent.
     """
     precision_vals = []
     recall_vals = []
