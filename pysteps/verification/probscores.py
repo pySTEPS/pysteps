@@ -354,7 +354,8 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
 
 
 def ROC_curve_accum(ROC, P_f, X_o):
-    """Accumulate the given probability-observation pairs into the given ROC
+    """
+    Accumulate the given probability-observation pairs into the given ROC
     object.
 
     Parameters
@@ -371,16 +372,17 @@ def ROC_curve_accum(ROC, P_f, X_o):
 
     P_f = P_f[mask]
     X_o = X_o[mask]
-
+    obs_yes = X_o >= ROC["X_min"]
+    obs_no = ~obs_yes
+    
     for i, p in enumerate(ROC["prob_thrs"]):
-        mask = np.logical_and(P_f >= p, X_o >= ROC["X_min"])
-        ROC["hits"][i] += np.sum(mask.astype(int))
-        mask = np.logical_and(P_f < p, X_o >= ROC["X_min"])
-        ROC["misses"][i] += np.sum(mask.astype(int))
-        mask = np.logical_and(P_f >= p, X_o < ROC["X_min"])
-        ROC["false_alarms"][i] += np.sum(mask.astype(int))
-        mask = np.logical_and(P_f < p, X_o < ROC["X_min"])
-        ROC["corr_neg"][i] += np.sum(mask.astype(int))
+        forecast_yes = P_f >= p
+        forecast_no = ~forecast_yes
+        
+        ROC["hits"][i] += np.sum(np.logical_and(forecast_yes, obs_yes))
+        ROC["misses"][i] += np.sum(np.logical_and(forecast_no, obs_yes))
+        ROC["false_alarms"][i] += np.sum(np.logical_and(forecast_yes, obs_no))
+        ROC["corr_neg"][i] += np.sum(np.logical_and(forecast_no, obs_no))
 
 
 def ROC_curve_compute(ROC, compute_area=False):
@@ -457,7 +459,7 @@ def PR_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     X_o = X_o.copy()
     pr = PR_curve_init(X_min, n_prob_thrs)
     PR_curve_accum(pr, P_f, X_o)
-    return PR_curve_compute(pr, X_o, X_min, compute_area)
+    return PR_curve_compute(pr, compute_area)
 
 
 def PR_curve_init(X_min, n_prob_thrs=10):
@@ -503,25 +505,24 @@ def PR_curve_accum(PR, P_f, X_o):
         Forecasted probabilities for exceeding X_min.
     X_o : array_like
         Observed values.
-
-    Notes
-    -----
-    Updates the counters (hits, misses, false alarms, correct negatives)
-    for each probability threshold in PR["prob_thrs"].
     """
     mask = np.logical_and(np.isfinite(P_f), np.isfinite(X_o))
     P_f = P_f[mask]
     X_o = X_o[mask]
+    obs_yes = X_o >= PR["X_min"]
+    obs_no = ~obs_yes
+    
     for i, p in enumerate(PR["prob_thrs"]):
         forecast_yes = P_f >= p
-        obs_yes = X_o >= PR["X_min"]
+        forecast_no = ~forecast_yes
+        
         PR["hits"][i] += np.sum(np.logical_and(forecast_yes, obs_yes))
-        PR["misses"][i] += np.sum(np.logical_and(~forecast_yes, obs_yes))
-        PR["false_alarms"][i] += np.sum(np.logical_and(forecast_yes, ~obs_yes))
-        PR["corr_neg"][i] += np.sum(np.logical_and(~forecast_yes, ~obs_yes))
+        PR["misses"][i] += np.sum(np.logical_and(forecast_no, obs_yes))
+        PR["false_alarms"][i] += np.sum(np.logical_and(forecast_yes, obs_no))
+        PR["corr_neg"][i] += np.sum(np.logical_and(forecast_no, obs_no))
 
 
-def PR_curve_compute(PR, X_o, X_min, compute_area=False):
+def PR_curve_compute(PR, compute_area=False):
     """
     Compute precision and recall values from the PR object.
 
@@ -529,19 +530,20 @@ def PR_curve_compute(PR, X_o, X_min, compute_area=False):
     ----------
     PR : dict
         A PR curve object created with PR_curve_init.
-    X_o : array_like
-        Observed values (used only if prevalence or area is computed).
-    X_min : float
-        Precipitation intensity threshold for yes/no prediction.
     compute_area : bool, optional
         If True, compute the area under the PR curve.
 
     Returns
     -------
     out : tuple
-        (precision_vals, recall_vals) for each probability threshold.
-        If compute_area is True, return (precision_vals, recall_vals, area),
-        where area is the trapezoidal estimate of the PR curve area.
+        (precision_vals, recall_vals) or (precision_vals, recall_vals, area)
+    
+    Notes
+    -----
+    - Precision is set to 1.0 when no positive predictions are made 
+      (hits + false_alarms == 0). This follows the scikit-learn convention 
+      to ensure the PR curve starts at the top-left (Recall=0, Precision=1).
+    - Recall is set to 0.0 if no positive observations exist.
     """
     precision_vals = []
     recall_vals = []
@@ -550,15 +552,14 @@ def PR_curve_compute(PR, X_o, X_min, compute_area=False):
         hits = PR["hits"][i]
         misses = PR["misses"][i]
         false_alarms = PR["false_alarms"][i]
-
+        
         recall = hits / (hits + misses) if (hits + misses) > 0 else 0.0
         precision = hits / (hits + false_alarms) if (hits + false_alarms) > 0 else 1.0
-
+        
         recall_vals.append(recall)
         precision_vals.append(precision)
 
     if compute_area:
-        # Sort by recall before integration
         recall_sorted, precision_sorted = zip(*sorted(zip(recall_vals, precision_vals)))
         area = np.trapz(precision_sorted, recall_sorted)
         return precision_vals, recall_vals, area
