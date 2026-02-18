@@ -2116,7 +2116,7 @@ class StepsBlendingNowcaster:
             )
         elif (
             self.__config.weights_method == "spn"
-            and start_smoothing_to_final_weights == False
+            and not start_smoothing_to_final_weights
         ):
             # Only the weights of the components without the extrapolation
             # cascade will be determined here. The full set of weights are
