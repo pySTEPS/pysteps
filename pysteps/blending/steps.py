@@ -2836,7 +2836,7 @@ class StepsBlendingNowcaster:
 
         if (
             self.__config.weights_method == "spn"
-            and start_smoothing_to_final_weights == False
+            and not start_smoothing_to_final_weights
         ):
             worker_state.weights = np.zeros(
                 (
