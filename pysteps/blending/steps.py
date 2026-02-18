@@ -3868,7 +3868,7 @@ def calculate_end_weights(
       The weights from the previous timestep. This weight will be used to ensure
       a linear transition takes place from the last weights at the timestep of
       start_full_nwp_weight and the final weights (1.0 for NWP and 0.0 for
-      the exdtrapolation and noise components).
+      the extrapolation and noise components).
     timestep : int
       The timestep or sub timestep for which the weight is calculated. Only
       used when start_full_nwp_weight is not None.
