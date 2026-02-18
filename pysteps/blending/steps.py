@@ -2107,7 +2107,7 @@ class StepsBlendingNowcaster:
         # The model only weights
         if (
             self.__config.weights_method == "bps"
-            and start_smoothing_to_final_weights == False
+            and not start_smoothing_to_final_weights
         ):
             # Determine the weights of the components without the extrapolation
             # cascade, in case this is no data or outside the mask.
