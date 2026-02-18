@@ -3859,7 +3859,7 @@ def calculate_end_weights(
     previous_weights, timestep, n_timesteps, start_full_nwp_weight, model_only=False
 ):
     """Calculate the linear transition from the previous weights to the final weights
-    (1.0 for NWP and 0.0 for the exdtrapolation and noise components).This method uses
+    (1.0 for NWP and 0.0 for the extrapolation and noise components). This method uses
     the BPS weights determination method to determine the corresponding noise.
 
     Parameters
