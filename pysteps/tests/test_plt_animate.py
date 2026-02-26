@@ -9,7 +9,6 @@ from unittest.mock import patch
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.visualization.animations import animate
 
-
 PRECIP, METADATA = get_precipitation_fields(
     num_prev_files=2,
     num_next_files=0,

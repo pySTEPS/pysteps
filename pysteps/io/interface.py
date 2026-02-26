@@ -12,6 +12,7 @@ Interface for the io module.
 
     get_method
 """
+
 from importlib.metadata import entry_points
 
 from pysteps.decorators import postprocess_import

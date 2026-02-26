@@ -4,7 +4,6 @@ import pytest
 
 from pysteps.utils import get_method
 
-
 interp_methods = (
     "idwinterp2d",
     "rbfinterp2d",
