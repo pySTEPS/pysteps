@@ -12,7 +12,6 @@ import pytest
 
 from pysteps.blending.clim import save_skill, calc_clim_skill
 
-
 random.seed(12356)
 n_cascade_levels = 7
 model_names = ["alaro13", "arome13"]

@@ -4,12 +4,12 @@ Script to test the plugin support.
 
 https://github.com/pySTEPS/cookiecutter-pysteps-plugin
 """
+
 import os
 import pytest
 import subprocess
 import sys
 import tempfile
-
 
 __ = pytest.importorskip("cookiecutter")
 from cookiecutter.main import cookiecutter

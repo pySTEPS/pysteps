@@ -43,6 +43,7 @@ The STEPS blending method consists of the following main steps:
     calculate_weights_spn
     blend_means_sigmas
 """
+
 import math
 import time
 from copy import copy, deepcopy
