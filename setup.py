@@ -70,7 +70,7 @@ requirements = [
 
 setup(
     name="pysteps",
-    version="1.19.1",
+    version="1.20.0",
     author="PySteps developers",
     packages=find_packages(),
     license="LICENSE",
