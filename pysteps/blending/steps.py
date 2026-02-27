@@ -299,7 +299,7 @@ class StepsBlendingConfig:
     ar_order: int
     velocity_perturbation_method: str | None
     weights_method: str
-    timestep_start_full_nwp_weight: int
+    timestep_start_full_nwp_weight: int | None
     conditional: bool
     probmatching_method: str | None
     mask_method: str | None
