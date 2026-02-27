@@ -2107,7 +2107,7 @@ class StepsBlendingNowcaster:
         # The model only weights
         if (
             self.__config.weights_method == "bps"
-            and start_smoothing_to_final_weights == False
+            and not start_smoothing_to_final_weights
         ):
             # Determine the weights of the components without the extrapolation
             # cascade, in case this is no data or outside the mask.
@@ -2116,7 +2116,7 @@ class StepsBlendingNowcaster:
             )
         elif (
             self.__config.weights_method == "spn"
-            and start_smoothing_to_final_weights == False
+            and not start_smoothing_to_final_weights
         ):
             # Only the weights of the components without the extrapolation
             # cascade will be determined here. The full set of weights are
@@ -2836,7 +2836,7 @@ class StepsBlendingNowcaster:
 
         if (
             self.__config.weights_method == "spn"
-            and start_smoothing_to_final_weights == False
+            and not start_smoothing_to_final_weights
         ):
             worker_state.weights = np.zeros(
                 (
@@ -3859,7 +3859,7 @@ def calculate_end_weights(
     previous_weights, timestep, n_timesteps, start_full_nwp_weight, model_only=False
 ):
     """Calculate the linear transition from the previous weights to the final weights
-    (1.0 for NWP and 0.0 for the exdtrapolation and noise components).This method uses
+    (1.0 for NWP and 0.0 for the extrapolation and noise components). This method uses
     the BPS weights determination method to determine the corresponding noise.
 
     Parameters
@@ -3868,7 +3868,7 @@ def calculate_end_weights(
       The weights from the previous timestep. This weight will be used to ensure
       a linear transition takes place from the last weights at the timestep of
       start_full_nwp_weight and the final weights (1.0 for NWP and 0.0 for
-      the exdtrapolation and noise components).
+      the extrapolation and noise components).
     timestep : int
       The timestep or sub timestep for which the weight is calculated. Only
       used when start_full_nwp_weight is not None.
