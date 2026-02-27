@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 pysteps.timeseries.correlation
 ==============================
 
@@ -28,7 +28,7 @@ def temporal_autocorrelation(
     window="gaussian",
     window_radius=np.inf,
 ):
-    """
+    r"""
     Compute lag-l temporal autocorrelation coefficients
     :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
     from a time series :math:`x_1,x_2,\dots,x_n`. If a multivariate time series
@@ -133,7 +133,7 @@ def temporal_autocorrelation(
 def temporal_autocorrelation_multivariate(
     x, d=0, mask=None, window="gaussian", window_radius=np.inf
 ):
-    """
+    r"""
     For a :math:`q`-variate time series
     :math:`\mathbf{x}_1,\mathbf{x}_2,\dots,\mathbf{x}_n`, compute the lag-l
     correlation matrices :math:`\mathbf{\Gamma}_l`, where
