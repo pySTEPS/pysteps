@@ -100,6 +100,10 @@ from pysteps.exceptions import MissingOptionalDependency
 try:
     from osgeo import gdal, osr
 
+    # Preserve current behavior explicitly (no GDAL exceptions) and avoid the
+    # GDAL 4.0 future-warning emitted when neither mode is selected.
+    if hasattr(gdal, "DontUseExceptions"):
+        gdal.DontUseExceptions()
     GDAL_IMPORTED = True
 except ImportError:
     GDAL_IMPORTED = False

@@ -104,6 +104,10 @@ from pysteps.utils import aggregate_fields
 try:
     from osgeo import gdal, gdalconst, osr
 
+    # Preserve current behavior explicitly (no GDAL exceptions) and avoid the
+    # GDAL 4.0 future-warning emitted when neither mode is selected.
+    if hasattr(gdal, "DontUseExceptions"):
+        gdal.DontUseExceptions()
     GDAL_IMPORTED = True
 except ImportError:
     GDAL_IMPORTED = False
@@ -1615,11 +1619,11 @@ def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
     ds_rainfall = netCDF4.Dataset(filename)
     if "crr_intensity" in ds_rainfall.variables.keys():
         if idx_x is not None:
-            data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
-            quality = np.array(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
+            data = np.asarray(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
+            quality = np.asarray(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
         else:
-            data = np.array(ds_rainfall.variables["crr_intensity"])
-            quality = np.array(ds_rainfall.variables["crr_quality"])
+            data = np.asarray(ds_rainfall.variables["crr_intensity"][:])
+            quality = np.asarray(ds_rainfall.variables["crr_quality"][:])
         precipitation = np.where(data == 65535, np.nan, data)
     else:
         precipitation = None
