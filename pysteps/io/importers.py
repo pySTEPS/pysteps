@@ -37,6 +37,10 @@ The metadata dictionary contains the following recommended key-value pairs:
 +------------------+----------------------------------------------------------+
 |   ypixelsize     | grid resolution in y-direction                           |
 +------------------+----------------------------------------------------------+
+|    xsize         | grid size in x-direction                                 |
++------------------+----------------------------------------------------------+
+|    ysize         | grid size in y-direction                                 |
++------------------+----------------------------------------------------------+
 |   cartesian_unit | the physical unit of the cartesian x- and y-coordinates: |
 |                  | e.g. 'm' or 'km'                                         |
 +------------------+----------------------------------------------------------+
@@ -1478,7 +1482,21 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
     else:
         xpixelsize = None
         ypixelsize = None
-
+        
+    if "xsize" in where.attrs.keys() and "ysize" in where.attrs.keys():
+        xsize = where.attrs["xsize"]
+        ysize = where.attrs["ysize"]
+    elif (
+        "xsize" in dataset1["where"].attrs.keys()
+        and "ysize" in dataset1["where"].attrs.keys()
+    ):
+        where = dataset1["where"]
+        xsize = where.attrs["xsize"]
+        ysize = where.attrs["ysize"]
+    else:
+        xsize = None
+        ysize = None
+        
     if qty == "ACRR":
         unit = "mm"
         transform = None
