@@ -30,7 +30,7 @@ from pysteps.motion.darts import DARTS
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.motion.proesmans import proesmans
 from pysteps.motion.vet import vet
-from pysteps_mods.motion.farneback import farneback
+from pysteps.motion.farneback import farneback
 
 _methods = dict()
 _methods['constant'] = constant
