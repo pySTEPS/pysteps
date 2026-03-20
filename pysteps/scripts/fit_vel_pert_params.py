@@ -51,9 +51,7 @@ for lt in leadtimes:
     mu = dp_perp_sum / dp_perp_n
 
     std_perp.append(
-        np.sqrt(
-            (dp_perp_sq_sum - 2 * mu * dp_perp_sum + dp_perp_n * mu**2) / dp_perp_n
-        )
+        np.sqrt((dp_perp_sq_sum - 2 * mu * dp_perp_sum + dp_perp_n * mu**2) / dp_perp_n)
     )
 
 try:
@@ -76,8 +74,8 @@ if args.plot is not None:
         (l1,) = pyplot.plot(t, f(t, *p_par), "r-")
         (l2,) = pyplot.plot(t, f(t, *p_perp), "g-")
 
-    p_str_1 = lambda p: "%.2f\cdot t^{%.2f}+%.2f" % (p[0], p[1], p[2])
-    p_str_2 = lambda p: "%.2f\cdot t^{%.2f}%.2f" % (p[0], p[1], p[2])
+    p_str_1 = lambda p: "%.2f\\cdot t^{%.2f}+%.2f" % (p[0], p[1], p[2])
+    p_str_2 = lambda p: "%.2f\\cdot t^{%.2f}%.2f" % (p[0], p[1], p[2])
     if fit_succeeded:
         lbl = lambda p: p_str_1(p) if p[2] > 0.0 else p_str_2(p)
         pyplot.legend(

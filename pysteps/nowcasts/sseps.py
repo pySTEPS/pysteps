@@ -18,18 +18,16 @@ size.
     forecast
 """
 
-import numpy as np
 import time
+
+import numpy as np
 from scipy.ndimage import generate_binary_structure, iterate_structure
 
-
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import noise
-from pysteps.decorators import deprecate_args
+from pysteps import cascade, extrapolation, noise
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
+from pysteps.utils.check_norain import check_norain
 
 try:
     import dask
@@ -39,7 +37,6 @@ except ImportError:
     dask_imported = False
 
 
-@deprecate_args({"R": "precip", "V": "velocity"}, "1.8.0")
 def forecast(
     precip,
     metadata,
@@ -104,7 +101,8 @@ def forecast(
     n_ens_members: int
         The number of ensemble members to generate.
     n_cascade_levels: int
-        The number of cascade levels to use.
+        The number of cascade levels to use. Defaults to 6, see issue #385
+         on GitHub.
     extrap_method: {'semilagrangian'}
         Name of the extrapolation method to use. See the documentation of
         pysteps.extrapolation.interface.
@@ -212,7 +210,7 @@ def forecast(
         filter_kwargs = dict()
 
     if noise_kwargs is None:
-        noise_kwargs = dict()
+        noise_kwargs = {"win_fun": "tukey"}
 
     if vel_pert_kwargs is None:
         vel_pert_kwargs = dict()
@@ -298,6 +296,8 @@ def forecast(
 
     if measure_time:
         starttime_init = time.time()
+    else:
+        starttime_init = None
 
     # get methods
     extrapolator_method = extrapolation.get_method(extrap_method)
@@ -312,6 +312,22 @@ def forecast(
     filter_method = cascade.get_method(bandpass_filter_method)
     if noise_method is not None:
         init_noise, generate_noise = noise.get_method(noise_method)
+
+    if check_norain(
+        precip,
+        precip_thr,
+        war_thr,
+        noise_kwargs["win_fun"],
+    ):
+        return nowcast_utils.zero_precipitation_forecast(
+            n_ens_members,
+            timesteps,
+            precip,
+            callback,
+            return_output,
+            measure_time,
+            starttime_init,
+        )
 
     # advect the previous precipitation fields to the same position with the
     # most recent one (i.e. transform them into the Lagrangian coordinates)
@@ -729,12 +745,12 @@ def forecast(
                                 else:
                                     EPS_ = None
                                 # apply AR(p) process to cascade level
-                                precip_cascades[
-                                    i, :, :, :
-                                ] = autoregression.iterate_ar_model(
-                                    precip_cascades[i, :, :, :],
-                                    phi[m, n, i, :],
-                                    eps=EPS_,
+                                precip_cascades[i, :, :, :] = (
+                                    autoregression.iterate_ar_model(
+                                        precip_cascades[i, :, :, :],
+                                        phi[m, n, i, :],
+                                        eps=EPS_,
+                                    )
                                 )
                                 EPS_ = None
                             rc[m][n][j] = precip_cascades.copy()

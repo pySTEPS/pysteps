@@ -3,7 +3,7 @@
 Cascade decomposition
 =====================
 
-This example script shows how to compute and plot the cascade decompositon of 
+This example script shows how to compute and plot the cascade decompositon of
 a single radar precipitation field in pysteps.
 
 """

@@ -99,10 +99,9 @@ def excprob(X, X_thr, ignore_nan=False):
         scalar_thr = False
 
     for x in X_thr:
-        X_ = X.copy()
+        X_ = np.zeros(X.shape)
 
         X_[X >= x] = 1.0
-        X_[X < x] = 0.0
         X_[~np.isfinite(X)] = np.nan
 
         if ignore_nan:

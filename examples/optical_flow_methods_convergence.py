@@ -17,12 +17,13 @@ To test the convergence, using an example precipitation field we will:
 
 Let's first load the libraries that we will use.
 """
+
 from datetime import datetime
 import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.cm import get_cmap
+from matplotlib.pyplot import get_cmap
 from scipy.ndimage import uniform_filter
 
 import pysteps as stp

@@ -2,8 +2,8 @@
 Optical flow
 ============
 
-This tutorial offers a short overview of the optical flow routines available in 
-pysteps and it will cover how to compute and plot the motion field from a 
+This tutorial offers a short overview of the optical flow routines available in
+pysteps and it will cover how to compute and plot the motion field from a
 sequence of radar images.
 """
 

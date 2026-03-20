@@ -15,9 +15,11 @@ Module with common utilities used by the blending methods.
     decompose_NWP
     compute_store_nwp_motion
     load_NWP
+    compute_smooth_dilated_mask
 """
 
 import datetime
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +28,7 @@ from pysteps.cascade import get_method as cascade_get_method
 from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps.exceptions import MissingOptionalDependency
 from pysteps.utils import get_method as utils_get_method
+from pysteps.utils.check_norain import check_norain as new_check_norain
 
 try:
     import netCDF4
@@ -33,6 +36,13 @@ try:
     NETCDF4_IMPORTED = True
 except ImportError:
     NETCDF4_IMPORTED = False
+
+try:
+    import cv2
+
+    CV2_IMPORTED = True
+except ImportError:
+    CV2_IMPORTED = False
 
 
 def stack_cascades(R_d, donorm=True):
@@ -466,11 +476,11 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     ncf_decomp = netCDF4.Dataset(input_nc_path_decomp, "r", format="NETCDF4")
     velocities = np.load(input_path_velocities)
 
-    # Initialise the decomposition dictionary
-    decomp_dict = dict()
-    decomp_dict["domain"] = ncf_decomp.domain
-    decomp_dict["normalized"] = bool(ncf_decomp.normalized)
-    decomp_dict["compact_output"] = bool(ncf_decomp.compact_output)
+    decomp_dict = {
+        "domain": ncf_decomp.domain,
+        "normalized": bool(ncf_decomp.normalized),
+        "compact_output": bool(ncf_decomp.compact_output),
+    }
 
     # Convert the start time and the timestep to datetime64 and timedelta64 type
     zero_time = np.datetime64("1970-01-01T00:00:00", "ns")
@@ -490,6 +500,13 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     assert analysis_time + start_i * timestep == start_time
     end_i = start_i + n_timesteps + 1
 
+    # Check if the requested end time (the forecast horizon) is in the stored data.
+    # If not, raise an error
+    if end_i > ncf_decomp.variables["pr_decomposed"].shape[0]:
+        raise IndexError(
+            "The requested forecast horizon is outside the stored NWP forecast horizon. Either request a shorter forecast horizon or store a longer NWP forecast horizon"
+        )
+
     # Add the valid times to the output
     decomp_dict["valid_times"] = valid_times[start_i:end_i]
 
@@ -499,26 +516,132 @@ def load_NWP(input_nc_path_decomp, input_path_velocities, start_time, n_timestep
     # Initialise the list of dictionaries which will serve as the output (cf: the STEPS function)
     R_d = list()
 
-    for i in range(start_i, end_i):
-        decomp_dict_ = decomp_dict.copy()
+    pr_decomposed = ncf_decomp.variables["pr_decomposed"][start_i:end_i, :, :, :]
+    means = ncf_decomp.variables["means"][start_i:end_i, :]
+    stds = ncf_decomp.variables["stds"][start_i:end_i, :]
 
-        cascade_levels = ncf_decomp.variables["pr_decomposed"][i, :, :, :]
+    for i in range(n_timesteps + 1):
+        decomp_dict["cascade_levels"] = np.ma.filled(
+            pr_decomposed[i], fill_value=np.nan
+        )
+        decomp_dict["means"] = np.ma.filled(means[i], fill_value=np.nan)
+        decomp_dict["stds"] = np.ma.filled(stds[i], fill_value=np.nan)
 
-        # In the netcdf file this is saved as a masked array, so we're checking if there is no mask
-        assert not cascade_levels.mask
+        R_d.append(decomp_dict.copy())
 
-        means = ncf_decomp.variables["means"][i, :]
-        assert not means.mask
-
-        stds = ncf_decomp.variables["stds"][i, :]
-        assert not stds.mask
-
-        # Save the values in the dictionary as normal arrays with the filled method
-        decomp_dict_["cascade_levels"] = np.ma.filled(cascade_levels)
-        decomp_dict_["means"] = np.ma.filled(means)
-        decomp_dict_["stds"] = np.ma.filled(stds)
-
-        # Append the output list
-        R_d.append(decomp_dict_)
-
+    ncf_decomp.close()
     return R_d, uv
+
+
+def check_norain(precip_arr, precip_thr=None, norain_thr=0.0):
+    """
+    DEPRECATED use :py:mod:`pysteps.utils.check_norain.check_norain` in stead
+    Parameters
+    ----------
+    precip_arr:  array-like
+      Array containing the input precipitation field
+    precip_thr: float, optional
+      Specifies the threshold value for minimum observable precipitation intensity. If None, the
+      minimum value over the domain is taken.
+    norain_thr: float, optional
+      Specifies the threshold value for the fraction of rainy pixels in precip_arr below which we consider there to be
+      no rain. Standard set to 0.0
+    Returns
+    -------
+    norain: bool
+      Returns whether the fraction of rainy pixels is below the norain_thr threshold.
+
+    """
+    warnings.warn(
+        "pysteps.blending.utils.check_norain has been deprecated, use pysteps.utils.check_norain.check_norain instead"
+    )
+    return new_check_norain(precip_arr, precip_thr, norain_thr, None)
+
+
+def compute_smooth_dilated_mask(
+    original_mask,
+    max_padding_size_in_px=0,
+    gaussian_kernel_size=9,
+    inverted=False,
+    non_linear_growth_kernel_sizes=False,
+):
+    """
+    Compute a smooth dilated mask using Gaussian blur and dilation with varying kernel sizes.
+
+    Parameters
+    ----------
+    original_mask : array_like
+        Two-dimensional boolean array containing the input mask.
+    max_padding_size_in_px : int
+        The maximum size of the padding in pixels. Default is 100.
+    gaussian_kernel_size : int, optional
+        Size of the Gaussian kernel to use for blurring, this should be an uneven number. This option ensures
+        that the nan-fields are large enough to start the smoothing. Without it, the method will also be applied
+        to local nan-values in the radar domain. Default is 9, which is generally a recommended number to work
+        with.
+    inverted : bool, optional
+        Typically, the smoothed mask works from the outside of the radar domain inward, using the
+        max_padding_size_in_px. If set to True, it works from the edge of the radar domain outward
+        (generally not recommended). Default is False.
+    non_linear_growth_kernel_sizes : bool, optional
+        If True, use non-linear growth for kernel sizes. Default is False.
+
+    Returns
+    -------
+    final_mask : array_like
+        The smooth dilated mask normalized to the range [0,1].
+    """
+    if not CV2_IMPORTED:
+        raise MissingOptionalDependency(
+            "CV2 package is required to transform the mask into a smoot mask."
+            " Please install it using `pip install opencv-python`."
+        )
+
+    if max_padding_size_in_px < 0:
+        raise ValueError("max_padding_size_in_px must be greater than or equal to 0.")
+
+    # Check if gaussian_kernel_size is an uneven number
+    assert gaussian_kernel_size % 2
+
+    # Convert the original mask to uint8 numpy array and invert if needed
+    array_2d = np.array(original_mask, dtype=np.uint8)
+    if inverted:
+        array_2d = np.bitwise_not(array_2d)
+
+    # Rescale the 2D array values to 0-255 (black or white)
+    rescaled_array = array_2d * 255
+
+    # Apply Gaussian blur to the rescaled array
+    blurred_image = cv2.GaussianBlur(
+        rescaled_array, (gaussian_kernel_size, gaussian_kernel_size), 0
+    )
+
+    # Apply binary threshold to negate the blurring effect
+    _, binary_image = cv2.threshold(blurred_image, 128, 255, cv2.THRESH_BINARY)
+
+    # Define kernel sizes
+    if non_linear_growth_kernel_sizes:
+        lin_space = np.linspace(0, np.sqrt(max_padding_size_in_px), 10)
+        non_lin_space = np.power(lin_space, 2)
+        kernel_sizes = list(set(non_lin_space.astype(np.uint8)))
+    else:
+        kernel_sizes = np.linspace(0, max_padding_size_in_px, 10, dtype=np.uint8)
+
+    # Process each kernel size
+    final_mask = np.zeros_like(binary_image, dtype=np.float64)
+    for kernel_size in kernel_sizes:
+        if kernel_size == 0:
+            dilated_image = binary_image
+        else:
+            kernel = cv2.getStructuringElement(
+                cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
+            )
+            dilated_image = cv2.dilate(binary_image, kernel)
+
+        # Convert the dilated image to a binary array
+        _, binary_array = cv2.threshold(dilated_image, 128, 1, cv2.THRESH_BINARY)
+        final_mask += binary_array
+
+    final_mask = final_mask / final_mask.max()
+
+    return final_mask

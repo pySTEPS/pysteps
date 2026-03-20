@@ -40,6 +40,8 @@ the short-space Fourier transform (SSFT) methodology developed in
 import time
 import warnings
 
+from pysteps.utils.check_norain import check_norain
+
 try:
     import dask
 
@@ -47,25 +49,16 @@ try:
 except ImportError:
     DASK_IMPORTED = False
 import numpy as np
+from scipy import optimize as opt
+from scipy import stats
 from scipy.integrate import nquad
 from scipy.interpolate import interp1d
-from scipy import optimize as opt
 from scipy.signal import convolve
-from scipy import stats
 
 from pysteps import extrapolation, feature, noise
-from pysteps.decorators import deprecate_args
-from pysteps.nowcasts.utils import nowcast_main_loop
+from pysteps.nowcasts.utils import nowcast_main_loop, zero_precipitation_forecast
 
 
-@deprecate_args(
-    {
-        "precip_fields": "precip",
-        "advection_field": "velocity",
-        "num_ens_members": "n_ens_members",
-    },
-    "1.8.0",
-)
 def forecast(
     precip,
     velocity,
@@ -109,8 +102,10 @@ def forecast(
         Array of shape (2, m, n) containing the x- and y-components of the
         advection field. The velocities are assumed to represent one time step
         between the inputs.
-    timesteps: int
-        Number of time steps to forecast.
+    timesteps: int or list of floats
+        Number of time steps to forecast or a list of time steps. If a list is
+        given, the values are assumed to be relative to the input time step and
+        in ascending order.
     feature_method: {'blob', 'domain' 'shitomasi'}
         Feature detection method:
 
@@ -203,7 +198,7 @@ def forecast(
     Returns
     -------
     out: numpy.ndarray
-        A four-dimensional array of shape (n_ens_members, timesteps, m, n)
+        A four-dimensional array of shape (n_ens_members, len(timesteps), m, n)
         containing a time series of forecast precipitation fields for each
         ensemble member. If add_perturbations is False, the first dimension is
         dropped. The time series starts from t0 + timestep, where timestep is
@@ -271,7 +266,10 @@ def forecast(
 
     print("Parameters")
     print("----------")
-    print(f"number of time steps:       {timesteps}")
+    if isinstance(timesteps, int):
+        print(f"number of time steps:     {timesteps}")
+    else:
+        print(f"time steps:               {timesteps}")
     print(f"ARI model order:            {ari_order}")
     print(f"localization window radius: {localization_window_radius}")
     if add_perturbations:
@@ -300,6 +298,19 @@ def forecast(
     extrap_kwargs["allow_nonfinite_values"] = (
         True if np.any(~np.isfinite(precip)) else False
     )
+
+    starttime_init = time.time()
+
+    if check_norain(precip, 0.0, 0.0, None):
+        return zero_precipitation_forecast(
+            n_ens_members if nowcast_type == "ensemble" else None,
+            timesteps,
+            precip,
+            callback,
+            return_output,
+            measure_time,
+            starttime_init,
+        )
 
     forecast_gen = _linda_deterministic_init(
         precip,
@@ -385,8 +396,8 @@ def _check_inputs(precip, velocity, timesteps, ari_order):
         raise ValueError(
             f"dimension mismatch between precip and velocity: precip.shape={precip.shape}, velocity.shape={velocity.shape}"
         )
-    if not isinstance(timesteps, int):
-        raise ValueError("timesteps is not an integer")
+    if isinstance(timesteps, list) and not sorted(timesteps) == timesteps:
+        raise ValueError("timesteps must be in ascending order")
 
 
 def _composite_convolution(field, kernels, weights):
@@ -572,8 +583,7 @@ def _compute_window_weights(coords, grid_height, grid_width, window_radius):
             dx = c[1] - grid_x
 
             w[i, :] = np.exp(
-                -dy * dy / (2 * window_radius_1**2)
-                - dx * dx / (2 * window_radius_2**2)
+                -dy * dy / (2 * window_radius_1**2) - dx * dx / (2 * window_radius_2**2)
             )
     else:
         w[0, :] = np.ones((grid_height, grid_width))
@@ -794,16 +804,22 @@ def _estimate_perturbation_params(
                     _compute_sample_acf(weights_acf * (forecast_err - 1.0) / std)
                 )
                 acf = _fit_acf(acf)
-            else:
-                distpar = None
-                std = None
-                acf = None
-        else:
-            distpar = None
-            std = None
-            acf = None
 
-        return distpar, std, np.sqrt(np.abs(np.fft.rfft2(acf)))
+                valid_data = True
+            else:
+                valid_data = False
+        else:
+            valid_data = False
+
+        if valid_data:
+            return distpar, std, np.sqrt(np.abs(np.fft.rfft2(acf)))
+        else:
+            return (
+                (1e-10, 1e-10),
+                1e-10,
+                np.ones((weights_acf.shape[0], int(weights_acf.shape[1] / 2) + 1))
+                * 1e-10,
+            )
 
     dist_params = []
     stds = []

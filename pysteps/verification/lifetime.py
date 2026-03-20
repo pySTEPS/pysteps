@@ -18,7 +18,7 @@ a decaying verification score function
 
 from math import exp
 import numpy as np
-from scipy.integrate import simps
+from scipy.integrate import simpson
 
 
 def lifetime(X_s, X_t, rule="1/e"):
@@ -113,7 +113,7 @@ def lifetime_accum(lifetime, X_s, X_t):
     if lifetime["rule"] == "trapz":
         lf = np.trapz(X_s, x=X_t)
     elif lifetime["rule"] == "simpson":
-        lf = simps(X_s, x=X_t)
+        lf = simpson(X_s, x=X_t)
     elif lifetime["rule"] == "1/e":
         euler_number = 1.0 / exp(1.0)
         X_s_ = np.array(X_s)

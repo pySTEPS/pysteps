@@ -7,7 +7,7 @@ the advection correction procedure described in Anagnostou and Krajewski (1999).
 
 Advection correction is a temporal interpolation procedure that is often used
 when estimating rainfall accumulations to correct for the shift of rainfall patterns
-between consecutive radar rainfall maps. This shift becomes particularly 
+between consecutive radar rainfall maps. This shift becomes particularly
 significant for long radar scanning cycles and in presence of fast moving
 precipitation features.
 

@@ -8,7 +8,6 @@ from pysteps import motion
 from pysteps.visualization import plot_precip_field, quiver, streamplot
 from pysteps.tests.helpers import get_precipitation_fields
 
-
 arg_names_quiver = (
     "source",
     "axis",

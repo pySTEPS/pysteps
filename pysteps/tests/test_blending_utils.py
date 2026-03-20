@@ -3,19 +3,21 @@
 import os
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
 import pytest
+from numpy.testing import assert_array_almost_equal
 
 import pysteps
 from pysteps.blending.utils import (
-    stack_cascades,
     blend_cascades,
-    recompose_cascade,
     blend_optical_flows,
-    decompose_NWP,
+    compute_smooth_dilated_mask,
     compute_store_nwp_motion,
+    decompose_NWP,
     load_NWP,
+    recompose_cascade,
+    stack_cascades,
 )
+from pysteps.utils.check_norain import check_norain
 
 pytest.importorskip("netCDF4")
 
@@ -96,8 +98,8 @@ converter = pysteps.utils.get_method("mm/h")
 precip_nwp, nwp_metadata = converter(precip_nwp, nwp_metadata)
 
 # Threshold the data
-precip_nwp[precip_nwp < 0.1] = 0.0
 nwp_metadata["threshold"] = 0.1
+precip_nwp[precip_nwp < nwp_metadata["threshold"]] = 0.0
 
 # Transform the data
 transformer = pysteps.utils.get_method("dB")
@@ -139,12 +141,27 @@ utils_arg_values = [
     )
 ]
 
+smoothing_arg_names = (
+    "precip_nwp",
+    "max_padding_size_in_px",
+    "gaussian_kernel_size",
+    "inverted",
+    "non_linear_growth_kernel_sizes",
+)
+
+smoothing_arg_values = [
+    (precip_nwp, 80, 9, False, False),
+    (precip_nwp, 10, 9, False, False),
+    (precip_nwp, 80, 5, False, False),
+    (precip_nwp, 80, 9, True, False),
+    (precip_nwp, 80, 9, False, True),
+]
+
 
 ###
 # The test
 ###
 @pytest.mark.parametrize(utils_arg_names, utils_arg_values)
-
 # The test function to be used
 def test_blending_utils(
     precip_nwp,
@@ -378,3 +395,55 @@ def test_blending_utils(
         decimal=3,
         err_msg="Recomposed field of second forecast does not equal original field",
     )
+
+    precip_arr = precip_nwp
+    # rainy fraction is 0.005847
+    assert not check_norain(precip_arr, win_fun=None)
+    assert not check_norain(
+        precip_arr, precip_thr=nwp_metadata["threshold"], win_fun=None
+    )
+    assert not check_norain(
+        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.005, win_fun=None
+    )
+    assert not check_norain(precip_arr, norain_thr=0.005, win_fun=None)
+    # so with norain_thr beyond this number it should report that there's no rain
+    assert check_norain(precip_arr, norain_thr=0.006, win_fun=None)
+    assert check_norain(
+        precip_arr, precip_thr=nwp_metadata["threshold"], norain_thr=0.006, win_fun=None
+    )
+
+    # also if we set the precipitation threshold sufficiently high, it should report there's no rain
+    # rainy fraction > 4mm/h is 0.004385
+    assert not check_norain(precip_arr, precip_thr=4.0, norain_thr=0.004, win_fun=None)
+    assert check_norain(precip_arr, precip_thr=4.0, norain_thr=0.005, win_fun=None)
+
+    # no rain above 100mm/h so it should give norain
+    assert check_norain(precip_arr, precip_thr=100, win_fun=None)
+
+    # should always give norain if the threshold is set to 100%
+    assert check_norain(precip_arr, norain_thr=1.0, win_fun=None)
+
+
+# Finally, also test the compute_smooth_dilated mask functionality
+@pytest.mark.parametrize(smoothing_arg_names, smoothing_arg_values)
+def test_blending_smoothing_utils(
+    precip_nwp,
+    max_padding_size_in_px,
+    gaussian_kernel_size,
+    inverted,
+    non_linear_growth_kernel_sizes,
+):
+    # First add some nans to indicate a mask
+    precip_nwp[:, 0:100, 0:100] = np.nan
+    nan_indices = np.isnan(precip_nwp[0])
+    new_mask = compute_smooth_dilated_mask(
+        nan_indices,
+        max_padding_size_in_px=max_padding_size_in_px,
+        gaussian_kernel_size=gaussian_kernel_size,
+        inverted=inverted,
+        non_linear_growth_kernel_sizes=non_linear_growth_kernel_sizes,
+    )
+    assert new_mask.shape == nan_indices.shape
+
+    if max_padding_size_in_px > 0 and inverted == False:
+        assert np.sum((new_mask > 0) & (new_mask < 1)) > 0

@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
-        python-version: ["3.8", "3.10"]
+        python-version: ["3.11", "3.13"]
       max-parallel: 6
 
     defaults:
@@ -28,16 +28,34 @@ jobs:
         shell: bash -l {0}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install mamba and create environment
+      # need headless opencv on Linux, see https://github.com/conda-forge/opencv-feedstock/issues/401
+      - name: Install mamba and create environment for Linux
+        if: matrix.os == 'ubuntu-latest'
         uses: mamba-org/setup-micromamba@v1
         with:
+          # https://github.com/mamba-org/setup-micromamba/issues/225
+          micromamba-version: 1.5.10-0
           environment-file: ci/ci_test_env.yml
           environment-name: test_environment
+          generate-run-shell: false
+          create-args: >-
+            python=${{ matrix.python-version }}
+            libopencv=*=headless*
+
+      - name: Install mamba and create environment (not Linux)
+        if: matrix.os != 'ubuntu-latest'
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          # https://github.com/mamba-org/setup-micromamba/issues/225
+          micromamba-version: 1.5.10-0
+          environment-file: ci/ci_test_env.yml
+          environment-name: test_environment
+          generate-run-shell: false
           create-args: python=${{ matrix.python-version }}
 
       - name: Install pygrib (not win)
@@ -48,14 +66,14 @@ jobs:
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
         env:
-          CC: gcc-9
-          CXX: g++-9
-          CXX1X: g++-9
+          CC: gcc-13
+          CXX: g++-13
+          CXX1X: g++-13
           HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
           brew update-reset
           brew update
-          gcc-9 --version || brew install gcc@9
+          gcc-13 --version || brew install gcc@13
           pip install .
 
       - name: Install pysteps
@@ -86,7 +104,7 @@ jobs:
 
       - name: Upload coverage to Codecov (Linux only)
         if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         env:
           OS: ${{ matrix.os }}
           PYTHON: ${{ matrix.python-version }}

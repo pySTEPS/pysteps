@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pysteps import motion, nowcasts, verification
@@ -17,6 +18,28 @@ anvil_arg_values = [
     (8, 1, 50, 3, 0.6, True, False),
     (8, 1, 50, [3], 0.6, False, True),
 ]
+
+
+def test_default_anvil_norain():
+    """Tests anvil nowcast with default params and all-zero inputs."""
+
+    # Define dummy nowcast input data
+    precip_input = np.zeros((4, 100, 100))
+
+    pytest.importorskip("cv2")
+    oflow_method = motion.get_method("LK")
+    retrieved_motion = oflow_method(precip_input)
+
+    nowcast_method = nowcasts.get_method("anvil")
+    precip_forecast = nowcast_method(
+        precip_input,
+        retrieved_motion,
+        timesteps=3,
+    )
+
+    assert precip_forecast.ndim == 3
+    assert precip_forecast.shape[0] == 3
+    assert precip_forecast.sum() == 0.0
 
 
 @pytest.mark.parametrize(anvil_arg_names, anvil_arg_values)

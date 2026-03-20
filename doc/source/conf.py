@@ -85,7 +85,7 @@ release = version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -124,6 +124,7 @@ if "READTHEDOCS" in os.environ:
     dir = os.path.abspath(dir)
     subprocess.check_call(["rm", "-rf", dir])
     subprocess.check_call(["git", "clone", repourl, dir])
+    os.environ["PYSTEPS_DATA_PATH"] = dir
     set_root()
     pystepsrc = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
     os.environ["PYSTEPSRC"] = pystepsrc
@@ -217,7 +218,7 @@ latex_preamble = r"""
 latex_elements = {
     "papersize": "a4paper",
     "pointsize": "10pt",
-    "preamble": latex_preamble
+    "preamble": latex_preamble,
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',

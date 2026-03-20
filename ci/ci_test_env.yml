@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.7
+  - python>=3.11
   - pip
   - mamba
   # Minimal dependencies
@@ -26,6 +26,7 @@ dependencies:
   - PyWavelets
   - pandas
   - scikit-image
+  - scikit-learn
   - rasterio
   - gdal
   # Test dependencies

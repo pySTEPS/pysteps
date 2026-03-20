@@ -173,7 +173,7 @@ def extrapolate(
 
     if xy_coords is None:
         x_values, y_values = np.meshgrid(
-            np.arange(velocity.shape[2]), np.arange(velocity.shape[1])
+            np.arange(velocity.shape[2]), np.arange(velocity.shape[1]), copy=False
         )
 
         xy_coords = np.stack([x_values, y_values])
