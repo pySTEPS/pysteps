@@ -21,6 +21,7 @@ available in OpenCV_.
 
 import numpy as np
 from numpy.ma.core import MaskedArray
+import scipy.ndimage as sndi
 import time
 
 from pysteps.decorators import check_input_frames
