@@ -46,6 +46,7 @@ def farneback(
     poly_sigma=1.1,
     flags=0,
     size_opening=3,
+    sigma=60.0,
     verbose=False,
 ):
     """Run the Farneback optical flow routine.
@@ -121,6 +122,12 @@ def farneback(
     size_opening : int, optional
         Non-OpenCV parameter:
         The structuring element size for the filtering of isolated pixels [px].
+
+    sigma : float, optional
+        Non-OpenCV parameter:
+        The smoothing bandwidth of the motion field. The motion field amplitude
+        is adjusted by multiplying by the ratio of average magnitude before and
+        after smoothing to avoid damping of the motion field.
 
     verbose: bool, optional
         If set to True, print some information about the program.
@@ -218,8 +225,17 @@ def farneback(
         fa, fb = np.dsplit(flow, 2)
         u = fa.reshape(domain_size)
         v = fb.reshape(domain_size)
-
-        UV = np.stack([u, v])
+        if sigma > 0:
+            uv2 = u * u + v * v  # squared magnitude of motion field
+            us = sndi.gaussian_filter(u, sigma, mode="nearest")
+            vs = sndi.gaussian_filter(v, signa, mode="nearest")
+            uvs2 = us * us + vs * vs  # squared magnitude of smoothed motion field
+            mult = np.sqrt(np.nanmean(uv2) / np.nanmean(uvs2))
+        else:
+            mult = 1.0
+        if verbose:
+            print("mult factor of smoothed motion field=", mult)
+        UV = np.stack([u * mult, v * mult])
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
