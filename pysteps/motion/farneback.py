@@ -29,9 +29,11 @@ from pysteps.utils.images import morph_opening
 
 try:
     import cv2
+
     cv2_imported = True
 except ImportError:
     cv2_imported = False
+
 
 @check_input_frames(2)
 def farneback(
@@ -142,9 +144,10 @@ def farneback(
     """
 
     if len(input_images.shape) != 3:
-        raise ValueError("input_images has %i dimensions, but a "
-                         "three-dimensional array is expected" 
-                         % len(input_images.shape))
+        raise ValueError(
+            "input_images has %i dimensions, but a "
+            "three-dimensional array is expected" % len(input_images.shape)
+        )
 
     input_images = input_images.copy()
 
@@ -155,7 +158,8 @@ def farneback(
     if not cv2_imported:
         raise MissingOptionalDependency(
             "opencv package is required for the Farneback method "
-            "optical flow method but it is not installed")
+            "optical flow method but it is not installed"
+        )
 
     nr_fields = input_images.shape[0]
     domain_size = (input_images.shape[1], input_images.shape[2])
@@ -169,7 +173,7 @@ def farneback(
         if not isinstance(prvs_img, MaskedArray):
             prvs_img = np.ma.masked_invalid(prvs_img)
         np.ma.set_fill_value(prvs_img, prvs_img.min())
-        
+
         if not isinstance(next_img, MaskedArray):
             next_img = np.ma.masked_invalid(next_img)
         np.ma.set_fill_value(next_img, next_img.min())
@@ -181,14 +185,14 @@ def farneback(
             prvs_img = (prvs_img.filled() - im_min) / (im_max - im_min) * 255
         else:
             prvs_img = prvs_img.filled() - im_min
-    
+
         im_min = next_img.min()
         im_max = next_img.max()
         if (im_max - im_min) > 1e-8:
             next_img = (next_img.filled() - im_min) / (im_max - im_min) * 255
         else:
             next_img = next_img.filled() - im_min
-    
+
         # convert to 8-bit
         prvs_img = np.ndarray.astype(prvs_img, "uint8")
         next_img = np.ndarray.astype(next_img, "uint8")
@@ -198,19 +202,26 @@ def farneback(
             prvs_img = morph_opening(prvs_img, prvs_img.min(), size_opening)
             next_img = morph_opening(next_img, next_img.min(), size_opening)
 
-        flow = cv2.calcOpticalFlowFarneback(prvs_img, next_img, None, 
-                                            pyr_scale, levels, winsize,
-                                            iterations, poly_n, poly_sigma, 
-                                            flags)
-        
-        fa,fb = np.dsplit(flow,2)
+        flow = cv2.calcOpticalFlowFarneback(
+            prvs_img,
+            next_img,
+            None,
+            pyr_scale,
+            levels,
+            winsize,
+            iterations,
+            poly_n,
+            poly_sigma,
+            flags,
+        )
+
+        fa, fb = np.dsplit(flow, 2)
         u = fa.reshape(domain_size)
         v = fb.reshape(domain_size)
-        
-        UV = np.stack([u,v])
+
+        UV = np.stack([u, v])
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
 
     return UV
-

@@ -33,13 +33,13 @@ from pysteps.motion.vet import vet
 from pysteps.motion.farneback import farneback
 
 _methods = dict()
-_methods['constant'] = constant
-_methods['lk'] = dense_lucaskanade
-_methods['lucaskanade'] = dense_lucaskanade
-_methods['darts'] = DARTS
-_methods['proesmans'] = proesmans
-_methods['vet'] = vet
-_methods['farneback'] = farneback
+_methods["constant"] = constant
+_methods["lk"] = dense_lucaskanade
+_methods["lucaskanade"] = dense_lucaskanade
+_methods["darts"] = DARTS
+_methods["proesmans"] = proesmans
+_methods["vet"] = vet
+_methods["farneback"] = farneback
 _methods[None] = lambda precip, *args, **kw: np.zeros(
     (2, precip.shape[1], precip.shape[2])
 )
