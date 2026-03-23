@@ -130,7 +130,7 @@ plt.show()
 #
 # This module implements the anisotropic diffusion method presented in Proesmans
 # et al. (1994), a robust optical flow technique which employs the notion of
-# inconsitency during the solution of the optical flow equations.
+# inconsistency during the solution of the optical flow equations.
 
 oflow_method = motion.get_method("proesmans")
 R[~np.isfinite(R)] = metadata["zerovalue"]
@@ -139,6 +139,23 @@ V4 = oflow_method(R[-2:, :, :])
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="Proesmans")
 quiver(V4, geodata=metadata, step=25)
+plt.show()
+
+################################################################################
+# Farnebäck smoothed method
+# -------------------------
+#
+# This module implements the pyramidal decomposition method for motion estimation
+# of Farnebäck as implemented in OpenCV, with an option for smoothing and
+# renormalization of the motion fields proposed by Driedger.
+
+oflow_method = motion.get_method("farneback")
+R[~np.isfinite(R)] = metadata["zerovalue"]
+V5 = oflow_method(R[-3:, :, :], verbose=True)
+
+# Plot the motion field
+plot_precip_field(R_, geodata=metadata, title="Farneback")
+quiver(V5, geodata=metadata, step=25)
 plt.show()
 
 # sphinx_gallery_thumbnail_number = 1
