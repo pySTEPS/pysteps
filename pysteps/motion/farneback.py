@@ -71,8 +71,7 @@ def farneback(
         assumed to be (time, latitude, longitude).
 
         *T* = 2 is the minimum required number of images.
-        With *T* > 2, all the resulting sparse vectors are pooled together for
-        the final interpolation on a regular grid.
+        With *T* > 2, all the resulting motion vectors are averaged together.
 
         In case of ndarray_, invalid values (Nans or infs) are masked,
         otherwise the mask of the MaskedArray_ is used. Such mask defines a
@@ -169,8 +168,7 @@ def farneback(
             "optical flow method but it is not installed"
         )
 
-    nr_fields = input_images.shape[0]
-    nr_pairs = nr_fields - 1
+    nr_pairs = input_images.shape[0] - 1
     domain_size = (input_images.shape[1], input_images.shape[2])
     u_sum = np.zeros(domain_size)
     v_sum = np.zeros(domain_size)

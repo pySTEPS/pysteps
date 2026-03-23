@@ -75,8 +75,7 @@ def get_method(name):
     |                   | Laroche and Zawadzki (1995) and                      |
     |                   | Germann and Zawadzki (2002)                          |
     +-------------------+------------------------------------------------------+
-    |  farneback        | OpenCV implementation of the Farneback method which  |
-    |                   | is dense (vector at every pixel) by default.         |
+    |  farneback        | OpenCV implementation of the Farneback (2003) method.|
     +-------------------+------------------------------------------------------+
 
     +--------------------------------------------------------------------------+
