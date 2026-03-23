@@ -151,7 +151,7 @@ plt.show()
 
 oflow_method = motion.get_method("farneback")
 R[~np.isfinite(R)] = metadata["zerovalue"]
-V5 = oflow_method(R[-3:, :, :], verbose=True)
+V5 = oflow_method(R[-2:, :, :], verbose=True)
 
 # Plot the motion field
 plot_precip_field(R_, geodata=metadata, title="Farneback")
