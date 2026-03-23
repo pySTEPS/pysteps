@@ -170,9 +170,11 @@ def farneback(
         )
 
     nr_fields = input_images.shape[0]
+    nr_pairs = nr_fields - 1
     domain_size = (input_images.shape[1], input_images.shape[2])
-
-    for n in range(nr_fields - 1):
+    u_sum = np.zeros(domain_size)
+    v_sum = np.zeros(domain_size)
+    for n in range(nr_pairs):
         # extract consecutive images
         prvs_img = input_images[n, :, :].copy()
         next_img = input_images[n + 1, :, :].copy()
@@ -224,19 +226,26 @@ def farneback(
         )
 
         fa, fb = np.dsplit(flow, 2)
-        u = fa.reshape(domain_size)
-        v = fb.reshape(domain_size)
-        if sigma > 0:
-            uv2 = u * u + v * v  # squared magnitude of motion field
-            us = sndi.gaussian_filter(u, sigma, mode="nearest")
-            vs = sndi.gaussian_filter(v, sigma, mode="nearest")
-            uvs2 = us * us + vs * vs  # squared magnitude of smoothed motion field
-            mult = np.sqrt(np.nanmean(uv2) / np.nanmean(uvs2))
-        else:
-            mult = 1.0
-        if verbose:
-            print("mult factor of smoothed motion field=", mult)
-        UV = np.stack([u * mult, v * mult])
+        u_sum += fa.reshape(domain_size)
+        v_sum += fb.reshape(domain_size)
+
+    # Compute the average motion field
+    u = u_sum / nr_pairs
+    v = v_sum / nr_pairs
+
+    # Smoothing
+    if sigma > 0:
+        uv2 = u * u + v * v  # squared magnitude of motion field
+        us = sndi.gaussian_filter(u, sigma, mode="nearest")
+        vs = sndi.gaussian_filter(v, sigma, mode="nearest")
+        uvs2 = us * us + vs * vs  # squared magnitude of smoothed motion field
+        mult = np.sqrt(np.nanmean(uv2) / np.nanmean(uvs2))
+    else:
+        mult = 1.0
+    if verbose:
+        print("mult factor of smoothed motion field=", mult)
+
+    UV = np.stack([us * mult, vs * mult])
 
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
