@@ -239,7 +239,13 @@ def farneback(
         us = sndi.gaussian_filter(u, sigma, mode="nearest")
         vs = sndi.gaussian_filter(v, sigma, mode="nearest")
         uvs2 = us * us + vs * vs  # squared magnitude of smoothed motion field
-        mult = np.sqrt(np.nanmean(uv2) / np.nanmean(uvs2))
+
+        mean_uv2 = np.nanmean(uv2)
+        mean_uvs2 = np.nanmean(uvs2)
+        if mean_uvs2 > 0:
+            mult = np.sqrt(mean_uv2 / mean_uvs2)
+        else:
+            mult = 1.0
     else:
         mult = 1.0
     if verbose:
