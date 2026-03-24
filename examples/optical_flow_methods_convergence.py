@@ -376,7 +376,7 @@ plot_optflow_method_convergence(reference_field, "DARTS", "rotor")
 
 ################################################################################
 # Farneback
-# -----
+# ---------
 #
 # Constant motion x-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
