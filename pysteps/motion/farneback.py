@@ -50,7 +50,17 @@ def farneback(
     sigma=60.0,
     verbose=False,
 ):
-    """Run the Farneback optical flow routine.
+    """Estimate a dense motion field from a sequence of 2D images using
+    the `Farneback`_ optical flow algorithm.
+
+    This function computes dense optical flow between each pair of consecutive
+    input frames using OpenCV's Farneback method. If more than two frames are
+    provided, the motion fields estimated from all consecutive pairs are
+    averaged to obtain a single representative advection field.
+
+    After the pairwise motion fields are averaged, the resulting motion field
+    can optionally be smoothed with a Gaussian filter. In that case, its
+    amplitude is rescaled so that the mean squared flow magnitude is preserved.
 
     .. _OpenCV: https://opencv.org/
 
