@@ -164,6 +164,8 @@ convergence_arg_values = [
     (reference_field, "proesmans", "linear_y", 2, 0.45),
     (reference_field, "darts", "linear_x", 9, 20),
     (reference_field, "darts", "linear_y", 9, 20),
+    (reference_field, "farneback", "linear_x", 2, 50),
+    (reference_field, "farneback", "linear_y", 2, 50),
 ]
 
 
@@ -256,6 +258,7 @@ no_precip_args_values = [
     ("vet", 3),
     ("darts", 9),
     ("proesmans", 2),
+    ("farneback", 2),
 ]
 
 
@@ -296,6 +299,7 @@ input_tests_args_values = [
     ("vet", 2, 3),
     ("darts", 9, 9),
     ("proesmans", 2, 2),
+    ("farneback", 2, np.inf),
 ]
 
 
@@ -303,7 +307,7 @@ input_tests_args_values = [
 def test_input_shape_checks(
     optflow_method_name, minimum_input_frames, maximum_input_frames
 ):
-    if optflow_method_name == "lk":
+    if optflow_method_name in ("lk", "farneback"):
         pytest.importorskip("cv2")
     image_size = 100
     motion_method = motion.get_method(optflow_method_name)
