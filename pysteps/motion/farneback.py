@@ -78,21 +78,20 @@ def farneback(
         region where features are not detected for the tracking algorithm.
 
     pyr_scale : float, optional
-        Parameter specifying the image scale (<1) to build pyramids for each
-        image; pyr_scale=0.5 means a classical pyramid, where each next layer
-        is twice smaller than the previous one.  This and parameter documented 
-        below are taken directly from the original documentation. 
-        (See https://docs.opencv.org).
-        
+        Parameter specifying the image scale (<1) used to build pyramids for
+        each image; pyr_scale=0.5 means a classical pyramid, where each next
+        layer is twice smaller than the previous one. This and the following
+        parameter descriptions are adapted from the original OpenCV
+        documentation (see https://docs.opencv.org).
+
     levels : int, optional
-        number of pyramid layers including the initial image; levels=1 means
+        Number of pyramid layers including the initial image; levels=1 means
         that no extra layers are created and only the original images are used.
-        
+
     winsize : int, optional
         Averaging window size; larger values increase the algorithm robustness
-        to image noise and give more 
-        Small windows (e.g. 10) lead to unrealistic motion.
-        
+        to image noise and give more stable motion estimates. Small windows
+        (e.g. 10) lead to unrealistic motion.
     iterations : int, optional
         Number of iterations the algorithm does at each pyramid level.
         
