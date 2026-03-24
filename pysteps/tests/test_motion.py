@@ -393,8 +393,14 @@ def test_vet_cost_function():
     assert (returned_values[0] - 1548250.87627097) < 0.001
 
 
-@pytest.mark.parametrize("method", ["LK", "farneback"])
-def test_motion_masked_array(method):
+@pytest.mark.parametrize(
+    "method,kwargs",
+    [
+        ("LK", {"fd_kwargs": {"buffer_mask": 20}, "verbose": False}),
+        ("farneback", {"verbose": False}),
+    ],
+)
+def test_motion_masked_array(method, kwargs):
     """
     Passing a ndarray with NaNs or a masked array should produce the same results.
     Tests for both LK and Farneback motion estimation methods.
@@ -410,11 +416,11 @@ def test_motion_masked_array(method):
     np.ma.set_fill_value(precip_obs, -15)
     ndarray = precip_obs.filled()
     ndarray[ndarray == -15] = np.nan
-    uv_ndarray = motion_method(ndarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
+    uv_ndarray = motion_method(ndarray, **kwargs)
 
     # masked array
     mdarray = np.ma.masked_invalid(ndarray)
     mdarray.data[mdarray.mask] = -15
-    uv_mdarray = motion_method(mdarray, fd_kwargs={"buffer_mask": 20}, verbose=False)
+    uv_mdarray = motion_method(mdarray, **kwargs)
 
     assert np.abs(uv_mdarray - uv_ndarray).max() < 0.01
