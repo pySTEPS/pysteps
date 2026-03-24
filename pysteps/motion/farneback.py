@@ -161,7 +161,7 @@ def farneback(
         print("Computing the motion field with the Farneback method.")
         t0 = time.time()
 
-    if not cv2_imported:
+    if not CV2_IMPORTED:
         raise MissingOptionalDependency(
             "OpenCV (cv2) is required for the Farneback optical flow method, but it is not installed"
         )
