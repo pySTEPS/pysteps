@@ -164,8 +164,7 @@ def farneback(
 
     if not cv2_imported:
         raise MissingOptionalDependency(
-            "opencv package is required for the Farneback method "
-            "optical flow method but it is not installed"
+            "OpenCV (cv2) is required for the Farneback optical flow method, but it is not installed"
         )
 
     nr_pairs = input_images.shape[0] - 1
