@@ -246,6 +246,8 @@ def farneback(
             mult = 1.0
     else:
         mult = 1.0
+        us = u
+        vs = v
     if verbose:
         print("mult factor of smoothed motion field=", mult)
 
