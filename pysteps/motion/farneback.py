@@ -31,9 +31,9 @@ from pysteps.utils.images import morph_opening
 try:
     import cv2
 
-    cv2_imported = True
+    CV2_IMPORTED = True
 except ImportError:
-    cv2_imported = False
+    CV2_IMPORTED = False
 
 
 @check_input_frames(2)
