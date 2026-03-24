@@ -115,9 +115,9 @@ def farneback(
 
         OPTFLOW_FARNEBACK_GAUSSIAN uses the Gaussian winsize x winsize filter
         instead of a box filter of the same size for optical flow estimation;
-        usually, this option gives z more accurate flow that with a box filter,
+        usually, this option gives a more accurate flow than with a box filter,
         at the cost of lower speed; normally, winsize for a Gaussian window
-        should be set to larger value to achieve the same level of robustness.
+        should be set to a larger value to achieve the same level of robustness.
         
     size_opening : int, optional
         Non-OpenCV parameter:
