@@ -147,7 +147,8 @@ plt.show()
 #
 # This module implements the pyramidal decomposition method for motion estimation
 # of Farnebäck as implemented in OpenCV, with an option for smoothing and
-# renormalization of the motion fields proposed by N. Driedger.
+# renormalization of the motion fields proposed by Driedger et al.:
+# https://cmosarchives.ca/Congress_P_A/program_abstracts2022.pdf (p. 392).
 
 oflow_method = motion.get_method("farneback")
 R[~np.isfinite(R)] = metadata["zerovalue"]
