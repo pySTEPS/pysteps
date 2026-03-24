@@ -60,7 +60,7 @@ def farneback(
 
     After the pairwise motion fields are averaged, the resulting motion field
     can optionally be smoothed with a Gaussian filter. In that case, its
-    amplitude is rescaled so that the mean squared flow magnitude is preserved.
+    amplitude is rescaled so that the mean motion magnitude is preserved.
 
     .. _OpenCV: https://opencv.org/
 
