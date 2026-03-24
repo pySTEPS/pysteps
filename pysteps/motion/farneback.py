@@ -156,7 +156,9 @@ def farneback(
     ----------
     Farnebäck, G.: Two-frame motion estimation based on polynomial expansion, 
     In Image Analysis, pages 363–370. Springer, 2003.
-
+    Driedger, N., Mahidjiba, A. and Hortal, A.P. (2022, June 1-8): Evaluation of optical flow
+    methods for radar precipitation extrapolation.
+    Canadian Meteorological and Oceanographic Society Congress, contributed abstract 11801.
     """
 
     if len(input_images.shape) != 3:
