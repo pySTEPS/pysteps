@@ -393,16 +393,18 @@ def test_vet_cost_function():
     assert (returned_values[0] - 1548250.87627097) < 0.001
 
 
-def test_lk_masked_array():
+@pytest.mark.parametrize("method", ["LK", "farneback"])
+def test_motion_masked_array(method):
     """
     Passing a ndarray with NaNs or a masked array should produce the same results.
+    Tests for both LK and Farneback motion estimation methods.
     """
     pytest.importorskip("cv2")
 
     __, precip_obs = _create_observations(
         reference_field.copy(), "linear_y", num_times=2
     )
-    motion_method = motion.get_method("LK")
+    motion_method = motion.get_method(method)
 
     # ndarray with nans
     np.ma.set_fill_value(precip_obs, -15)
