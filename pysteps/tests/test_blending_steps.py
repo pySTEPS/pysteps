@@ -426,3 +426,155 @@ def test_steps_blending(
     assert (
         precip_forecast.shape[1] == n_timesteps
     ), "Wrong amount of output time steps in converted forecast output"
+
+    ### Add another test for observations that are 0 at last time step and non-zero before that
+    radar_precip_zero_latest = radar_precip.copy()
+    radar_precip_zero_latest[-1] = metadata["zerovalue"]
+
+    ###
+    # The blending
+    ###
+    precip_forecast = blending.steps.forecast(
+        precip=radar_precip_zero_latest,
+        precip_models=nwp_precip_decomp,
+        velocity=radar_velocity,
+        velocity_models=nwp_velocity,
+        timesteps=timesteps,
+        timestep=5.0,
+        issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
+        n_ens_members=n_ens_members,
+        n_cascade_levels=n_cascade_levels,
+        blend_nwp_members=blend_nwp_members,
+        precip_thr=metadata["threshold"],
+        kmperpixel=1.0,
+        extrap_method="semilagrangian",
+        decomp_method="fft",
+        bandpass_filter_method="gaussian",
+        noise_method="nonparametric",
+        noise_stddev_adj="auto",
+        ar_order=2,
+        vel_pert_method=vel_pert_method,
+        weights_method=weights_method,
+        timestep_start_full_nwp_weight=timestep_start_full_nwp_weight,
+        conditional=False,
+        probmatching_method=probmatching_method,
+        mask_method=mask_method,
+        resample_distribution=resample_distribution,
+        smooth_radar_mask_range=smooth_radar_mask_range,
+        callback=None,
+        return_output=True,
+        seed=None,
+        num_workers=1,
+        fft_method="numpy",
+        domain="spatial",
+        outdir_path_skill=outdir_path_skill,
+        extrap_kwargs=None,
+        filter_kwargs=None,
+        noise_kwargs=None,
+        vel_pert_kwargs=None,
+        clim_kwargs=clim_kwargs,
+        mask_kwargs=mask_kwargs,
+        measure_time=False,
+    )
+
+    assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
+
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in forecast output"
+
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in forecast output"
+
+    # Transform the data back into mm/h
+    precip_forecast, _ = converter(precip_forecast, metadata)
+
+    assert (
+        precip_forecast.ndim == 4
+    ), "Wrong amount of dimensions in converted forecast output"
+
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in converted forecast output"
+
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in converted forecast output"
+
+    ### Add the case where the precip observation is non-zero for the latest time step but 0 before
+    radar_precip_zero_previous = radar_precip.copy()
+    radar_precip_zero_previous[:-1] = metadata["zerovalue"]
+
+    ###
+    # The blending
+    ###
+    precip_forecast = blending.steps.forecast(
+        precip=radar_precip_zero_previous,
+        precip_models=nwp_precip_decomp,
+        velocity=radar_velocity,
+        velocity_models=nwp_velocity,
+        timesteps=timesteps,
+        timestep=5.0,
+        issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
+        n_ens_members=n_ens_members,
+        n_cascade_levels=n_cascade_levels,
+        blend_nwp_members=blend_nwp_members,
+        precip_thr=metadata["threshold"],
+        kmperpixel=1.0,
+        extrap_method="semilagrangian",
+        decomp_method="fft",
+        bandpass_filter_method="gaussian",
+        noise_method="nonparametric",
+        noise_stddev_adj="auto",
+        ar_order=2,
+        vel_pert_method=vel_pert_method,
+        weights_method=weights_method,
+        timestep_start_full_nwp_weight=timestep_start_full_nwp_weight,
+        conditional=False,
+        probmatching_method=probmatching_method,
+        mask_method=mask_method,
+        resample_distribution=resample_distribution,
+        smooth_radar_mask_range=smooth_radar_mask_range,
+        callback=None,
+        return_output=True,
+        seed=None,
+        num_workers=1,
+        fft_method="numpy",
+        domain="spatial",
+        outdir_path_skill=outdir_path_skill,
+        extrap_kwargs=None,
+        filter_kwargs=None,
+        noise_kwargs=None,
+        vel_pert_kwargs=None,
+        clim_kwargs=clim_kwargs,
+        mask_kwargs=mask_kwargs,
+        measure_time=False,
+    )
+
+    assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
+
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in forecast output"
+
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in forecast output"
+
+    # Transform the data back into mm/h
+    precip_forecast, _ = converter(precip_forecast, metadata)
+
+    assert (
+        precip_forecast.ndim == 4
+    ), "Wrong amount of dimensions in converted forecast output"
+
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in converted forecast output"
+
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in converted forecast output"
+
+
