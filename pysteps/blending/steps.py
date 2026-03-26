@@ -1196,12 +1196,21 @@ class StepsBlendingNowcaster:
             self.__precip_models = np.stack(temp_precip_models)
 
         # Check for zero input fields in the radar, nowcast and NWP data.
+        # decide based on latest input file only
         self.__params.zero_precip_radar = check_norain(
-            self.__precip,
+            self.__precip[-1],
             self.__params.precip_threshold,
             self.__config.norain_threshold,
             self.__params.noise_kwargs["win_fun"],
         )
+        # Set all inputs to 0 (also previous times)
+        # not strictly necessary but to be consistent with checking only
+        # latest observation rain field to set zero_precip_radar
+        if self.__params.zero_precip_radar:
+            self.__precip = np.where(np.isfinite(self.__precip),
+                np.ones(self.__precip.shape)*np.nanmin(self.__precip),
+                self.__precip
+            )
 
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
@@ -1481,6 +1490,7 @@ class StepsBlendingNowcaster:
 
             # Finally, transpose GAMMA to ensure that the shape is the same as np.empty((n_cascade_levels, ar_order))
             GAMMA = GAMMA.transpose()
+            if len(GAMMA.shape)==1: GAMMA = GAMMA.reshape((GAMMA.size,1))
             assert GAMMA.shape == (
                 self.__config.n_cascade_levels,
                 self.__config.ar_order,
@@ -3625,6 +3635,11 @@ def forecast(
     turns out to be a warranted functionality.
     """
 
+    # Check the input precip and ar_order to be consistent
+    # zero-precip in previous time steps has to be removed
+    # (constant field causes autoregression to fail)
+    precip, ar_order = check_previous_radar_obs(precip,ar_order)
+
     blending_config = StepsBlendingConfig(
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
@@ -3684,6 +3699,52 @@ def forecast(
 
     forecast_steps_nowcast = blended_nowcaster.compute_forecast()
     return forecast_steps_nowcast
+
+
+# TODO: Where does this piece of code best fit: in utils or inside the class?
+def check_previous_radar_obs(precip,ar_order):
+    """Check all radar time steps and remove zero precipitation time steps
+    
+    Parameters
+    ----------
+    precip : array-like
+      Array of shape (ar_order+1,m,n) containing the input precipitation fields
+      ordered by timestamp from oldest to newest. The time steps between the
+      inputs are assumed to be regular.
+    ar_order : int
+      The order of the autoregressive model to use. Must be >= 1.
+
+    Returns
+    -------
+    precip : numpy array
+      Array of shape (ar_order+1,m,n) containing the modified array with 
+      input precipitation fields ordered by timestamp from oldest to newest.
+      The time steps between the inputs are assumed to be regular.
+    ar_order : int
+      The order of the autoregressive model to use. Must be >= 1.
+      Adapted to match with precip.shape equal (ar_order+1,m,n).
+    """
+    # Quick check radar input - at least 2 time steps
+    assert precip.shape[0] >= 2
+
+    # Check all time steps for zero-precip (constant field, minimum==maximum)
+    zero_precip = [np.nanmin(obs)==np.nanmax(obs) for obs in precip]
+    if zero_precip[-1] or ~np.any(zero_precip):
+        # Unchanged if no rain in latest time step -> will be processed as zero_precip_radar=True
+        # or Unchanged if all time steps contain rain
+        return precip, ar_order
+    elif zero_precip[-2]:
+        # try to use a previous time step
+        if not np.all(zero_precip[:-2]):
+            # find latest non-zero precip
+            # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
+            prev = np.arange(len(zero_precip[:-2]))[~zero_precip][-1]
+            return precip[[prev,-1]], 1
+        raise ValueError("Precipitation in latest but no previous time step. Not possible to calculate autoregression.")
+    else:
+        # Keep the latest time steps that do all contain precip
+        precip = precip[np.max(np.arange(len(zero_precip))[zero_precip])+1:].copy()
+        return  precip, min(ar_order,precip.shape[0]-1)
 
 
 # TODO: Where does this piece of code best fit: in utils or inside the class?
