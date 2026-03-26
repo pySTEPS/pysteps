@@ -3738,7 +3738,7 @@ def check_previous_radar_obs(precip,ar_order):
         if not np.all(zero_precip[:-2]):
             # find latest non-zero precip
             # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
-            prev = np.arange(len(zero_precip[:-2]))[~zero_precip][-1]
+            prev = np.arange(len(zero_precip[:-2]))[~np.array(zero_precip[:-2])][-1]
             return precip[[prev,-1]], 1
         raise ValueError("Precipitation in latest but no previous time step. Not possible to calculate autoregression.")
     else:
