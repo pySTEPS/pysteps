@@ -1207,9 +1207,10 @@ class StepsBlendingNowcaster:
         # not strictly necessary but to be consistent with checking only
         # latest observation rain field to set zero_precip_radar
         if self.__params.zero_precip_radar:
-            self.__precip = np.where(np.isfinite(self.__precip),
-                np.ones(self.__precip.shape)*np.nanmin(self.__precip),
-                self.__precip
+            self.__precip = np.where(
+                np.isfinite(self.__precip),
+                np.ones(self.__precip.shape) * np.nanmin(self.__precip),
+                self.__precip,
             )
 
         # The norain fraction threshold used for nwp is the default value of 0.0,
@@ -1490,7 +1491,8 @@ class StepsBlendingNowcaster:
 
             # Finally, transpose GAMMA to ensure that the shape is the same as np.empty((n_cascade_levels, ar_order))
             GAMMA = GAMMA.transpose()
-            if len(GAMMA.shape)==1: GAMMA = GAMMA.reshape((GAMMA.size,1))
+            if len(GAMMA.shape) == 1:
+                GAMMA = GAMMA.reshape((GAMMA.size, 1))
             assert GAMMA.shape == (
                 self.__config.n_cascade_levels,
                 self.__config.ar_order,
@@ -3638,7 +3640,7 @@ def forecast(
     # Check the input precip and ar_order to be consistent
     # zero-precip in previous time steps has to be removed
     # (constant field causes autoregression to fail)
-    precip, ar_order = check_previous_radar_obs(precip,ar_order)
+    precip, ar_order = check_previous_radar_obs(precip, ar_order)
 
     blending_config = StepsBlendingConfig(
         n_ens_members=n_ens_members,
@@ -3702,9 +3704,9 @@ def forecast(
 
 
 # TODO: Where does this piece of code best fit: in utils or inside the class?
-def check_previous_radar_obs(precip,ar_order):
+def check_previous_radar_obs(precip, ar_order):
     """Check all radar time steps and remove zero precipitation time steps
-    
+
     Parameters
     ----------
     precip : array-like
@@ -3717,7 +3719,7 @@ def check_previous_radar_obs(precip,ar_order):
     Returns
     -------
     precip : numpy array
-      Array of shape (ar_order+1,m,n) containing the modified array with 
+      Array of shape (ar_order+1,m,n) containing the modified array with
       input precipitation fields ordered by timestamp from oldest to newest.
       The time steps between the inputs are assumed to be regular.
     ar_order : int
@@ -3728,7 +3730,7 @@ def check_previous_radar_obs(precip,ar_order):
     assert precip.shape[0] >= 2
 
     # Check all time steps for zero-precip (constant field, minimum==maximum)
-    zero_precip = [np.nanmin(obs)==np.nanmax(obs) for obs in precip]
+    zero_precip = [np.nanmin(obs) == np.nanmax(obs) for obs in precip]
     if zero_precip[-1] or ~np.any(zero_precip):
         # Unchanged if no rain in latest time step -> will be processed as zero_precip_radar=True
         # or Unchanged if all time steps contain rain
@@ -3739,12 +3741,14 @@ def check_previous_radar_obs(precip,ar_order):
             # find latest non-zero precip
             # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
             prev = np.arange(len(zero_precip[:-2]))[~np.array(zero_precip[:-2])][-1]
-            return precip[[prev,-1]], 1
-        raise ValueError("Precipitation in latest but no previous time step. Not possible to calculate autoregression.")
+            return precip[[prev, -1]], 1
+        raise ValueError(
+            "Precipitation in latest but no previous time step. Not possible to calculate autoregression."
+        )
     else:
         # Keep the latest time steps that do all contain precip
-        precip = precip[np.max(np.arange(len(zero_precip))[zero_precip])+1:].copy()
-        return  precip, min(ar_order,precip.shape[0]-1)
+        precip = precip[np.max(np.arange(len(zero_precip))[zero_precip]) + 1 :].copy()
+        return precip, min(ar_order, precip.shape[0] - 1)
 
 
 # TODO: Where does this piece of code best fit: in utils or inside the class?
