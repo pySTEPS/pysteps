@@ -374,4 +374,22 @@ plot_optflow_method_convergence(reference_field, "DARTS", "linear_y")
 # ~~~~~~~~~~~~~~~~~
 plot_optflow_method_convergence(reference_field, "DARTS", "rotor")
 
+################################################################################
+# Farneback
+# ---------
+#
+# Constant motion x-direction
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+plot_optflow_method_convergence(reference_field, "farneback", "linear_x")
+
+################################################################################
+# Constant motion y-direction
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+plot_optflow_method_convergence(reference_field, "farneback", "linear_y")
+
+################################################################################
+# Rotational motion
+# ~~~~~~~~~~~~~~~~~
+plot_optflow_method_convergence(reference_field, "farneback", "rotor")
+
 # sphinx_gallery_thumbnail_number = 5
