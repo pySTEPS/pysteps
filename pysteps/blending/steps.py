@@ -1641,13 +1641,23 @@ class StepsBlendingNowcaster:
             )
 
         # initizalize the current and previous extrapolation forecast scale for the nowcasting component
-        # phi1 / (1 - phi2), see BPS2004
+        # ar_order=1: rho = phi1
+        # ar_order=2: rho = phi1 / (1 - phi2)
+        #   -> see Hamilton1984, Pulkinen2019, BPS2004 (Yule-Walker equations)
         self.__state.rho_extrap_cascade_prev = np.repeat(
             1.0, self.__params.PHI.shape[0]
         )
-        self.__state.rho_extrap_cascade = self.__params.PHI[:, 0] / (
-            1.0 - self.__params.PHI[:, 1]
-        )
+        if self.__config.ar_order == 1:
+            self.__state.rho_extrap_cascade = self.__params.PHI[:, 0]
+        elif self.__config.ar_order == 2:
+            self.__state.rho_extrap_cascade = self.__params.PHI[:, 0] / (
+                1.0 - self.__params.PHI[:, 1]
+            )
+        else:
+            raise ValueError(
+                "Autoregression of higher order than 2 is not defined. Please set ar_order = 2."
+            ) 
+
 
     def __initialize_noise_cascades(self):
         """

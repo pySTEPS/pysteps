@@ -136,7 +136,7 @@ def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=
     return rho
 
 
-def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=None):
+def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=None, ar_order=2):
     """Determine the correlation of the extrapolation (nowcast) component for
     lead time lt and cascade k, by assuming that the correlation determined at
     t=0 regresses towards the climatological values.
@@ -153,6 +153,8 @@ def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=Non
         be found from the AR-2 model.
     correlations_prev : array-like, optional
         Similar to correlations, but from the timestep before that.
+    ar_order : int, optional
+        The order of the autoregressive model to use. Must be >= 1.
 
     Returns
     -------
@@ -170,12 +172,22 @@ def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=Non
     if correlations_prev is None:
         correlations_prev = np.repeat(1.0, PHI.shape[0])
     # Same for correlations at first time step, we set it to
-    # phi1 / (1 - phi2), see BPS2004
-    if correlations is None:
-        correlations = PHI[:, 0] / (1.0 - PHI[:, 1])
-
-    # Calculate the correlation for lead time lt
-    rho = PHI[:, 0] * correlations + PHI[:, 1] * correlations_prev
+    if ar_order == 1:
+        # Yule-Walker equation for AR-1 model -> just PHI
+        if correlations is None:
+            correlations = PHI[:, 0]
+        # Calculate the correlation for lead time lt (AR-1)
+        rho = PHI[:, 0] * correlations
+    elif ar_order == 2:
+        # phi1 / (1 - phi2), see BPS2004
+        if correlations is None:
+            correlations = PHI[:, 0] / (1.0 - PHI[:, 1])
+        # Calculate the correlation for lead time lt (AR-2)
+        rho = PHI[:, 0] * correlations + PHI[:, 1] * correlations_prev
+    else:
+        raise ValueError(
+            "Autoregression of higher order than 2 is not defined. Please set ar_order = 2."
+        )
 
     # Finally, set the current correlations array as the previous one for the
     # next time step
