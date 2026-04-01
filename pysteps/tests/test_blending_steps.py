@@ -446,7 +446,7 @@ def test_steps_blending(
 
 @pytest.mark.parametrize("ar_order", [1, 2])
 def test_steps_blending_partial_zero_radar(ar_order):
-    """Test that a forecast succeeds when only the latest radar frame has
+    """Test that a forecast succeeds when only the 2 latest radar frames have
     precipitation (initiating cell corner case that produces NaN autocorrelations
     for the earlier, all-zero cascade levels)."""
     pytest.importorskip("cv2")
@@ -473,10 +473,14 @@ def test_steps_blending_partial_zero_radar(ar_order):
 
     # Build radar data: only the latest (most recent) frame has precipitation
     radar_precip = np.zeros((3, 200, 200))
-    radar_precip[2, 30:155, 32] = 1.0
-    radar_precip[2, 30:155, 33] = 5.0
-    radar_precip[2, 30:155, 34] = 5.0
-    radar_precip[2, 30:155, 35] = 4.5
+    radar_precip[-2, 40:125, 30] = 0.5
+    radar_precip[-2, 40:125, 31] = 4.5
+    radar_precip[-2, 40:125, 32] = 4.0
+    radar_precip[-2, 40:125, 33] = 2.0
+    radar_precip[-1, 30:155, 32] = 1.0
+    radar_precip[-1, 30:155, 33] = 5.0
+    radar_precip[-1, 30:155, 34] = 5.0
+    radar_precip[-1, 30:155, 35] = 4.5
 
     # Threshold, convert and transform
     radar_precip[radar_precip < metadata["threshold"]] = 0.0
