@@ -1643,7 +1643,7 @@ class StepsBlendingNowcaster:
         # initizalize the current and previous extrapolation forecast scale for the nowcasting component
         # ar_order=1: rho = phi1
         # ar_order=2: rho = phi1 / (1 - phi2)
-        #   -> see Hamilton1984, Pulkinen2019, BPS2004 (Yule-Walker equations)
+        #   -> see Hamilton1994, Pulkkinen2019, BPS2004 (Yule-Walker equations)
         self.__state.rho_extrap_cascade_prev = np.repeat(
             1.0, self.__params.PHI.shape[0]
         )
@@ -3750,6 +3750,7 @@ def check_previous_radar_obs(precip, ar_order):
         if not np.all(zero_precip[:-2]):
             # find latest non-zero precip
             # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
+            print("[WARNING] Radar input time steps adapted and ar_order set to 1.")
             prev = np.arange(len(zero_precip[:-2]))[~np.array(zero_precip[:-2])][-1]
             return precip[[prev, -1]], 1
         raise ValueError(
