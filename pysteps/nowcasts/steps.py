@@ -1582,7 +1582,7 @@ def check_previous_radar_obs(precip, ar_order):
         if not np.all(zero_precip[:-2]):
             # find latest non-zero precip
             # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
-            print("[WARNING] Radar input time steps adapted and ar_order set to 1.")
+            print("[WARNING] Radar input time steps adapted and ar_order set to 1. Input delta time changed.")
             prev = np.arange(len(zero_precip[:-2]))[~np.array(zero_precip[:-2])][-1]
             return precip[[prev, -1]], 1
         raise ValueError(
@@ -1591,4 +1591,7 @@ def check_previous_radar_obs(precip, ar_order):
     else:
         # Keep the latest time steps that do all contain precip
         precip = precip[np.max(np.arange(len(zero_precip))[zero_precip]) + 1 :].copy()
+        if precip.shape[0]-1 < ar_order:
+            # Give a warning
+            print(f"[WARNING] Radar input only with {precip.shape[0]} non-zero time steps and ar_order set to {precip.shape[0]-1}.")
         return precip, min(ar_order, precip.shape[0] - 1)
