@@ -1,10 +1,10 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
 
-from pysteps import io, motion, nowcasts, verification
+from pysteps import cascade, io, motion, nowcasts, utils, verification
 from pysteps.tests.helpers import get_precipitation_fields
 
 steps_arg_names = (
@@ -192,3 +192,345 @@ def test_steps_callback(tmp_path):
     timestamps = [startdate + (i + 1) * td for i in range(n_timesteps)]
     assert (metadata_netcdf["leadtimes"] == leadtimes).all(), "Wrong leadtimes"
     assert (metadata_netcdf["timestamps"] == timestamps).all(), "Wrong timestamps"
+
+
+def run_and_assert_forecast(
+    precip, forecast_kwargs, expected_n_ens_members, n_timesteps, converter, metadata
+):
+    """Run a pysteps nowcast and assert the output has the expected shape."""
+    precip_forecast = nowcasts.steps.forecast(precip=precip, **forecast_kwargs)
+
+    assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in forecast output"
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in forecast output"
+
+    # Transform the data back into mm/h
+    precip_forecast, _ = converter(precip_forecast, metadata)
+
+    assert (
+        precip_forecast.ndim == 4
+    ), "Wrong amount of dimensions in converted forecast output"
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in converted forecast output"
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in converted forecast output"
+
+
+@pytest.mark.parametrize(steps_arg_names, steps_arg_values)
+def test_steps_nowcast(
+    timesteps,
+    n_ens_members,
+    n_cascade_levels,
+    nowcasting_method,
+    mask_method,
+    probmatching_method,
+    expected_n_ens_members,
+    zero_radar,
+    smooth_radar_mask_range,
+    resample_distribution,
+    vel_pert_method,
+    max_mask_rim,
+):
+    pytest.importorskip("cv2")
+
+    ###
+    # The input data
+    ###
+    # Initialise dummy NWP data
+    if not isinstance(timesteps, int):
+        n_timesteps = len(timesteps)
+        last_timestep = timesteps[-1]
+    else:
+        n_timesteps = timesteps
+        last_timestep = timesteps
+
+    # Define dummy nowcast input data
+    radar_precip = np.zeros((3, 200, 200))
+
+    if not zero_radar:
+        for i in range(2):
+            radar_precip[i, 5:150, 30 + 1 * i] = 0.1
+            radar_precip[i, 5:150, 31 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 32 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 33 + 1 * i] = 5.0
+            radar_precip[i, 5:150, 34 + 1 * i] = 5.0
+            radar_precip[i, 5:150, 35 + 1 * i] = 4.5
+            radar_precip[i, 5:150, 36 + 1 * i] = 4.5
+            radar_precip[i, 5:150, 37 + 1 * i] = 4.0
+            radar_precip[i, 5:150, 38 + 1 * i] = 1.0
+            radar_precip[i, 5:150, 39 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 40 + 1 * i] = 0.5
+            radar_precip[i, 5:150, 41 + 1 * i] = 0.1
+        radar_precip[2, 30:155, 30 + 1 * 2] = 0.1
+        radar_precip[2, 30:155, 31 + 1 * 2] = 0.1
+        radar_precip[2, 30:155, 32 + 1 * 2] = 1.0
+        radar_precip[2, 30:155, 33 + 1 * 2] = 5.0
+        radar_precip[2, 30:155, 34 + 1 * 2] = 5.0
+        radar_precip[2, 30:155, 35 + 1 * 2] = 4.5
+        radar_precip[2, 30:155, 36 + 1 * 2] = 4.5
+        radar_precip[2, 30:155, 37 + 1 * 2] = 4.0
+        radar_precip[2, 30:155, 38 + 1 * 2] = 2.0
+        radar_precip[2, 30:155, 39 + 1 * 2] = 1.0
+        radar_precip[2, 30:155, 40 + 1 * 3] = 0.5
+        radar_precip[2, 30:155, 41 + 1 * 3] = 0.1
+
+    precip_nowcast = np.zeros((n_ens_members, last_timestep + 1, 200, 200))
+
+    if nowcasting_method == "external_nowcast_ens":
+        nowcasting_method = "external_nowcast"
+        for n_ens_member in range(n_ens_members):
+            for i in range(precip_nowcast.shape[1]):
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 30 + 1 * (i + 1) * n_ens_member
+                ] = 0.1
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 31 + 1 * (i + 1) * n_ens_member
+                ] = 0.5
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 32 + 1 * (i + 1) * n_ens_member
+                ] = 0.5
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 33 + 1 * (i + 1) * n_ens_member
+                ] = 5.0
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 34 + 1 * (i + 1) * n_ens_member
+                ] = 5.0
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 35 + 1 * (i + 1) * n_ens_member
+                ] = 4.5
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 36 + 1 * (i + 1) * n_ens_member
+                ] = 4.5
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 37 + 1 * (i + 1) * n_ens_member
+                ] = 4.0
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 38 + 1 * (i + 1) * n_ens_member
+                ] = 1.0
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 39 + 1 * (i + 1) * n_ens_member
+                ] = 0.5
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 40 + 1 * (i + 1) * n_ens_member
+                ] = 0.5
+                precip_nowcast[
+                    n_ens_member, i, 30:165, 41 + 1 * (i + 1) * n_ens_member
+                ] = 0.1
+        if n_ens_members < expected_n_ens_members:
+            n_ens_members = expected_n_ens_members
+
+    elif nowcasting_method == "external_nowcast_det":
+        nowcasting_method = "external_nowcast"
+        for i in range(precip_nowcast.shape[1]):
+            precip_nowcast[0, i, 30:165, 30 + 1 * i] = 0.1
+            precip_nowcast[0, i, 30:165, 31 + 1 * i] = 0.5
+            precip_nowcast[0, i, 30:165, 32 + 1 * i] = 0.5
+            precip_nowcast[0, i, 30:165, 33 + 1 * i] = 5.0
+            precip_nowcast[0, i, 30:165, 34 + 1 * i] = 5.0
+            precip_nowcast[0, i, 30:165, 35 + 1 * i] = 4.5
+            precip_nowcast[0, i, 30:165, 36 + 1 * i] = 4.5
+            precip_nowcast[0, i, 30:165, 37 + 1 * i] = 4.0
+            precip_nowcast[0, i, 30:165, 38 + 1 * i] = 1.0
+            precip_nowcast[0, i, 30:165, 39 + 1 * i] = 0.5
+            precip_nowcast[0, i, 30:165, 40 + 1 * i] = 0.5
+            precip_nowcast[0, i, 30:165, 41 + 1 * i] = 0.1
+
+    metadata = dict()
+    metadata["unit"] = "mm"
+    metadata["transformation"] = "dB"
+    metadata["accutime"] = 5.0
+    metadata["transform"] = "dB"
+    metadata["zerovalue"] = 0.0
+    metadata["threshold"] = 0.01
+    metadata["zr_a"] = 200.0
+    metadata["zr_b"] = 1.6
+
+    # Also set the outdir_path, clim_kwargs and mask_kwargs
+    outdir_path_skill = "./tmp/"
+
+    if max_mask_rim is not None:
+        mask_kwargs = dict({"mask_rim": 10, "max_mask_rim": max_mask_rim})
+    else:
+        mask_kwargs = None
+
+    ###
+    # First threshold the data and convert it to dBR
+    ###
+    # threshold the data
+    radar_precip[radar_precip < metadata["threshold"]] = 0.0
+
+    # convert the data
+    converter = utils.get_method("mm/h")
+    radar_precip, _ = converter(radar_precip, metadata)
+
+    # transform the data
+    transformer = utils.get_method(metadata["transformation"])
+    radar_precip, _ = transformer(radar_precip, metadata)
+
+    # set NaN equal to zero
+    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
+
+    assert (
+        np.any(~np.isfinite(radar_precip)) == False
+    ), "There are still infinite values in the input radar data"
+
+    ###
+    # Decompose the R_NWP data
+    ###
+
+    # Initial decomposition settings
+    decomp_method, _ = cascade.get_method("fft")
+    bandpass_filter_method = "gaussian"
+    precip_shape = radar_precip.shape[1:]
+    filter_method = cascade.get_method(bandpass_filter_method)
+    bp_filter = filter_method(precip_shape, n_cascade_levels)
+
+    ###
+    # Determine the velocity fields
+    ###
+    oflow_method = motion.get_method("lucaskanade")
+    radar_velocity = oflow_method(radar_precip)
+
+    ###
+    # Shared forecast kwargs
+    ###
+    forecast_kwargs = dict(
+        velocity=radar_velocity,
+        timesteps=timesteps,
+        timestep=5.0,
+        issuetime=datetime.strptime("202112012355", "%Y%m%d%H%M"),
+        n_ens_members=n_ens_members,
+        n_cascade_levels=n_cascade_levels,
+        precip_thr=metadata["threshold"],
+        kmperpixel=1.0,
+        extrap_method="semilagrangian",
+        decomp_method="fft",
+        bandpass_filter_method="gaussian",
+        noise_method="nonparametric",
+        noise_stddev_adj="auto",
+        ar_order=2,
+        vel_pert_method=vel_pert_method,
+        conditional=False,
+        probmatching_method=probmatching_method,
+        mask_method=mask_method,
+        resample_distribution=resample_distribution,
+        smooth_radar_mask_range=smooth_radar_mask_range,
+        callback=None,
+        return_output=True,
+        seed=None,
+        num_workers=1,
+        fft_method="numpy",
+        domain="spatial",
+        outdir_path_skill=outdir_path_skill,
+        extrap_kwargs=None,
+        filter_kwargs=None,
+        noise_kwargs=None,
+        vel_pert_kwargs=None,
+        mask_kwargs=mask_kwargs,
+        measure_time=False,
+    )
+
+    ###
+    # The Nowcast
+    ###
+    # Test with full radar data
+    run_and_assert_forecast(
+        radar_precip,
+        forecast_kwargs,
+        expected_n_ens_members,
+        n_timesteps,
+        converter,
+        metadata,
+    )
+
+
+@pytest.mark.parametrize("ar_order", [1, 2])
+def test_steps_nowcast_partial_zero_radar(ar_order):
+    """Test that a forecast succeeds when only the 2 latest radar frames have
+    precipitation (initiating cell corner case that produces NaN autocorrelations
+    for the earlier, all-zero cascade levels)."""
+    pytest.importorskip("cv2")
+
+    n_timesteps = 3
+    metadata = dict(
+        unit="mm",
+        transformation="dB",
+        accutime=5.0,
+        transform="dB",
+        zerovalue=0.0,
+        threshold=0.01,
+        zr_a=200.0,
+        zr_b=1.6,
+    )
+
+    # Build radar data: only the 2 latest (most recent) frames have precipitation
+    radar_precip = np.zeros((3, 200, 200))
+    radar_precip[-2, 40:125, 30] = 0.5
+    radar_precip[-2, 40:125, 31] = 4.5
+    radar_precip[-2, 40:125, 32] = 4.0
+    radar_precip[-2, 40:125, 33] = 2.0
+    radar_precip[-1, 30:155, 32] = 1.0
+    radar_precip[-1, 30:155, 33] = 5.0
+    radar_precip[-1, 30:155, 34] = 5.0
+    radar_precip[-1, 30:155, 35] = 4.5
+
+    # Threshold, convert and transform
+    radar_precip[radar_precip < metadata["threshold"]] = 0.0
+    converter = utils.get_method("mm/h")
+    radar_precip, _ = converter(radar_precip, metadata)
+    transformer = utils.get_method(metadata["transformation"])
+    radar_precip, _ = transformer(radar_precip, metadata)
+    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
+
+
+    # Velocity fields
+    oflow_method = motion.get_method("lucaskanade")
+    radar_velocity = oflow_method(radar_precip)
+
+    run_and_assert_forecast(
+        radar_precip,
+        dict(
+            velocity=radar_velocity,
+            timesteps=n_timesteps,
+            timestep=5.0,
+            issuetime=datetime.strptime("202112012355", "%Y%m%d%H%M"),
+            n_ens_members=2,
+            precip_thr=metadata["threshold"],
+            kmperpixel=1.0,
+            extrap_method="semilagrangian",
+            decomp_method="fft",
+            bandpass_filter_method="gaussian",
+            noise_method="nonparametric",
+            noise_stddev_adj="auto",
+            ar_order=ar_order,
+            vel_pert_method=None,
+            conditional=False,
+            probmatching_method=None,
+            mask_method="incremental",
+            resample_distribution=False,
+            smooth_radar_mask_range=0,
+            callback=None,
+            return_output=True,
+            seed=42,
+            num_workers=1,
+            fft_method="numpy",
+            domain="spatial",
+            outdir_path_skill="./tmp/",
+            extrap_kwargs=None,
+            filter_kwargs=None,
+            noise_kwargs=None,
+            vel_pert_kwargs=None,
+            mask_kwargs=None,
+            measure_time=False,
+        ),
+        expected_n_ens_members=2,
+        n_timesteps=n_timesteps,
+        converter=converter,
+        metadata=metadata,
+    )
