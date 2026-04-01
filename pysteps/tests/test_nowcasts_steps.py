@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -224,18 +224,14 @@ def run_and_assert_forecast(
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
 def test_steps_nowcast(
-    timesteps,
     n_ens_members,
     n_cascade_levels,
-    nowcasting_method,
+    ar_order,
     mask_method,
     probmatching_method,
-    expected_n_ens_members,
-    zero_radar,
-    smooth_radar_mask_range,
-    resample_distribution,
-    vel_pert_method,
-    max_mask_rim,
+    domain,
+    timesteps,
+    max_crps,
 ):
     pytest.importorskip("cv2")
 
@@ -249,6 +245,14 @@ def test_steps_nowcast(
     else:
         n_timesteps = timesteps
         last_timestep = timesteps
+
+    nowcasting_method = "steps"
+    expected_n_ens_members = n_ens_members
+    zero_radar = False
+    smooth_radar_mask_range = 0
+    resample_distribution = False
+    vel_pert_method = None
+    max_mask_rim = None
 
     # Define dummy nowcast input data
     radar_precip = np.zeros((3, 200, 200))
@@ -404,7 +408,6 @@ def test_steps_nowcast(
         velocity=radar_velocity,
         timesteps=timesteps,
         timestep=5.0,
-        issuetime=datetime.strptime("202112012355", "%Y%m%d%H%M"),
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         precip_thr=metadata["threshold"],
@@ -414,7 +417,7 @@ def test_steps_nowcast(
         bandpass_filter_method="gaussian",
         noise_method="nonparametric",
         noise_stddev_adj="auto",
-        ar_order=2,
+        ar_order=ar_order,
         vel_pert_method=vel_pert_method,
         conditional=False,
         probmatching_method=probmatching_method,
@@ -426,8 +429,7 @@ def test_steps_nowcast(
         seed=None,
         num_workers=1,
         fft_method="numpy",
-        domain="spatial",
-        outdir_path_skill=outdir_path_skill,
+        domain=domain,
         extrap_kwargs=None,
         filter_kwargs=None,
         noise_kwargs=None,
@@ -488,7 +490,6 @@ def test_steps_nowcast_partial_zero_radar(ar_order):
     radar_precip, _ = transformer(radar_precip, metadata)
     radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
 
-
     # Velocity fields
     oflow_method = motion.get_method("lucaskanade")
     radar_velocity = oflow_method(radar_precip)
@@ -499,7 +500,6 @@ def test_steps_nowcast_partial_zero_radar(ar_order):
             velocity=radar_velocity,
             timesteps=n_timesteps,
             timestep=5.0,
-            issuetime=datetime.strptime("202112012355", "%Y%m%d%H%M"),
             n_ens_members=2,
             precip_thr=metadata["threshold"],
             kmperpixel=1.0,
@@ -521,7 +521,6 @@ def test_steps_nowcast_partial_zero_radar(ar_order):
             num_workers=1,
             fft_method="numpy",
             domain="spatial",
-            outdir_path_skill="./tmp/",
             extrap_kwargs=None,
             filter_kwargs=None,
             noise_kwargs=None,
