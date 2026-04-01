@@ -2250,9 +2250,8 @@ class StepsBlendingNowcaster:
                         )
                     )
                     # Renormalize the cascade
-                    worker_state.precip_cascades[j][i][1] /= np.std(
-                        worker_state.precip_cascades[j][i][1]
-                    )
+                    for nl, obs_cascade_level in enumerate(worker_state.precip_cascades[j][i]):
+                        worker_state.precip_cascades[j][i][nl] /= np.std(obs_cascade_level)
                 else:
                     # use the deterministic AR(p) model computed above if
                     # perturbations are disabled
