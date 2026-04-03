@@ -365,7 +365,11 @@ class StepsNowcaster:
         ):
             # Set all to inputs to 0 (also previous times) as we just check latest input in check_norain
             self.__precip = self.__precip.copy()
-            self.__precip = np.where(np.isfinite(self.__precip),np.ones(self.__precip.shape)*np.nanmin(self.__precip),self.__precip)
+            self.__precip = np.where(
+                np.isfinite(self.__precip),
+                np.ones(self.__precip.shape) * np.nanmin(self.__precip),
+                self.__precip,
+            )
 
             return zero_precipitation_forecast(
                 self.__config.n_ens_members,
@@ -1582,7 +1586,9 @@ def check_previous_radar_obs(precip, ar_order):
         if not np.all(zero_precip[:-2]):
             # find latest non-zero precip
             # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
-            print("[WARNING] Radar input time steps adapted and ar_order set to 1. Input delta time changed.")
+            print(
+                "[WARNING] Radar input time steps adapted and ar_order set to 1. Input delta time changed."
+            )
             prev = np.arange(len(zero_precip[:-2]))[~np.array(zero_precip[:-2])][-1]
             return precip[[prev, -1]], 1
         raise ValueError(
@@ -1591,7 +1597,9 @@ def check_previous_radar_obs(precip, ar_order):
     else:
         # Keep the latest time steps that do all contain precip
         precip = precip[np.max(np.arange(len(zero_precip))[zero_precip]) + 1 :].copy()
-        if precip.shape[0]-1 < ar_order:
+        if precip.shape[0] - 1 < ar_order:
             # Give a warning
-            print(f"[WARNING] Radar input only with {precip.shape[0]} non-zero time steps and ar_order set to {precip.shape[0]-1}.")
+            print(
+                f"[WARNING] Radar input only with {precip.shape[0]} non-zero time steps and ar_order set to {precip.shape[0]-1}."
+            )
         return precip, min(ar_order, precip.shape[0] - 1)

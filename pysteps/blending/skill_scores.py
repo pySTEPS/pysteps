@@ -136,7 +136,9 @@ def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=
     return rho
 
 
-def lt_dependent_cor_extrapolation(PHI, correlations=None, correlations_prev=None, ar_order=2):
+def lt_dependent_cor_extrapolation(
+    PHI, correlations=None, correlations_prev=None, ar_order=2
+):
     """Determine the correlation of the extrapolation (nowcast) component for
     lead time lt and cascade k, by assuming that the correlation determined at
     t=0 regresses towards the climatological values.
