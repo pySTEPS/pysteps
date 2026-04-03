@@ -496,8 +496,6 @@ def test_steps_blending_partial_zero_radar(ar_order):
 
     # Decompose NWP
     n_cascade_levels = 6
-    decomp_method, _ = cascade.get_method("fft")
-    bp_filter = cascade.get_method("gaussian")(radar_precip.shape[1:], n_cascade_levels)
     nwp_precip_decomp = nwp_precip.copy()
 
     # Velocity fields

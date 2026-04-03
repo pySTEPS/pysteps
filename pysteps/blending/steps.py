@@ -3740,7 +3740,10 @@ def check_previous_radar_obs(precip, ar_order):
       Adapted to match with precip.shape equal (ar_order+1,m,n).
     """
     # Quick check radar input - at least 2 time steps
-    assert precip.shape[0] >= 2
+    if not precip.shape[0] >= 2:
+        raise ValueError(
+            "Wrong precip shape. The radar input must have at least 2 time steps."
+        )
 
     # Check all time steps for zero-precip (constant field, minimum==maximum)
     zero_precip = [np.nanmin(obs) == np.nanmax(obs) for obs in precip]
@@ -3767,7 +3770,7 @@ def check_previous_radar_obs(precip, ar_order):
         if precip.shape[0] - 1 < ar_order:
             # Give a warning
             print(
-                f"[WARNING] Radar input only with {precip.shape[0]} non-zero time steps and ar_order set to {precip.shape[0]-1}."
+                f"[WARNING] Remove zero-precip time steps from radar input.\nRemaining non-zero time steps: {precip.shape[0]}, ar_order set to {precip.shape[0]-1}."
             )
         return precip, min(ar_order, precip.shape[0] - 1)
 
