@@ -1572,8 +1572,10 @@ def check_previous_radar_obs(precip, ar_order):
       The order of the autoregressive model to use. Must be >= 1.
       Adapted to match with precip.shape equal (ar_order+1,m,n).
     """
-    # Quick check radar input - at least 2 time steps
-    assert precip.shape[0] >= 2
+    if not precip.shape[0] >= 2:
+        raise ValueError(
+            "Wrong precip shape. The radar input must have at least 2 time steps."
+        )
 
     # Check all time steps for zero-precip (constant field, minimum==maximum)
     zero_precip = [np.nanmin(obs) == np.nanmax(obs) for obs in precip]
