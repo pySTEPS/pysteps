@@ -17,6 +17,7 @@ To test the convergence, using an example precipitation field we will:
 
 Let's first load the libraries that we will use.
 """
+
 from datetime import datetime
 import time
 
@@ -372,5 +373,23 @@ plot_optflow_method_convergence(reference_field, "DARTS", "linear_y")
 # Rotational motion
 # ~~~~~~~~~~~~~~~~~
 plot_optflow_method_convergence(reference_field, "DARTS", "rotor")
+
+################################################################################
+# Farneback
+# ---------
+#
+# Constant motion x-direction
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+plot_optflow_method_convergence(reference_field, "farneback", "linear_x")
+
+################################################################################
+# Constant motion y-direction
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+plot_optflow_method_convergence(reference_field, "farneback", "linear_y")
+
+################################################################################
+# Rotational motion
+# ~~~~~~~~~~~~~~~~~
+plot_optflow_method_convergence(reference_field, "farneback", "rotor")
 
 # sphinx_gallery_thumbnail_number = 5

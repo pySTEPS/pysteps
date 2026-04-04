@@ -169,7 +169,7 @@ def _compute_kernel_radius(ds_factor):
 def _make_tophat_kernel(ds_factor):
     """Compute 2d uniform (tophat) kernel"""
     radius = _compute_kernel_radius(ds_factor)
-    (mx, my) = np.mgrid[-radius : radius + 0.01, -radius : radius + 0.01]
+    mx, my = np.mgrid[-radius : radius + 0.01, -radius : radius + 0.01]
     tophat = ((mx**2 + my**2) <= radius**2).astype(float)
     return tophat / tophat.sum()
 

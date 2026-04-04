@@ -381,17 +381,18 @@ def advect(cells_id, labels, V1, output_splits_merges=False):
         new_cen_x = cell.cen_x + ad_x
         new_cen_y = cell.cen_y + ad_y
 
-        cells_ad.loc[ID, "x"] = new_x
-        cells_ad.loc[ID, "y"] = new_y
-        cells_ad.loc[ID, "flowx"] = ad_x
-        cells_ad.loc[ID, "flowy"] = ad_y
-        cells_ad.loc[ID, "cen_x"] = new_cen_x
-        cells_ad.loc[ID, "cen_y"] = new_cen_y
-        cells_ad.loc[ID, "ID"] = cell.ID
+        # Use scalar cell assignment (.at) to store array-like payloads in object columns.
+        cells_ad.at[ID, "x"] = new_x
+        cells_ad.at[ID, "y"] = new_y
+        cells_ad.at[ID, "flowx"] = ad_x
+        cells_ad.at[ID, "flowy"] = ad_y
+        cells_ad.at[ID, "cen_x"] = new_cen_x
+        cells_ad.at[ID, "cen_y"] = new_cen_y
+        cells_ad.at[ID, "ID"] = cell.ID
 
         cell_unique = np.zeros(labels.shape)
         cell_unique[new_y, new_x] = 1
-        cells_ad.loc[ID, "cont"] = skime.find_contours(cell_unique, 0.8)
+        cells_ad.at[ID, "cont"] = skime.find_contours(cell_unique, 0.8)
 
     return cells_ad
 
@@ -411,7 +412,7 @@ def match(cells_ad, labels, match_frac=0.4, split_frac=0.1, output_splits_merges
         IDs = np.unique(ID_vec)
         n_IDs = len(IDs)
         if n_IDs == 1 and IDs[0] == 0:
-            cells_ov.loc[ID_a, "t_ID"] = 0
+            cells_ov.at[ID_a, "t_ID"] = 0
             continue
         IDs = IDs[IDs != 0]
         n_IDs = len(IDs)
@@ -429,18 +430,18 @@ def match(cells_ad, labels, match_frac=0.4, split_frac=0.1, output_splits_merges
             # splits here
             if sum(valid_split_ids) > 1:
                 # Save split information
-                cells_ov.loc[ID_a, "splitted"] = True
-                cells_ov.loc[ID_a, "split_IDs"] = IDs[valid_split_ids]
-                cells_ov.loc[ID_a, "split_fracs"] = N / len(ID_vec)
+                cells_ov.at[ID_a, "splitted"] = True
+                cells_ov.at[ID_a, "split_IDs"] = IDs[valid_split_ids].tolist()
+                cells_ov.at[ID_a, "split_fracs"] = (N / len(ID_vec)).tolist()
 
         m = np.argmax(N)
         ID_match = IDs[m]
         ID_coverage = N[m] / len(ID_vec)
         if ID_coverage >= match_frac:
-            cells_ov.loc[ID_a, "t_ID"] = ID_match
+            cells_ov.at[ID_a, "t_ID"] = ID_match
         else:
-            cells_ov.loc[ID_a, "t_ID"] = 0
-        cells_ov.loc[ID_a, "frac"] = ID_coverage
+            cells_ov.at[ID_a, "t_ID"] = 0
+        cells_ov.at[ID_a, "frac"] = ID_coverage
     return cells_ov, labels, possible_merge_ids
 
 

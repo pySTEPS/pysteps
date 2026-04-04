@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 from pysteps.utils import pca
 
-
 pca_arg_values = (
     (10, 10),
     (20, 20),

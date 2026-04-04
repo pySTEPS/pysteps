@@ -10,6 +10,7 @@ Image processing routines for pysteps.
 
     morph_opening
 """
+
 import numpy as np
 from numpy.ma.core import MaskedArray
 

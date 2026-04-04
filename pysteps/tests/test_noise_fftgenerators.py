@@ -3,7 +3,6 @@ import numpy as np
 from pysteps.noise import fftgenerators
 from pysteps.tests.helpers import get_precipitation_fields
 
-
 PRECIP = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
