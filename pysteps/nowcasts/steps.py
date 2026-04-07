@@ -1589,6 +1589,10 @@ def check_previous_radar_obs(precip, ar_order):
         # Assume the precipitation means clutter / parasit echoes in this case.
         # Treat it as a default zero-precip case, AR-2 model
         precip = np.ones((3, precip.shape[1], precip.shape[2])) * np.nanmin(precip)
+        # Give a warning
+        print(
+            f"\n[WARNING] Precip + no-precip cases in the 2 latest radar input time steps.\nCannot calculate autoregression. Set to zero-precip radar input.\n"
+        )
         return precip, 2
         # # Solution 2 (to be discussed):
         # # Adjust the radar input precipitation (if possible)
