@@ -1493,10 +1493,13 @@ class StepsBlendingNowcaster:
             GAMMA = GAMMA.transpose()
             if len(GAMMA.shape) == 1:
                 GAMMA = GAMMA.reshape((GAMMA.size, 1))
-            assert GAMMA.shape == (
+            if not GAMMA.shape == (
                 self.__config.n_cascade_levels,
                 self.__config.ar_order,
-            )
+            ):
+                raise ValueError(
+                    f"GAMMA shape {GAMMA.shape} does not match {self.__config.n_cascade_levels} cascade levels and ar_order of {self.__config.ar_order}"
+                )
 
         # Print the GAMMA value
         nowcast_utils.print_corrcoefs(GAMMA)
@@ -3752,18 +3755,30 @@ def check_previous_radar_obs(precip, ar_order):
         # or Unchanged if all time steps contain rain
         return precip, ar_order
     elif zero_precip[-2]:
-        # try to use a previous time step
-        if not np.all(zero_precip[:-2]):
-            # find latest non-zero precip
-            # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
-            print(
-                "[WARNING] Radar input time steps adapted and ar_order set to 1. Input delta time changed."
-            )
-            prev = np.arange(len(zero_precip[:-2]))[~np.array(zero_precip[:-2])][-1]
-            return precip[[prev, -1]], 1
-        raise ValueError(
-            "Precipitation in latest but no previous time step. Not possible to calculate autoregression."
-        )
+        # This case means radar-observed rain in the latest but no rain in the 2nd latest time steps.
+        # Solution 1:
+        # Assume the precipitation means clutter / parasit echoes in this case.
+        # Treat it as a default zero-precip case, AR-2 model
+        precip = np.ones((3, precip.shape[1], precip.shape[2])) * np.nanmin(precip)
+        return precip, 2
+        # # Solution 2 (to be discussed):
+        # # Adjust the radar input precipitation (if possible)
+        # # try to use a previous time step
+        # if not np.all(zero_precip[:-2]):
+        #     # find latest non-zero precip
+        #     # ATTENTION: This changes the time between precip[-2] and precip[-1] from initial 5min to a longer period
+        #     print(
+        #         "[WARNING] Radar input time steps adapted and ar_order set to 1. Input delta time changed."
+        #     )
+        #     prev = np.arange(len(zero_precip[:-2]))[~np.array(zero_precip[:-2])][-1]
+        #     # Adjust the time between input time steps to match the modified precip array
+        #     ### read the deltatime between the radar time step from metadata in current_deltatime
+        #     ### new_deltatime = (precip.shape[0] - prev) * current_deltatime
+        #     ### code here to set new_deltatimes the radar time step delta time in metadata
+        #     return precip[[prev, -1]], 1
+        # raise ValueError(
+        #     "Precipitation in latest but no previous time step. Not possible to calculate autoregression."
+        # )
     else:
         # Keep the latest time steps that do all contain precip
         precip = precip[np.max(np.arange(len(zero_precip))[zero_precip]) + 1 :].copy()
