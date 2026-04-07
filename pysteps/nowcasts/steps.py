@@ -1591,7 +1591,7 @@ def check_previous_radar_obs(precip, ar_order):
         precip = np.ones((3, precip.shape[1], precip.shape[2])) * np.nanmin(precip)
         # Give a warning
         print(
-            f"\n[WARNING] Precip + no-precip cases in the 2 latest radar input time steps.\nCannot calculate autoregression. Set to zero-precip radar input.\n"
+            "\n[WARNING] Precip + no-precip cases in the 2 latest radar input time steps.\nCannot calculate autoregression. Set to zero-precip radar input.\n"
         )
         return precip, 2
         # # Solution 2 (to be discussed):
