@@ -2253,11 +2253,11 @@ class StepsBlendingNowcaster:
                         )
                     )
                     # Renormalize the cascade
-                    for nl, obs_cascade_level in enumerate(
+                    for nt, obs_cascade_timestep in enumerate(
                         worker_state.precip_cascades[j][i]
                     ):
-                        worker_state.precip_cascades[j][i][nl] /= np.std(
-                            obs_cascade_level
+                        worker_state.precip_cascades[j][i][nt] /= np.std(
+                            obs_cascade_timestep
                         )
                 else:
                     # use the deterministic AR(p) model computed above if
