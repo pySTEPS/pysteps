@@ -56,7 +56,7 @@ def check_norain(
     return norain
 
 
-def check_previous_radar_obs(precip, ar_order, check_norain_kwargs={}):
+def check_previous_radar_obs(precip, ar_order, check_norain_kwargs=None):
     """Check all radar time steps and remove zero precipitation and constant field time steps
 
     Parameters
@@ -86,6 +86,8 @@ def check_previous_radar_obs(precip, ar_order, check_norain_kwargs={}):
         )
 
     # Read the input
+    if check_norain_kwargs is None:
+        check_norain_kwargs = dict()
     precip_thr = (
         check_norain_kwargs["precip_thr"]
         if "precip_thr" in check_norain_kwargs.keys()
