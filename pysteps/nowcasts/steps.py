@@ -1506,7 +1506,16 @@ def forecast(
     # Check the input precip and ar_order to be consistent
     # zero-precip/constant field in previous time steps has to be removed
     # (constant field causes autoregression to fail)
-    precip, ar_order = check_previous_radar_obs(precip, ar_order)
+    precip, ar_order = check_previous_radar_obs(
+        precip,
+        ar_order,
+        {
+            "precip_thr": precip_thr,
+            "norain_thr": norain_thr,
+            # Set default window function to "tukey" to match the default in check_inputs() below
+            "win_fun": "tukey" if noise_kwargs is None else noise_kwargs["win_fun"],
+        },
+    )
 
     nowcaster_config = StepsNowcasterConfig(
         n_ens_members=n_ens_members,

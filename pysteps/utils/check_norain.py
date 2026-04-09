@@ -3,7 +3,9 @@ import numpy as np
 from pysteps import utils
 
 
-def check_norain(precip_arr, precip_thr=None, norain_thr=0.0, win_fun=None):
+def check_norain(
+    precip_arr, precip_thr=None, norain_thr=0.0, win_fun=None, printmsg=True
+):
     """
 
     Parameters
@@ -23,6 +25,8 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0, win_fun=None):
       This parameter needs to match the window function you use in later noise generation,
       or else this method will say that there is rain, while after the tapering function is
       applied there is no rain left, so you will run into a ValueError.
+    printmsg: bool, optional
+      Whether or not to print the rain fraction information as message
     Returns
     -------
     norain: bool
@@ -45,13 +49,14 @@ def check_norain(precip_arr, precip_thr=None, norain_thr=0.0, win_fun=None):
         precip_thr = np.nanmin(masked_precip)
     rain_pixels = masked_precip[masked_precip > precip_thr]
     norain = rain_pixels.size / masked_precip.size <= norain_thr
-    print(
-        f"Rain fraction is: {str(rain_pixels.size / masked_precip.size)}, while minimum fraction is {str(norain_thr)}"
-    )
+    if printmsg:
+        print(
+            f"Rain fraction is: {str(rain_pixels.size / masked_precip.size)}, while minimum fraction is {str(norain_thr)}"
+        )
     return norain
 
 
-def check_previous_radar_obs(precip, ar_order):
+def check_previous_radar_obs(precip, ar_order, check_norain_kwargs={}):
     """Check all radar time steps and remove zero precipitation and constant field time steps
 
     Parameters
@@ -62,6 +67,8 @@ def check_previous_radar_obs(precip, ar_order):
       inputs are assumed to be regular.
     ar_order : int
       The order of the autoregressive model to use. Must be >= 1.
+    check_norain_kwargs : dict, optional
+      The additional kwargs you want to pass on to the check_norain function
 
     Returns
     -------
@@ -78,14 +85,33 @@ def check_previous_radar_obs(precip, ar_order):
             "Wrong precip shape. The radar input must have at least 2 time steps."
         )
 
-    # Check all time steps for zero-precip/constant field (constant field, minimum==maximum)
-    const_precip = [np.nanmin(obs) == np.nanmax(obs) for obs in precip]
+    # Read the input
+    precip_thr = (
+        check_norain_kwargs["precip_thr"]
+        if "precip_thr" in check_norain_kwargs.keys()
+        else None
+    )
+    norain_thr = (
+        check_norain_kwargs["norain_thr"]
+        if "norain_thr" in check_norain_kwargs.keys()
+        else 0.0
+    )
+    win_fun = (
+        check_norain_kwargs["win_fun"]
+        if "win_fun" in check_norain_kwargs.keys()
+        else None
+    )
+    # Check each time step for zero-precip
+    no_precip_timesteps = [
+        check_norain(obs, precip_thr, norain_thr, win_fun, False) for obs in precip
+    ]
+
     # Check the cases
-    if const_precip[-1] or ~np.any(const_precip):
+    if no_precip_timesteps[-1] or ~np.any(no_precip_timesteps):
         # Unchanged if no rain in latest time step -> will be processed as zero_precip_radar=True
         # or Unchanged if all time steps contain rain
         return precip, ar_order
-    elif const_precip[-2]:
+    elif no_precip_timesteps[-2]:
         # This case means radar-observed rain in the latest but no rain in the 2nd latest time steps.
         # Solution 1:
         # Assume the precipitation means clutter / parasit echoes in this case.
@@ -116,7 +142,9 @@ def check_previous_radar_obs(precip, ar_order):
         # )
     else:
         # Keep the latest time steps that do all contain precip
-        precip = precip[np.max(np.arange(len(const_precip))[const_precip]) + 1 :].copy()
+        precip = precip[
+            np.max(np.arange(len(no_precip_timesteps))[no_precip_timesteps]) + 1 :
+        ].copy()
         if precip.shape[0] - 1 < ar_order:
             # Give a warning
             print(
