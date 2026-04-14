@@ -61,7 +61,13 @@ def read_timeseries(inputfns, importer, **kwargs):
     timestamps = []
     for i, ifn in enumerate(inputfns[0]):
         if ifn is not None:
-            precip_, quality_, _ = importer(ifn, **kwargs)
+            precip_, quality_, meta_ = importer(ifn, **kwargs)
+            # The initial metadata setting reads the oldest time step only (see previous importer call).
+            # In case this has rain over the entire domain, the no precip threshold
+            # might be higher than the actual zero value.
+            # Here we check all time steps and use the lowest value overall.
+            if meta_["threshold"] < metadata["threshold"]:
+                metadata["threshold"] = meta_["threshold"]
             precip.append(precip_)
             quality.append(quality_)
             timestamps.append(inputfns[1][i])
