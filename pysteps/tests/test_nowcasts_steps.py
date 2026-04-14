@@ -365,9 +365,11 @@ def test_steps_nowcast(
 
 @pytest.mark.parametrize("ar_order", [1, 2])
 def test_steps_nowcast_partial_zero_radar(ar_order):
-    """Test that a forecast succeeds when only the 2 latest radar frames have
+    """
+    Test that a forecast succeeds when only the 2 latest radar frames have
     precipitation (initiating cell corner case that produces NaN autocorrelations
-    for the earlier, all-zero cascade levels)."""
+    for the earlier, all-zero cascade levels).
+    """
     pytest.importorskip("cv2")
 
     n_timesteps = 3
