@@ -425,7 +425,7 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
     Returns
     -------
     out: ndarray
-        Array of length p+1 containing the AR(p) parameters for for the
+        Array of length p+1 containing the AR(p) parameters for the
         lag-p terms and the innovation term.
 
     Notes
@@ -455,15 +455,16 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
                 "Error in estimate_ar_params_yw: " "nonstationary AR(p) process"
             )
 
+    # Estimate PHI_{j,0} as phi_pert. See Pulkkinen et al. (2019), eq. 6.
     c = 1.0
     for j in range(p):
         c -= gamma[j] * phi[j]
-    phi_pert = np.sqrt(c)
-
     # If the expression inside the square root is negative, phi_pert cannot
     # be computed and it is set to zero instead.
-    if not np.isfinite(phi_pert):
+    if c < 0:
         phi_pert = 0.0
+    else:
+        phi_pert = np.sqrt(c)
 
     if d == 1:
         phi = _compute_differenced_model_params(phi, p, 1, 1)
@@ -499,7 +500,7 @@ def estimate_ar_params_yw_localized(gamma, d=0):
     Returns
     -------
     out: list
-        List of length p+1 containing the AR(p) parameter fields for for the
+        List of length p+1 containing the AR(p) parameter fields for the
         lag-p terms and the innovation term. The parameter fields have the same
         shape as the elements of gamma.
 
@@ -538,6 +539,7 @@ def estimate_ar_params_yw_localized(gamma, d=0):
 
         phi[:, i] = phi_
 
+    # Estimate PHI_{j,0} as phi_pert. See Pulkkinen et al. (2019), eq. 6.
     c = 1.0
     for i in range(p):
         c -= gamma_1d[i] * phi[i]

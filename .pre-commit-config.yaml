@@ -4,3 +4,10 @@ repos:
     hooks:
     - id: black
       language_version: python3
+
+-   repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+    - id: bandit
+      args: ["-c", "bandit.yaml"]
+      additional_dependencies: ["bandit[yaml]"]

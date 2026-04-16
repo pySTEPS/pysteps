@@ -58,7 +58,7 @@ from pysteps import blending, cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.utils.check_norain import check_norain
+from pysteps.utils.check_norain import check_norain, check_previous_radar_obs
 
 try:
     import dask
@@ -1196,12 +1196,22 @@ class StepsBlendingNowcaster:
             self.__precip_models = np.stack(temp_precip_models)
 
         # Check for zero input fields in the radar, nowcast and NWP data.
+        # decide based on latest input file only
         self.__params.zero_precip_radar = check_norain(
-            self.__precip,
+            self.__precip[-1],
             self.__params.precip_threshold,
             self.__config.norain_threshold,
             self.__params.noise_kwargs["win_fun"],
         )
+        # Set all inputs to 0 (also previous times)
+        # not strictly necessary but to be consistent with checking only
+        # latest observation rain field to set zero_precip_radar
+        if self.__params.zero_precip_radar:
+            self.__precip = np.where(
+                np.isfinite(self.__precip),
+                np.ones(self.__precip.shape) * np.nanmin(self.__precip),
+                self.__precip,
+            )
 
         # The norain fraction threshold used for nwp is the default value of 0.0,
         # since nwp does not suffer from clutter.
@@ -1481,10 +1491,15 @@ class StepsBlendingNowcaster:
 
             # Finally, transpose GAMMA to ensure that the shape is the same as np.empty((n_cascade_levels, ar_order))
             GAMMA = GAMMA.transpose()
-            assert GAMMA.shape == (
+            if len(GAMMA.shape) == 1:
+                GAMMA = GAMMA.reshape((GAMMA.size, 1))
+            if not GAMMA.shape == (
                 self.__config.n_cascade_levels,
                 self.__config.ar_order,
-            )
+            ):
+                raise ValueError(
+                    f"GAMMA shape {GAMMA.shape} does not match {self.__config.n_cascade_levels} cascade levels and ar_order of {self.__config.ar_order}"
+                )
 
         # Print the GAMMA value
         nowcast_utils.print_corrcoefs(GAMMA)
@@ -1629,13 +1644,22 @@ class StepsBlendingNowcaster:
             )
 
         # initizalize the current and previous extrapolation forecast scale for the nowcasting component
-        # phi1 / (1 - phi2), see BPS2004
+        # ar_order=1: rho = phi1
+        # ar_order=2: rho = phi1 / (1 - phi2)
+        #   -> see Hamilton1994, Pulkkinen2019, BPS2004 (Yule-Walker equations)
         self.__state.rho_extrap_cascade_prev = np.repeat(
             1.0, self.__params.PHI.shape[0]
         )
-        self.__state.rho_extrap_cascade = self.__params.PHI[:, 0] / (
-            1.0 - self.__params.PHI[:, 1]
-        )
+        if self.__config.ar_order == 1:
+            self.__state.rho_extrap_cascade = self.__params.PHI[:, 0]
+        elif self.__config.ar_order == 2:
+            self.__state.rho_extrap_cascade = self.__params.PHI[:, 0] / (
+                1.0 - self.__params.PHI[:, 1]
+            )
+        else:
+            raise ValueError(
+                "Autoregression of higher order than 2 is not defined. Please set ar_order = 2."
+            )
 
     def __initialize_noise_cascades(self):
         """
@@ -2037,6 +2061,7 @@ class StepsBlendingNowcaster:
                 PHI=self.__params.PHI,
                 correlations=self.__state.rho_extrap_cascade,
                 correlations_prev=self.__state.rho_extrap_cascade_prev,
+                ar_order=self.__config.ar_order,
             )
 
     def __determine_NWP_skill_for_next_timestep(self, t, j, worker_state):
@@ -2228,9 +2253,12 @@ class StepsBlendingNowcaster:
                         )
                     )
                     # Renormalize the cascade
-                    worker_state.precip_cascades[j][i][1] /= np.std(
-                        worker_state.precip_cascades[j][i][1]
-                    )
+                    for nt, obs_cascade_timestep in enumerate(
+                        worker_state.precip_cascades[j][i]
+                    ):
+                        worker_state.precip_cascades[j][i][nt] /= np.std(
+                            obs_cascade_timestep
+                        )
                 else:
                     # use the deterministic AR(p) model computed above if
                     # perturbations are disabled
@@ -3624,6 +3652,20 @@ def forecast(
     which enhances the AR process. This can become a future development if this
     turns out to be a warranted functionality.
     """
+
+    # Check the input precip and ar_order to be consistent
+    # zero-precip/constant field in previous time steps has to be removed
+    # (constant field causes autoregression to fail)
+    precip, ar_order = check_previous_radar_obs(
+        precip,
+        ar_order,
+        {
+            "precip_thr": precip_thr,
+            "norain_thr": norain_thr,
+            # Set default window function to "tukey" to match the default in check_inputs() below
+            "win_fun": "tukey" if noise_kwargs is None else noise_kwargs["win_fun"],
+        },
+    )
 
     blending_config = StepsBlendingConfig(
         n_ens_members=n_ens_members,
