@@ -92,6 +92,7 @@ Generic functions
 
 import os
 from datetime import datetime
+from importlib.metadata import version as get_version
 
 import numpy as np
 
@@ -501,7 +502,7 @@ def initialize_forecast_exporter_netcdf(
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
     ncf.institution = institution
-    ncf.source = "pysteps"  # TODO(exporters): Add pySTEPS version here
+    ncf.source = "pysteps v" + get_version("pysteps")
     ncf.history = ""
     ncf.references = references
     ncf.comment = comment
