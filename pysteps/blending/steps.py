@@ -450,6 +450,15 @@ class StepsBlendingNowcaster:
         # Store inputs
         self.__precip = precip
         self.__precip_nowcast = precip_nowcast
+        if precip_nowcast is not None:
+            # Save the original NaN mask before replacement, so it can be
+            # restored for probability matching in the external_nowcast path.
+            # The NaN replacement is needed for cascade decomposition (FFT),
+            # but probability matching needs the NaN domain mask to exclude
+            # out-of-domain pixels from the CDF matching.
+            self.__precip_nowcast_nan_mask = ~np.isfinite(self.__precip_nowcast)
+        else:
+            self.__precip_nowcast_nan_mask = None
         self.__precip_models = precip_models
         self.__velocity = velocity
         self.__velocity_models = velocity_models
@@ -668,6 +677,19 @@ class StepsBlendingNowcaster:
                     if t_sub > 0:
                         self.__blend_cascades(t_sub, j, worker_state)
                         self.__recompose_cascade_to_rainfall_field(j, worker_state)
+                        # For external_nowcast: restore NaN outside the radar
+                        # domain in the recomposed field and the model-only
+                        # field so the post-processing (smooth radar mask, NaN
+                        # filling, incremental mask, CDF matching) works the
+                        # same as the standard STEPS path.
+                        if (
+                            self.__config.nowcasting_method == "external_nowcast"
+                            and self.__precip_nowcast_nan_mask is not None
+                        ):
+                            nan_mask_t = self.__precip_nowcast_nan_mask[j][t]
+                            worker_state.final_blended_forecast_recomposed[
+                                nan_mask_t
+                            ] = np.nan
                         final_blended_forecast_single_member = (
                             self.__post_process_output(
                                 j,
@@ -2682,10 +2704,14 @@ class StepsBlendingNowcaster:
                     precip_extrapolated_decomp.copy()
                 )
 
-            # Also update the probability matching fields
-            precip_extrapolated = self.__precip_nowcast[j][t][:, :]
+            # Also update the probability matching fields.
+            # Restore the original NaN mask so that CDF probability matching
+            # correctly excludes out-of-domain pixels (NaN was replaced with
+            # nanmin for cascade decomposition in __prepare_radar_and_NWP_fields).
+            precip_extrapolated = self.__precip_nowcast[j][t][:, :].copy()
+            precip_extrapolated[self.__precip_nowcast_nan_mask[j][t]] = np.nan
             worker_state.precip_extrapolated_probability_matching.append(
-                precip_extrapolated.copy()
+                precip_extrapolated
             )
 
             # Stack it for the output
