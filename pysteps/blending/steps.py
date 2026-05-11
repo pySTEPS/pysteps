@@ -457,15 +457,6 @@ class StepsBlendingNowcaster:
             # but probability matching needs the NaN domain mask to exclude
             # out-of-domain pixels from the CDF matching.
             self.__precip_nowcast_nan_mask = ~np.isfinite(self.__precip_nowcast)
-            if (
-                self.__precip_nowcast_nan_mask.shape[0] == 1
-                and steps_blending_config.n_ens_members != 1
-            ):
-                self.__precip_nowcast_nan_mask = np.repeat(
-                    self.__precip_nowcast_nan_mask,
-                    steps_blending_config.n_ens_members,
-                    axis=0,
-                )
         else:
             self.__precip_nowcast_nan_mask = None
         self.__precip_models = precip_models
@@ -1915,6 +1906,11 @@ class StepsBlendingNowcaster:
                     )
                     self.__precip_nowcast = np.repeat(
                         self.__precip_nowcast,
+                        repeats,
+                        axis=0,
+                    )
+                    self.__precip_nowcast_nan_mask = np.repeat(
+                        self.__precip_nowcast_nan_mask,
                         repeats,
                         axis=0,
                     )
