@@ -220,3 +220,56 @@ def plot_ROC(ROC, ax=None, opt_prob_thr=False):
 
     for p_thr_, x, y in zip(p_thr, POFD, POD):
         ax.text(x + 0.02, y - 0.02, "%.2f" % p_thr_, fontsize=7)
+
+
+def plot_PR(PR, ax=None, opt_prob_thr=False):
+    """
+    Plot a Precision-Recall (PR) curve.
+
+    Parameters
+    ----------
+    PR: dict
+        A PR curve object created by probscores.PR_curve_init.
+    ax: axis handle, optional
+        Axis handle for the figure. If set to None, the handle is taken from
+        the current figure (matplotlib.pylab.gca()).
+    opt_prob_thr: bool, optional
+        If set to True, plot the optimal probability threshold that maximizes
+        the F1 score (harmonic mean of precision and recall).
+    """
+    if ax is None:
+        ax = plt.gca()
+    
+    precision, recall, area = probscores.PR_curve_compute(PR, compute_area=True)
+    p_thr = PR["prob_thrs"]
+    
+    total_pos = PR["hits"][0] + PR["misses"][0]
+    total_neg = PR["false_alarms"][0] + PR["corr_neg"][0]
+    prevalence = total_pos / (total_pos + total_neg) if (total_pos + total_neg) > 0 else 0
+    
+    ax.plot([0, 1], [prevalence, prevalence], "k--")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("Recall (POD)")
+    ax.set_ylabel("Precision")
+    ax.grid(True, ls=":")
+    
+    ax.plot(recall, precision, "kD-")
+    
+    if opt_prob_thr:
+        p = np.array(precision)
+        r = np.array(recall)
+        f1 = np.divide(2 * p * r, p + r, out=np.zeros_like(p), where=(p + r) != 0)
+        
+        opt_idx = np.argmax(f1)
+        ax.scatter(
+            [recall[opt_idx]],
+            [precision[opt_idx]],
+            c="r",
+            s=150,
+            facecolors="none",
+            edgecolors="r",
+        )
+    
+    for p_thr_, x, y in zip(p_thr, recall, precision):
+        ax.text(x + 0.02, y + 0.02, "%.2f" % p_thr_, fontsize=7)
