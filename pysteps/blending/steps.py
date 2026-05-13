@@ -1909,6 +1909,11 @@ class StepsBlendingNowcaster:
                         repeats,
                         axis=0,
                     )
+                    self.__precip_nowcast_nan_mask = np.repeat(
+                        self.__precip_nowcast_nan_mask,
+                        repeats,
+                        axis=0,
+                    )
                     self.__state.mean_nowcast = np.repeat(
                         self.__state.mean_nowcast, repeats, axis=0
                     )
