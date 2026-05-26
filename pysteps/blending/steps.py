@@ -92,9 +92,9 @@ class StepsBlendingConfig:
       Time step of the motion vectors (minutes). Required if vel_pert_method is
       not None or mask_method is 'incremental'.
     n_ens_members: int
-      The number of ensemble members to generate. This number should always be
-      equal to or larger than the number of NWP ensemble members / number of
-      NWP models.
+      The number of ensemble members to generate. When ``single_member_mode``
+      is False (default), this must be equal to or larger than the number of
+      NWP ensemble members / number of NWP models.
     n_cascade_levels: int, optional
       The number of cascade levels to use. Defaults to 6,
       see issue #385 on GitHub.
@@ -102,6 +102,12 @@ class StepsBlendingConfig:
       Check if NWP models/members should be used individually, or if all of
       them are blended together per nowcast ensemble member. Standard set to
       false.
+    single_member_mode: bool, optional
+      If True, relax the constraint that ``n_ens_members >= n_model_members``.
+      Use this when parallelising blending via a process pool or MPI, where
+      each worker computes a subset of the full ensemble. In that scenario each
+      worker should receive the correctly-sliced ``precip_models`` and
+      ``velocity_models`` for its assigned members. Defaults to False.
     extrapolation_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       :py:mod:`pysteps.extrapolation.interface`.
@@ -316,6 +322,7 @@ class StepsBlendingConfig:
     velocity_perturbation_kwargs: dict[str, Any] = field(default_factory=dict)
     climatology_kwargs: dict[str, Any] = field(default_factory=dict)
     mask_kwargs: dict[str, Any] = field(default_factory=dict)
+    single_member_mode: bool = False
     measure_time: bool = False
     callback: Any | None = None
     return_output: bool = True
@@ -1834,11 +1841,18 @@ class StepsBlendingNowcaster:
         self.__state.velocity_models_timestep = self.__velocity_models[
             :, t, :, :, :
         ].astype(np.float64, copy=False)
-        # Make sure the number of model members is not larger than or equal to n_ens_members
+        # Make sure the number of model members is not larger than n_ens_members
+        # (unless single_member_mode is enabled for process-pool / MPI parallelism).
         n_model_members = self.__state.precip_models_cascades_timestep.shape[0]
-        if n_model_members > self.__config.n_ens_members:
+        if (
+            n_model_members > self.__config.n_ens_members
+            and not self.__config.single_member_mode
+        ):
             raise ValueError(
-                "The number of NWP model members is larger than the given number of ensemble members. n_model_members <= n_ens_members."
+                "The number of NWP model members is larger than the given number of "
+                "ensemble members. Either increase n_ens_members, reduce the number of "
+                "NWP members, or set single_member_mode=True when computing individual "
+                "members in parallel (process pool / MPI)."
             )
 
         # Check if NWP models/members should be used individually, or if all of
@@ -1852,9 +1866,16 @@ class StepsBlendingNowcaster:
             ].astype(np.float64, copy=False)
 
             n_ens_members_provided = self.__precip_nowcast.shape[0]
-            if n_ens_members_provided > self.__config.n_ens_members:
+            if (
+                n_ens_members_provided > self.__config.n_ens_members
+                and not self.__config.single_member_mode
+            ):
                 raise ValueError(
-                    "The number of nowcast ensemble members provided is larger than the given number of ensemble members requested. n_ens_members_provided <= n_ens_members."
+                    "The number of nowcast ensemble members provided is larger than the "
+                    "given number of ensemble members requested. Either increase "
+                    "n_ens_members, reduce the number of provided nowcast members, or set "
+                    "single_member_mode=True when computing individual members in parallel "
+                    "(process pool / MPI)."
                 )
 
             n_ens_members_max = self.__config.n_ens_members
@@ -3348,6 +3369,7 @@ def forecast(
     precip_nowcast=None,
     n_cascade_levels=6,
     blend_nwp_members=False,
+    single_member_mode=False,
     precip_thr=None,
     norain_thr=0.0,
     kmperpixel=None,
@@ -3435,9 +3457,9 @@ def forecast(
     issuetime: datetime
       is issued.
     n_ens_members: int
-      The number of ensemble members to generate. This number should always be
-      equal to or larger than the number of NWP ensemble members / number of
-      NWP models.
+      The number of ensemble members to generate. When ``single_member_mode``
+      is False (default), this must be equal to or larger than the number of
+      NWP ensemble members / number of NWP models.
     precip_nowcast: array-like, optional
       Optional input with array of shape (n_ens_members,timestep+1,m,n) containing
       and external nowcast as input to the blending. If precip_nowcast is provided,
@@ -3457,6 +3479,12 @@ def forecast(
       Check if NWP models/members should be used individually, or if all of
       them are blended together per nowcast ensemble member. Standard set to
       false.
+    single_member_mode: bool, optional
+      If True, relax the constraint that ``n_ens_members >= n_model_members``.
+      Use this when parallelising blending via a process pool or MPI, where
+      each worker computes a subset of the full ensemble. Each worker should
+      receive the correctly-sliced ``precip_models`` and ``velocity_models``
+      for its assigned members. Defaults to False.
     precip_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
       intensity. Required if mask_method is not None or conditional is True.
@@ -3702,6 +3730,7 @@ def forecast(
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
+        single_member_mode=single_member_mode,
         precip_threshold=precip_thr,
         norain_threshold=norain_thr,
         kmperpixel=kmperpixel,
