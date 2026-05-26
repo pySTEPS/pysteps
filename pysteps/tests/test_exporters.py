@@ -25,16 +25,19 @@ exporter_arg_names = (
     "scale_factor",
     "offset",
     "n_timesteps",
+    "complevel",
 )
 
 exporter_arg_values = [
-    (1, None, np.float32, None, None, None, 3),
-    (1, "timestep", np.float32, 65535, None, None, 3),
-    (2, None, np.float32, 65535, None, None, 3),
-    (2, None, np.float32, 65535, None, None, [1, 2, 4]),
-    (2, "timestep", np.float32, None, None, None, 3),
-    (2, "timestep", np.float32, None, None, None, [1, 2, 4]),
-    (2, "member", np.float64, None, 0.01, 1.0, 3),
+    (1, None, np.float32, None, None, None, 3, 1),
+    (1, None, np.float32, None, None, None, 3, None),
+    (1, None, np.float32, None, None, None, 3, 6),
+    (1, "timestep", np.float32, 65535, None, None, 3, 9),
+    (2, None, np.float32, 65535, None, None, 3, 2),
+    (2, None, np.float32, 65535, None, None, [1, 2, 4], 2),
+    (2, "timestep", np.float32, None, None, None, 3, 2),
+    (2, "timestep", np.float32, None, None, None, [1, 2, 4], 2),
+    (2, "member", np.float64, None, 0.01, 1.0, 3, 2),
 ]
 
 
@@ -58,7 +61,14 @@ def test_get_geotiff_filename():
 
 @pytest.mark.parametrize(exporter_arg_names, exporter_arg_values)
 def test_io_export_netcdf_one_member_one_time_step(
-    n_ens_members, incremental, datatype, fill_value, scale_factor, offset, n_timesteps
+    n_ens_members,
+    incremental,
+    datatype,
+    fill_value,
+    scale_factor,
+    offset,
+    n_timesteps,
+    complevel,
 ):
     """
     Test the export netcdf.
