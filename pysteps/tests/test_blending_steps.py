@@ -570,7 +570,7 @@ def test_steps_blending_partial_zero_radar(ar_order):
 def test_raises_when_n_models_exceeds_n_ens_members():
     """n_model_members > n_ens_members must raise ValueError (user forgot to slice)."""
     pytest.importorskip("cv2")
-    with pytest.raises(ValueError, match="slice"):
+    with pytest.raises(ValueError, match="[Ss]lice"):
         test_steps_blending(
             n_models=3,
             timesteps=3,

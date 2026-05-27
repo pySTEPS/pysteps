@@ -1848,10 +1848,11 @@ class StepsBlendingNowcaster:
         n_model_members = self.__state.precip_models_cascades_timestep.shape[0]
         if n_model_members > self.__config.n_ens_members:
             raise ValueError(
-                "The number of NWP model members is larger than the given number of "
-                "ensemble members. Either increase n_ens_members or reduce the number "
-                "of NWP members. For process-pool / MPI parallelism, slice "
-                "precip_models and velocity_models per worker and set model_index_offset."
+                f"Number of NWP models ({n_model_members}) exceeds ensemble size ({self.__config.n_ens_members}). "
+                f"\n\nQuick fix: Increase n_ens_members to at least {n_model_members}, or reduce NWP models to {self.__config.n_ens_members}."
+                f"\n\nFor parallel processing: Slice precip_models and velocity_models per worker "
+                f"(e.g., precip_models[i:i+n]) and set model_index_offset to the global index of the first model. "
+                f"This allows each worker to process one model independently. See documentation for details."
             )
 
         # Check if NWP models/members should be used individually, or if all of
