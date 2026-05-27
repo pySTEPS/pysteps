@@ -101,12 +101,6 @@ class StepsBlendingConfig:
       Check if NWP models/members should be used individually, or if all of
       them are blended together per nowcast ensemble member. Standard set to
       false.
-    model_index_offset: int, optional
-      Global index of the first model in ``precip_models``. Use this when
-      parallelising blending via a process pool or MPI: slice
-      ``precip_models[i:i+n]`` and ``velocity_models[i:i+n]`` for each worker
-      and set ``model_index_offset=i``. This shifts the climatological skill
-      lookup to the correct global model index. Defaults to 0.
     write_skill: bool, optional
       If True, update the rolling climatological skill file at each timestep.
       Set to False for workers that should not write skill (e.g. duplicate
@@ -326,7 +320,6 @@ class StepsBlendingConfig:
     velocity_perturbation_kwargs: dict[str, Any] = field(default_factory=dict)
     climatology_kwargs: dict[str, Any] = field(default_factory=dict)
     mask_kwargs: dict[str, Any] = field(default_factory=dict)
-    model_index_offset: int = 0
     write_skill: bool = True
     measure_time: bool = False
     callback: Any | None = None
@@ -1848,14 +1841,14 @@ class StepsBlendingNowcaster:
         ].astype(np.float64, copy=False)
         # Make sure the number of model members is not larger than n_ens_members.
         # For process-pool / MPI parallelism, slice precip_models and velocity_models
-        # per worker (e.g. precip_models[i:i+1]) and set model_index_offset=i.
+        # per worker (e.g. precip_models[i:i+1]) and use a per-worker skill directory.
         n_model_members = self.__state.precip_models_cascades_timestep.shape[0]
         if n_model_members > self.__config.n_ens_members:
             raise ValueError(
                 f"Number of NWP models ({n_model_members}) exceeds ensemble size ({self.__config.n_ens_members}). "
                 f"\n\nQuick fix: Increase n_ens_members to at least {n_model_members}, or reduce NWP models to {self.__config.n_ens_members}."
                 f"\n\nFor parallel processing: Slice precip_models and velocity_models per worker "
-                f"(e.g., precip_models[i:i+n]) and set model_index_offset to the global index of the first model. "
+                f"(e.g., precip_models[i:i+n]) and give each worker its own outdir_path_skill sub-directory. "
                 f"This allows each worker to process one model independently. See documentation for details."
             )
 
@@ -2125,7 +2118,7 @@ class StepsBlendingNowcaster:
                     lt=(t * int(self.__config.timestep)),
                     correlations=self.__params.rho_nwp_models[model_index],
                     outdir_path=self.__config.outdir_path_skill,
-                    n_model=model_index + self.__config.model_index_offset,
+                    n_model=model_index,
                     skill_kwargs=self.__params.climatology_kwargs,
                 )
                 rho_nwp_forecast.append(rho_value)
@@ -2140,10 +2133,7 @@ class StepsBlendingNowcaster:
                 lt=(t * int(self.__config.timestep)),
                 correlations=self.__params.rho_nwp_models[j],
                 outdir_path=self.__config.outdir_path_skill,
-                n_model=(
-                    worker_state.mapping_list_NWP_member_to_ensemble_member[j]
-                    + self.__config.model_index_offset
-                ),
+                n_model=worker_state.mapping_list_NWP_member_to_ensemble_member[j],
                 skill_kwargs=self.__params.climatology_kwargs,
             )
             # Concatenate rho_extrap_cascade and rho_nwp
@@ -3372,7 +3362,6 @@ def forecast(
     precip_nowcast=None,
     n_cascade_levels=6,
     blend_nwp_members=False,
-    model_index_offset=0,
     write_skill=True,
     precip_thr=None,
     norain_thr=0.0,
@@ -3551,7 +3540,6 @@ def forecast(
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
-        model_index_offset=model_index_offset,
         write_skill=write_skill,
         precip_threshold=precip_thr,
         norain_threshold=norain_thr,
