@@ -121,6 +121,7 @@ def save_skill(
         # Append skill to the list of the past X daily averages.
         if (
             past_skill is not None
+            and past_skill.ndim >= 3
             and past_skill.shape[2] == n_cascade_levels
             and past_skill.shape[1] == skill_today["mean_skill"].shape[0]
         ):
@@ -189,6 +190,13 @@ def calc_clim_skill(
     # past_skill has dimensions date x model x scale_level  x ....
     if past_skill_file.is_file():
         past_skill = np.load(past_skill_file)
+        # Don't use stored file if the shape no longer matches the requested configuration.
+        if (
+            past_skill.ndim < 3
+            or past_skill.shape[1] != n_models
+            or past_skill.shape[2] != n_cascade_levels
+        ):
+            past_skill = np.array(None)
     else:
         past_skill = np.array(None)
     # check if there is enough data to compute the climatological skill
