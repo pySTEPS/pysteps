@@ -3466,23 +3466,203 @@ def forecast(
       are skipped for the extrapolation cascade and this field is used instead.
       Requires ``nowcasting_method='external_nowcast'``. Defaults to None.
 
-    Configuration parameters
-    ------------------------
-    All remaining keyword arguments correspond directly to fields in
-    :class:`StepsBlendingConfig`, with the following name differences:
+    n_cascade_levels: int, optional
+      The number of cascade levels to use. Defaults to 6,
+      see issue #385 on GitHub.
+    blend_nwp_members: bool
+      Check if NWP models/members should be used individually, or if all of
+      them are blended together per nowcast ensemble member. Standard set to
+      false.
+    precip_thr: float, optional
+      Specifies the threshold value for minimum observable precipitation
+      intensity. Required if mask_method is not None or conditional is True.
+    norain_thr: float
+      Specifies the threshold value for the fraction of rainy (see above) pixels
+      in the radar rainfall field below which we consider there to be no rain.
+      Depends on the amount of clutter typically present.
+      Standard set to 0.0
+    kmperpixel: float, optional
+      Spatial resolution of the input data (kilometers/pixel). Required if
+      vel_pert_method is not None or mask_method is 'incremental'.
+    extrap_method: str, optional
+      Name of the extrapolation method to use. See the documentation of
+      :py:mod:`pysteps.extrapolation.interface`.
+    decomp_method: {'fft'}, optional
+      Name of the cascade decomposition method to use. See the documentation
+      of :py:mod:`pysteps.cascade.interface`.
+    bandpass_filter_method: {'gaussian', 'uniform'}, optional
+      Name of the bandpass filter method to use with the cascade decomposition.
+      See the documentation of :py:mod:`pysteps.cascade.interface`.
+    nowcasting_method: {'steps', 'external_nowcast'},
+      Name of the nowcasting method used to generate the nowcasts. If an external
+      nowcast is provided, the script will use this as input and bypass the
+      autoregression and advection of the extrapolation cascade. Defaults to 'steps',
+      which follows the method described in :cite:`Imhoff2023`. Note, if
+      nowcasting_method is 'external_nowcast', precip_nowcast cannot be None.
+    noise_method: {'parametric','nonparametric','ssft','nested',None}, optional
+      Name of the noise generator to use for perturbating the precipitation
+      field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to None,
+      no noise is generated.
+    noise_stddev_adj: {'auto','fixed',None}, optional
+      Optional adjustment for the standard deviations of the noise fields added
+      to each cascade level. This is done to compensate incorrect std. dev.
+      estimates of casace levels due to presence of no-rain areas. 'auto'=use
+      the method implemented in :py:func:`pysteps.noise.utils.compute_noise_stddev_adjs`.
+      'fixed'= use the formula given in :cite:`BPS2006` (eq. 6), None=disable
+      noise std. dev adjustment.
+    ar_order: int, optional
+      The order of the autoregressive model to use. Must be >= 1.
+    vel_pert_method: {'bps',None}, optional
+      Name of the noise generator to use for perturbing the advection field. See
+      the documentation of :py:mod:`pysteps.noise.interface`. If set to None, the advection
+      field is not perturbed.
+    weights_method: {'bps','spn'}, optional
+      The calculation method of the blending weights. Options are the method
+      by :cite:`BPS2006` and the covariance-based method by :cite:`SPN2013`.
+      Defaults to bps.
+    timestep_start_full_nwp_weight: int, optional.
+      The timestep, which should be smaller than timesteps, at which a linear
+      transition takes place from the calculated weights to full (1.0) NWP weight
+      (and zero extrapolation and noise weight) to ensure the blending
+      procedure becomes equal to the NWP forecast(s) at the last timestep
+      of the blending procedure. If not provided, the blending stick to the
+      theoretical weights provided by the chosen weights_method for a given
+      lead time and skill of each blending component.
+    conditional: bool, optional
+      If set to True, compute the statistics of the precipitation field
+      conditionally by excluding pixels where the values are below the threshold
+      precip_thr.
+    probmatching_method: {'cdf','mean',None}, optional
+      Method for matching the statistics of the forecast field with those of
+      the most recently observed one. 'cdf'=map the forecast CDF to the observed
+      one, 'mean'=adjust only the conditional mean value of the forecast field
+      in precipitation areas, None=no matching applied. Using 'mean' requires
+      that mask_method is not None.
+    mask_method: {'obs','incremental',None}, optional
+      The method to use for masking no precipitation areas in the forecast field.
+      The masked pixels are set to the minimum value of the observations.
+      'obs' = apply precip_thr to the most recently observed precipitation intensity
+      field, 'incremental' = iteratively buffer the mask with a certain rate
+      (currently it is 1 km/min), None=no masking.
+    resample_distribution: bool, optional
+        Method to resample the distribution from the extrapolation and NWP cascade as input
+        for the probability matching. Not resampling these distributions may lead to losing
+        some extremes when the weight of both the extrapolation and NWP cascade is similar.
+        Defaults to True.
+    smooth_radar_mask_range: int, Default is 0.
+      Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
+      blend near the edge of the radar domain (radar mask), where the radar data is either
+      not present anymore or is not reliable. If set to 0 (grid cells), this generates a
+      normal forecast without smoothing. To create a smooth mask, this range should be a
+      positive value, representing a buffer band of a number of pixels by which the mask
+      is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
+      and radar in the final blended product. Typically, a value between 50 and 100 km
+      can be used. 80 km generally gives good results.
+    callback: function, optional
+      Optional function that is called after computation of each time step of
+      the nowcast. The function takes one argument: a three-dimensional array
+      of shape (n_ens_members,h,w), where h and w are the height and width
+      of the input field precip, respectively. This can be used, for instance,
+      writing the outputs into files.
+    return_output: bool, optional
+      Set to False to disable returning the outputs as numpy arrays. This can
+      save memory if the intermediate results are written to output files using
+      the callback function.
+    seed: int, optional
+      Optional seed number for the random generators.
+    num_workers: int, optional
+      The number of workers to use for parallel computation. Applicable if dask
+      is enabled or pyFFTW is used for computing the FFT. When num_workers>1, it
+      is advisable to disable OpenMP by setting the environment variable
+      OMP_NUM_THREADS to 1. This avoids slowdown caused by too many simultaneous
+      threads.
+    fft_method: str, optional
+      A string defining the FFT method to use (see FFT methods in
+      :py:func:`pysteps.utils.interface.get_method`).
+      Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
+      the recommended method is 'pyfftw'.
+    domain: {"spatial", "spectral"}
+      If "spatial", all computations are done in the spatial domain (the
+      classical STEPS model). If "spectral", the AR(2) models and stochastic
+      perturbations are applied directly in the spectral domain to reduce
+      memory footprint and improve performance :cite:`PCH2019b`.
+    outdir_path_skill: string, optional
+      Path to folder where the historical skill are stored. Defaults to
+      path_workdir from rcparams. If no path is given, './tmp' will be used.
+    extrap_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the extrapolation
+      method. See the documentation of :py:func:`pysteps.extrapolation.interface`.
+    filter_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the filter method.
+      See the documentation of :py:mod:`pysteps.cascade.bandpass_filters`.
+    noise_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the initializer of
+      the noise generator. See the documentation of :py:mod:`pysteps.noise.fftgenerators`.
+    vel_pert_kwargs: dict, optional
+      Optional dictionary containing keyword arguments 'p_par' and 'p_perp' for
+      the initializer of the velocity perturbator. The choice of the optimal
+      parameters depends on the domain and the used optical flow method.
 
-    ========================  ================================
-    ``forecast()`` argument   ``StepsBlendingConfig`` field
-    ========================  ================================
-    ``precip_thr``            ``precip_threshold``
-    ``norain_thr``            ``norain_threshold``
-    ``extrap_method``         ``extrapolation_method``
-    ``decomp_method``         ``decomposition_method``
-    ``vel_pert_method``       ``velocity_perturbation_method``
-    ``extrap_kwargs``         ``extrapolation_kwargs``
-    ``vel_pert_kwargs``       ``velocity_perturbation_kwargs``
-    ``clim_kwargs``           ``climatology_kwargs``
-    ========================  ================================
+      Default parameters from :cite:`BPS2006`:
+      p_par  = [10.88, 0.23, -7.68]
+      p_perp = [5.76, 0.31, -2.72]
+
+      Parameters fitted to the data (optical flow/domain):
+
+      darts/fmi:
+      p_par  = [13.71259667, 0.15658963, -16.24368207]
+      p_perp = [8.26550355, 0.17820458, -9.54107834]
+
+      darts/mch:
+      p_par  = [24.27562298, 0.11297186, -27.30087471]
+      p_perp = [-7.80797846e+01, -3.38641048e-02, 7.56715304e+01]
+
+      darts/fmi+mch:
+      p_par  = [16.55447057, 0.14160448, -19.24613059]
+      p_perp = [14.75343395, 0.11785398, -16.26151612]
+
+      lucaskanade/fmi:
+      p_par  = [2.20837526, 0.33887032, -2.48995355]
+      p_perp = [2.21722634, 0.32359621, -2.57402761]
+
+      lucaskanade/mch:
+      p_par  = [2.56338484, 0.3330941, -2.99714349]
+      p_perp = [1.31204508, 0.3578426, -1.02499891]
+
+      lucaskanade/fmi+mch:
+      p_par  = [2.31970635, 0.33734287, -2.64972861]
+      p_perp = [1.90769947, 0.33446594, -2.06603662]
+
+      vet/fmi:
+      p_par  = [0.25337388, 0.67542291, 11.04895538]
+      p_perp = [0.02432118, 0.99613295, 7.40146505]
+
+      vet/mch:
+      p_par  = [0.5075159, 0.53895212, 7.90331791]
+      p_perp = [0.68025501, 0.41761289, 4.73793581]
+
+      vet/fmi+mch:
+      p_par  = [0.29495222, 0.62429207, 8.6804131 ]
+      p_perp = [0.23127377, 0.59010281, 5.98180004]
+
+      fmi=Finland, mch=Switzerland, fmi+mch=both pooled into the same data set
+
+      The above parameters have been fitted by using run_vel_pert_analysis.py
+      and fit_vel_pert_params.py located in the scripts directory.
+
+      See :py:mod:`pysteps.noise.motion` for additional documentation.
+    clim_kwargs: dict, optional
+      Optional dictionary containing keyword arguments for the climatological
+      skill file. Arguments can consist of: 'outdir_path', 'n_models'
+      (the number of NWP models) and 'window_length' (the minimum number of
+      days the clim file should have, otherwise the default is used).
+    mask_kwargs: dict
+      Optional dictionary containing mask keyword arguments 'mask_f',
+      'mask_rim' and 'max_mask_rim', the factor defining the the mask
+      increment and the (maximum) rim size, respectively.
+      The mask increment is defined as mask_f*timestep/kmperpixel.
+    measure_time: bool
+      If set to True, measure, print and return the computation time.
 
 
     Returns
