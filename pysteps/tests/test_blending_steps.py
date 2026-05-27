@@ -565,7 +565,8 @@ def test_steps_blending_partial_zero_radar(ar_order):
     ],
 )
 def test_steps_blending_single_process(write_skill):
-    """Simulate one process-pool worker holding a single NWP model slice.
+    """
+    Simulate one process-pool worker holding a single NWP model slice.
 
     This mirrors the one-per-proc mode in multiprocessing.py: each worker
     receives one model's precip/velocity slice, its own outdir_path_skill
