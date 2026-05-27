@@ -76,11 +76,13 @@ steps_arg_values = [
 ]
 
 # Extend every existing entry with model_index_offset=0 (default, no offset).
-# Add two entries that exercise the process-pool worker pattern:
-# n_models=1, n_ens_members=1, model_index_offset=0 (worker holds 1 sliced model).
+# Add worker-pattern entries that exercise both the default and a non-zero
+# model_index_offset path:
+# - n_models=1, n_ens_members=1, model_index_offset=0 (worker holds 1 sliced model)
+# - n_models=1, n_ens_members=1, model_index_offset=2 (worker holds a later sliced model)
 steps_arg_values = [t + (0,) for t in steps_arg_values] + [
     (1, 3, 1, 6, 'steps', None,          None,  False, "spn", True,  1, False, False,  0, False, None, None, None, 0),
-    (1, 3, 1, 6, 'steps', "incremental", "cdf", False, "bps", False, 1, False, False, 80, False, None, None, None, 0),
+    (1, 3, 1, 6, 'steps', "incremental", "cdf", False, "bps", False, 1, False, False, 80, False, None, None, None, 2),
 ]
 
 # fmt:on
