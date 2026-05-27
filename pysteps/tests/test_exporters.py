@@ -31,7 +31,7 @@ exporter_arg_names = (
 exporter_arg_values = [
     (1, None, np.float32, None, None, None, 3, 1),
     (1, None, np.float32, None, None, None, 3, 0),
-    (1, None, np.float32, None, None, None, 3, 0),
+    (1, None, np.float32, None, None, None, 3, 6),
     (1, "timestep", np.float32, 65535, None, None, 3, 9),
     (2, None, np.float32, 65535, None, None, 3, 2),
     (2, None, np.float32, 65535, None, None, [1, 2, 4], 2),
