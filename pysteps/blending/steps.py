@@ -92,9 +92,8 @@ class StepsBlendingConfig:
       Time step of the motion vectors (minutes). Required if vel_pert_method is
       not None or mask_method is 'incremental'.
     n_ens_members: int
-      The number of ensemble members to generate. When ``single_member_mode``
-      is False (default), this must be equal to or larger than the number of
-      NWP ensemble members / number of NWP models.
+      The number of ensemble members to generate. Must be equal to or larger
+      than the number of NWP ensemble members / number of NWP models.
     n_cascade_levels: int, optional
       The number of cascade levels to use. Defaults to 6,
       see issue #385 on GitHub.
@@ -102,12 +101,14 @@ class StepsBlendingConfig:
       Check if NWP models/members should be used individually, or if all of
       them are blended together per nowcast ensemble member. Standard set to
       false.
-    single_member_mode: bool, optional
-      If True, relax the constraint that ``n_ens_members >= n_model_members``.
-      Use this when parallelising blending via a process pool or MPI, where
-      each worker computes a subset of the full ensemble. In that scenario each
-      worker should receive the correctly-sliced ``precip_models`` and
-      ``velocity_models`` for its assigned members. Defaults to False.
+    model_index_offset: int, optional
+      Global index of the first model in ``precip_models``. Use this when
+      parallelising blending via a process pool or MPI: slice
+      ``precip_models[i:i+n]`` and ``velocity_models[i:i+n]`` for each worker
+      and set ``model_index_offset=i``. This ensures the climatological skill
+      regression file for the correct global model index is used. Workers with
+      ``model_index_offset > 0`` skip writing to the skill file (the
+      coordinating process is responsible for that). Defaults to 0.
     extrapolation_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       :py:mod:`pysteps.extrapolation.interface`.
@@ -322,7 +323,7 @@ class StepsBlendingConfig:
     velocity_perturbation_kwargs: dict[str, Any] = field(default_factory=dict)
     climatology_kwargs: dict[str, Any] = field(default_factory=dict)
     mask_kwargs: dict[str, Any] = field(default_factory=dict)
-    single_member_mode: bool = False
+    model_index_offset: int = 0
     measure_time: bool = False
     callback: Any | None = None
     return_output: bool = True
@@ -1841,18 +1842,16 @@ class StepsBlendingNowcaster:
         self.__state.velocity_models_timestep = self.__velocity_models[
             :, t, :, :, :
         ].astype(np.float64, copy=False)
-        # Make sure the number of model members is not larger than n_ens_members
-        # (unless single_member_mode is enabled for process-pool / MPI parallelism).
+        # Make sure the number of model members is not larger than n_ens_members.
+        # For process-pool / MPI parallelism, slice precip_models and velocity_models
+        # per worker (e.g. precip_models[i:i+1]) and set model_index_offset=i.
         n_model_members = self.__state.precip_models_cascades_timestep.shape[0]
-        if (
-            n_model_members > self.__config.n_ens_members
-            and not self.__config.single_member_mode
-        ):
+        if n_model_members > self.__config.n_ens_members:
             raise ValueError(
                 "The number of NWP model members is larger than the given number of "
-                "ensemble members. Either increase n_ens_members, reduce the number of "
-                "NWP members, or set single_member_mode=True when computing individual "
-                "members in parallel (process pool / MPI)."
+                "ensemble members. Either increase n_ens_members or reduce the number "
+                "of NWP members. For process-pool / MPI parallelism, slice "
+                "precip_models and velocity_models per worker and set model_index_offset."
             )
 
         # Check if NWP models/members should be used individually, or if all of
@@ -1866,16 +1865,11 @@ class StepsBlendingNowcaster:
             ].astype(np.float64, copy=False)
 
             n_ens_members_provided = self.__precip_nowcast.shape[0]
-            if (
-                n_ens_members_provided > self.__config.n_ens_members
-                and not self.__config.single_member_mode
-            ):
+            if n_ens_members_provided > self.__config.n_ens_members:
                 raise ValueError(
                     "The number of nowcast ensemble members provided is larger than the "
                     "given number of ensemble members requested. Either increase "
-                    "n_ens_members, reduce the number of provided nowcast members, or set "
-                    "single_member_mode=True when computing individual members in parallel "
-                    "(process pool / MPI)."
+                    "n_ens_members or reduce the number of provided nowcast members."
                 )
 
             n_ens_members_max = self.__config.n_ens_members
@@ -2093,12 +2087,15 @@ class StepsBlendingNowcaster:
                         )
 
             # Save this in the climatological skill file
-            blending.clim.save_skill(
-                current_skill=self.__params.rho_nwp_models,
-                validtime=self.__issuetime,
-                outdir_path=self.__config.outdir_path_skill,
-                **self.__params.climatology_kwargs,
-            )
+            # Workers with model_index_offset > 0 must not write to the shared
+            # skill file to avoid race conditions and shape mismatches.
+            if self.__config.model_index_offset == 0:
+                blending.clim.save_skill(
+                    current_skill=self.__params.rho_nwp_models,
+                    validtime=self.__issuetime,
+                    outdir_path=self.__config.outdir_path_skill,
+                    **self.__params.climatology_kwargs,
+                )
         if t > 0:
             # Determine the skill of the components for lead time (t0 + t)
             # First for the extrapolation component. Only calculate it when t > 0.
@@ -2140,7 +2137,10 @@ class StepsBlendingNowcaster:
                 lt=(t * int(self.__config.timestep)),
                 correlations=self.__params.rho_nwp_models[j],
                 outdir_path=self.__config.outdir_path_skill,
-                n_model=worker_state.mapping_list_NWP_member_to_ensemble_member[j],
+                n_model=(
+                    worker_state.mapping_list_NWP_member_to_ensemble_member[j]
+                    + self.__config.model_index_offset
+                ),
                 skill_kwargs=self.__params.climatology_kwargs,
             )
             # Concatenate rho_extrap_cascade and rho_nwp
@@ -3369,7 +3369,7 @@ def forecast(
     precip_nowcast=None,
     n_cascade_levels=6,
     blend_nwp_members=False,
-    single_member_mode=False,
+    model_index_offset=0,
     precip_thr=None,
     norain_thr=0.0,
     kmperpixel=None,
@@ -3555,7 +3555,7 @@ def forecast(
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
-        single_member_mode=single_member_mode,
+        model_index_offset=model_index_offset,
         precip_threshold=precip_thr,
         norain_threshold=norain_thr,
         kmperpixel=kmperpixel,
