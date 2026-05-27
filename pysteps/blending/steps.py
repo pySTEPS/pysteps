@@ -2125,7 +2125,7 @@ class StepsBlendingNowcaster:
                     lt=(t * int(self.__config.timestep)),
                     correlations=self.__params.rho_nwp_models[model_index],
                     outdir_path=self.__config.outdir_path_skill,
-                    n_model=model_index,
+                    n_model=model_index + self.__config.model_index_offset,
                     skill_kwargs=self.__params.climatology_kwargs,
                 )
                 rho_nwp_forecast.append(rho_value)
