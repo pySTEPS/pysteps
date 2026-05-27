@@ -3492,14 +3492,6 @@ def forecast(
     ``clim_kwargs``           ``climatology_kwargs``
     ========================  ================================
 
-    All other arguments (``n_cascade_levels``, ``blend_nwp_members``,
-    ``single_member_mode``, ``noise_method``, ``noise_stddev_adj``,
-    ``ar_order``, ``weights_method``, ``timestep_start_full_nwp_weight``,
-    ``conditional``, ``probmatching_method``, ``mask_method``,
-    ``resample_distribution``, ``smooth_radar_mask_range``, ``seed``,
-    ``num_workers``, ``fft_method``, ``domain``, ``outdir_path_skill``,
-    ``filter_kwargs``, ``noise_kwargs``, ``mask_kwargs``, ``callback``,
-    ``return_output``, ``measure_time``) are passed through unchanged.
 
     Returns
     -------
