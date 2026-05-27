@@ -75,6 +75,13 @@ steps_arg_values = [
     (1, 10, 5, 8,'external_nowcast_ens', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None, 5)
 ]
 
+# Extend every existing entry with single_member_mode=False, then add cases where
+# n_models > n_ens_members is only valid because single_member_mode=True.
+steps_arg_values = [t + (False,) for t in steps_arg_values] + [
+    (3, 3, 1, 6, 'steps', None,          None,  False, "spn", True,  1, False, False,  0, False, None, None, None, True),
+    (3, 3, 1, 6, 'steps', "incremental", "cdf", False, "bps", False, 1, False, False, 80, False, None, None, None, True),
+]
+
 # fmt:on
 
 
@@ -125,6 +132,7 @@ steps_arg_names = (
     "vel_pert_method",
     "max_mask_rim",
     "timestep_start_full_nwp_weight",
+    "single_member_mode",
 )
 
 
@@ -148,6 +156,7 @@ def test_steps_blending(
     vel_pert_method,
     max_mask_rim,
     timestep_start_full_nwp_weight,
+    single_member_mode,
 ):
     pytest.importorskip("cv2")
 
@@ -398,6 +407,7 @@ def test_steps_blending(
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
+        single_member_mode=single_member_mode,
         precip_thr=metadata["threshold"],
         kmperpixel=1.0,
         extrap_method="semilagrangian",
@@ -554,3 +564,30 @@ def test_steps_blending_partial_zero_radar(ar_order):
         converter=converter,
         metadata=metadata,
     )
+
+
+def test_single_member_mode_raises_without_flag():
+    """Without single_member_mode, n_model_members > n_ens_members must raise ValueError."""
+    pytest.importorskip("cv2")
+    with pytest.raises(ValueError, match="single_member_mode"):
+        test_steps_blending(
+            n_models=3,
+            timesteps=3,
+            n_ens_members=1,
+            n_cascade_levels=6,
+            nowcasting_method="steps",
+            mask_method=None,
+            probmatching_method=None,
+            blend_nwp_members=False,
+            weights_method="spn",
+            decomposed_nwp=True,
+            expected_n_ens_members=1,
+            zero_radar=False,
+            zero_nwp=False,
+            smooth_radar_mask_range=0,
+            resample_distribution=False,
+            vel_pert_method=None,
+            max_mask_rim=None,
+            timestep_start_full_nwp_weight=None,
+            single_member_mode=False,
+        )
