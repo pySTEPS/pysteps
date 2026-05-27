@@ -105,10 +105,13 @@ class StepsBlendingConfig:
       Global index of the first model in ``precip_models``. Use this when
       parallelising blending via a process pool or MPI: slice
       ``precip_models[i:i+n]`` and ``velocity_models[i:i+n]`` for each worker
-      and set ``model_index_offset=i``. This ensures the climatological skill
-      regression file for the correct global model index is used. Workers with
-      ``model_index_offset > 0`` skip writing to the skill file (the
-      coordinating process is responsible for that). Defaults to 0.
+      and set ``model_index_offset=i``. This shifts the climatological skill
+      lookup to the correct global model index. Defaults to 0.
+    write_skill: bool, optional
+      If True, update the rolling climatological skill file at each timestep.
+      Set to False for workers that should not write skill (e.g. duplicate
+      workers in a process pool that share a skill directory with a designated
+      writer). Defaults to True.
     extrapolation_method: str, optional
       Name of the extrapolation method to use. See the documentation of
       :py:mod:`pysteps.extrapolation.interface`.
@@ -324,6 +327,7 @@ class StepsBlendingConfig:
     climatology_kwargs: dict[str, Any] = field(default_factory=dict)
     mask_kwargs: dict[str, Any] = field(default_factory=dict)
     model_index_offset: int = 0
+    write_skill: bool = True
     measure_time: bool = False
     callback: Any | None = None
     return_output: bool = True
@@ -2088,9 +2092,7 @@ class StepsBlendingNowcaster:
                         )
 
             # Save this in the climatological skill file
-            # Workers with model_index_offset > 0 must not write to the shared
-            # skill file to avoid race conditions and shape mismatches.
-            if self.__config.model_index_offset == 0:
+            if self.__config.write_skill:
                 blending.clim.save_skill(
                     current_skill=self.__params.rho_nwp_models,
                     validtime=self.__issuetime,
@@ -3371,6 +3373,7 @@ def forecast(
     n_cascade_levels=6,
     blend_nwp_members=False,
     model_index_offset=0,
+    write_skill=True,
     precip_thr=None,
     norain_thr=0.0,
     kmperpixel=None,
@@ -3557,6 +3560,7 @@ def forecast(
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
         model_index_offset=model_index_offset,
+        write_skill=write_skill,
         precip_threshold=precip_thr,
         norain_threshold=norain_thr,
         kmperpixel=kmperpixel,
