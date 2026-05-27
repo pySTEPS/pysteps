@@ -431,8 +431,9 @@ def initialize_forecast_exporter_netcdf(
         The offset to offset the data as: store_value = scale_factor *
         precipitation_value + offset. Defaults to None.
     complevel: int, optional
-        Compression level for zlib compression, between 1 (fastest, least
-        compression) and 9 (slowest, most compression). Defaults to 9.
+        Compression level for zlib compression, ranging from 0 (no
+        compression) to 9 (slowest, most compression). Higher values
+        reduce file size but increase write time. Defaults to 9.
 
     Other Parameters
     ----------------

@@ -30,7 +30,7 @@ exporter_arg_names = (
 
 exporter_arg_values = [
     (1, None, np.float32, None, None, None, 3, 1),
-    (1, None, np.float32, None, None, None, 3, None),
+    (1, None, np.float32, None, None, None, 3, 0),
     (1, None, np.float32, None, None, None, 3, 0),
     (1, "timestep", np.float32, 65535, None, None, 3, 9),
     (2, None, np.float32, 65535, None, None, 3, 2),
@@ -105,6 +105,7 @@ def test_io_export_netcdf_one_member_one_time_step(
             fill_value=fill_value,
             scale_factor=scale_factor,
             offset=offset,
+            complevel=complevel,
         )
 
         if n_ens_members > 1:
