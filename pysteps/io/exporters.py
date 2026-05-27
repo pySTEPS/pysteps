@@ -381,6 +381,7 @@ def initialize_forecast_exporter_netcdf(
     fill_value=None,
     scale_factor=None,
     offset=None,
+    complevel=9,
     **kwargs,
 ):
     """
@@ -429,6 +430,10 @@ def initialize_forecast_exporter_netcdf(
     offset: float, optional
         The offset to offset the data as: store_value = scale_factor *
         precipitation_value + offset. Defaults to None.
+    complevel: int, optional
+        Compression level for zlib compression, ranging from 0 (no
+        compression) to 9 (slowest, most compression). Higher values
+        reduce file size but increase write time. Defaults to 9.
 
     Other Parameters
     ----------------
@@ -612,7 +617,7 @@ def initialize_forecast_exporter_netcdf(
             dimensions=("ens_number", "time", "y", "x"),
             compression="zlib",
             zlib=True,
-            complevel=9,
+            complevel=complevel,
             fill_value=fill_value,
         )
     else:
@@ -622,7 +627,7 @@ def initialize_forecast_exporter_netcdf(
             dimensions=("time", "y", "x"),
             compression="zlib",
             zlib=True,
-            complevel=9,
+            complevel=complevel,
             fill_value=fill_value,
         )
 
