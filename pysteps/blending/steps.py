@@ -3452,11 +3452,14 @@ def forecast(
       forecasts are computed (relative to the input time step). The elements of
       the list are required to be in ascending order.
     timestep: float
-      Time step of the motion vectors (minutes).
+      Time step of the motion vectors (minutes). Required if
+      ``vel_pert_method`` is not ``None`` or ``mask_method`` is
+      ``'incremental'``.
     issuetime: datetime
       Issue time of the forecast.
     n_ens_members: int
-      Passed to :class:`StepsBlendingConfig` as ``n_ens_members``.
+      The number of ensemble members to generate. Must be equal to or larger
+      than the number of NWP ensemble members / number of NWP models.
     precip_nowcast: array-like, optional
       Optional array of shape (n_ens_members,timestep+1,m,n) containing an
       external nowcast. When provided, the autoregression and advection step
