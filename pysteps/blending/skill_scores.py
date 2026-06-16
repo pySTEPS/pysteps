@@ -15,13 +15,8 @@ dimensional model fields with the latest observation field.
     clim_regr_values
 """
 
-import logging
-
 import numpy as np
 from pysteps.blending import clim
-
-logger = logging.getLogger(__name__)
-
 
 def spatial_correlation(obs, mod, domain_mask):
     """Determine the spatial correlation between the cascade of the latest
@@ -137,7 +132,7 @@ def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=
     # Determine the correlation for lead time lt
     rho = qm * correlations + (1 - qm) * clim_cor_values
 
-    logger.debug(
+    print(
         "lt_dependent_cor_nwp lt=%d n_model=%d | clim_cor=%s | corr_t0=%s | "
         "qm=%s -> rho=%s",
         lt,

@@ -44,7 +44,6 @@ The STEPS blending method consists of the following main steps:
     blend_means_sigmas
 """
 
-import logging
 import math
 import time
 from copy import copy, deepcopy
@@ -70,8 +69,6 @@ except ImportError:
 
 from dataclasses import dataclass, field
 from typing import Any, Callable
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -2074,7 +2071,7 @@ class StepsBlendingNowcaster:
                             self.__params.rho_nwp_models[model_index, i - 1]
                         )
 
-            logger.info(
+            print(
                 "NWP skill saved to clim (rho_nwp_models) at t=0, validtime=%s, "
                 "shape=%s [model, cascade_level]:\n%s",
                 self.__issuetime,
@@ -2123,7 +2120,7 @@ class StepsBlendingNowcaster:
             worker_state.rho_final_blended_forecast = np.concatenate(
                 (worker_state.rho_extrap_cascade[None, :], rho_nwp_forecast), axis=0
             )
-            logger.debug(
+            print(
                 "rho_final_blended_forecast t=%d (blend_nwp_members), "
                 "rows=[extrap, models...]:\n%s",
                 t,
@@ -2145,7 +2142,7 @@ class StepsBlendingNowcaster:
                 (worker_state.rho_extrap_cascade[None, :], rho_nwp_forecast[None, :]),
                 axis=0,
             )
-            logger.debug(
+            print(
                 "rho_final_blended_forecast t=%d j=%d n_model=%s, "
                 "rows=[extrap, model]:\n%s",
                 t,
