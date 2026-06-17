@@ -2072,11 +2072,9 @@ class StepsBlendingNowcaster:
                         )
 
             print(
-                "NWP skill saved to clim (rho_nwp_models) at t=0, validtime=%s, "
-                "shape=%s [model, cascade_level]:\n%s",
-                self.__issuetime,
-                self.__params.rho_nwp_models.shape,
-                np.array2string(self.__params.rho_nwp_models, precision=4),
+                f"NWP skill saved to clim (rho_nwp_models) at t=0, validtime={self.__issuetime}, "
+                f"shape={self.__params.rho_nwp_models.shape},"
+                f"[model, cascade_level]:\n {np.array2string(self.__params.rho_nwp_models)}"
             )
             # Save this in the climatological skill file
             blending.clim.save_skill(
@@ -2121,12 +2119,10 @@ class StepsBlendingNowcaster:
                 (worker_state.rho_extrap_cascade[None, :], rho_nwp_forecast), axis=0
             )
             print(
-                "rho_final_blended_forecast t=%d (blend_nwp_members), "
-                "rows=[extrap, models...]:\n%s",
-                t,
-                np.array2string(
+                f"rho_final_blended_forecast t={t} (blend_nwp_members), "
+                f"rows=[extrap, models...]:\n{np.array2string(
                     worker_state.rho_final_blended_forecast, precision=4
-                ),
+                )}",
             )
         else:
             # TODO: check if j is the best accessor for this variable
@@ -2143,14 +2139,11 @@ class StepsBlendingNowcaster:
                 axis=0,
             )
             print(
-                "rho_final_blended_forecast t=%d j=%d n_model=%s, "
-                "rows=[extrap, model]:\n%s",
-                t,
-                j,
-                worker_state.mapping_list_NWP_member_to_ensemble_member[j],
-                np.array2string(
+                f"rho_final_blended_forecast t={t} j={j}"
+                f"n_model={worker_state.mapping_list_NWP_member_to_ensemble_member[j]}"
+                f"rows=[extrap, model]:\n{np.array2string(
                     worker_state.rho_final_blended_forecast, precision=4
-                ),
+                )}"
             )
 
     def __determine_weights_per_component(self, t, worker_state):

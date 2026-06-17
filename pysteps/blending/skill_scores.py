@@ -133,14 +133,11 @@ def lt_dependent_cor_nwp(lt, correlations, outdir_path, n_model=0, skill_kwargs=
     rho = qm * correlations + (1 - qm) * clim_cor_values
 
     print(
-        "lt_dependent_cor_nwp lt=%d n_model=%d | clim_cor=%s | corr_t0=%s | "
-        "qm=%s -> rho=%s",
-        lt,
-        n_model,
-        np.array2string(np.asarray(clim_cor_values), precision=4),
-        np.array2string(np.asarray(correlations), precision=4),
-        np.array2string(np.asarray(qm), precision=4),
-        np.array2string(np.asarray(rho), precision=4),
+        f"lt_dependent_cor_nwp lt={lt} n_model={n_model} | "
+        f"clim_cor={np.array2string(np.asarray(clim_cor_values), precision=4)} | "
+        f"corr_t0={np.array2string(np.asarray(correlations), precision=4)} | "
+        f"qm={np.array2string(np.asarray(qm), precision=4)} -> "
+        f"rho={np.array2string(np.asarray(rho), precision=4)}"
     )
 
     return rho
