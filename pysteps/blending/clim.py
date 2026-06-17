@@ -193,8 +193,13 @@ def calc_clim_skill(
         past_skill = np.array(None)
     # check if there is enough data to compute the climatological skill
     if not past_skill.any():
+        print("WARNING: Past skill file is empty, using default BPS2006 skill")
         return get_default_skill(n_cascade_levels, n_models)
     elif past_skill.shape[0] < window_length:
+        print(
+            f"WARNING: Past skill file has less days ({past_skill.shape[0]})"
+            f"than expected ({window_length}). Using default BPS2006 skill"
+        )
         return get_default_skill(n_cascade_levels, n_models)
     # reduce window if necessary
     else:
