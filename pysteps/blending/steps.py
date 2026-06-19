@@ -431,11 +431,11 @@ class StepsBlendingState:
     # full-NWP smoothing reads each member's own previous-timestep weights.
 
     # Current working copy: full weights (extrapolation + NWP + noise)
-    weights: np.ndarray | None = None 
+    weights: np.ndarray | None = None
 
     # Current working copy: Extrapolation + radar removed (for when there is no radar)
     weights_model_only: np.ndarray | None = None
-    
+
     # List index by j that survives over timesteps (full weights)
     weights_per_member: list[Any] | None = None
 
@@ -2252,9 +2252,7 @@ class StepsBlendingNowcaster:
         # shallow copy shares the same list object, so index assignment touches a
         # disjoint element per member (mirrors previous_displacement[j]).
         worker_state.weights_per_member[j] = worker_state.weights
-        worker_state.weights_model_only_per_member[j] = (
-            worker_state.weights_model_only
-        )
+        worker_state.weights_model_only_per_member[j] = worker_state.weights_model_only
 
     def __regress_extrapolation_and_noise_cascades(self, j, worker_state, t):
         """
