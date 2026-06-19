@@ -197,7 +197,7 @@ def calc_clim_skill(
         return get_default_skill(n_cascade_levels, n_models)
     elif past_skill.shape[0] < window_length:
         print(
-            f"WARNING: Past skill file has less days ({past_skill.shape[0]})"
+            f"WARNING: Past skill file has fewer days ({past_skill.shape[0]})"
             f"than expected ({window_length}). Using default BPS2006 skill"
         )
         return get_default_skill(n_cascade_levels, n_models)
