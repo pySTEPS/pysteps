@@ -1437,7 +1437,7 @@ class StepsBlendingNowcaster:
                     self.__params.perturbation_generator,
                     self.__params.noise_generator,
                     20,
-                    conditional=True,
+                    conditional=self.__config.conditional,
                     num_workers=self.__config.num_workers,
                     seed=self.__config.seed,
                 )
