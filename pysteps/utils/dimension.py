@@ -386,7 +386,6 @@ def clip_domain(R, metadata, extent=None):
 
     # extract original domain geometry
     x1 = metadata["x1"]
-    x2 = metadata["x2"]
     y1 = metadata["y1"]
     y2 = metadata["y2"]
     xpixelsize = metadata["xpixelsize"]
@@ -401,12 +400,11 @@ def clip_domain(R, metadata, extent=None):
     if dim_x <= 0 or dim_y <= 0:
         raise ValueError("The requested extent has a non-positive size")
 
-    # Since the pixel size is preserved, clipping is an integer-pixel window
-    # operation. Compute the offset (in pixels) between the first cell of the
-    # clipped domain and the first cell of the source array. Working with pixel
-    # offsets guarantees that the source and destination windows always have
-    # matching sizes, even when the requested extent lies strictly inside the
-    # source domain or extends beyond it.
+    # Clipping preserves the pixel size, so it is an integer-pixel window
+    # operation. Using a single pixel offset between the clipped grid and the
+    # source array guarantees that the source and destination windows always
+    # have matching sizes, whether the extent lies inside the source domain or
+    # extends beyond it.
     col_offset = int(round((left_ - x1) / xpixelsize))
     # The vertical origin determines which corner corresponds to row 0.
     if metadata["yorigin"] == "upper":
@@ -414,17 +412,14 @@ def clip_domain(R, metadata, extent=None):
     else:
         row_offset = int(round((bottom_ - y1) / ypixelsize))
 
-    num, nt, ny, nx = R.shape
-
-    # start from a field filled with the zero value; cells that fall outside the
-    # source domain (when the extent is larger than the source) keep this value.
-    R_ = np.ones((num, nt, dim_y, dim_x)) * metadata["zerovalue"]
+    # Cells that fall outside the source domain keep the zero value.
+    R_ = np.ones((R.shape[0], R.shape[1], dim_y, dim_x)) * metadata["zerovalue"]
 
     # overlap window between the source array and the clipped domain
     dst_x0 = max(0, -col_offset)
-    dst_x1 = min(dim_x, nx - col_offset)
+    dst_x1 = min(dim_x, R.shape[3] - col_offset)
     dst_y0 = max(0, -row_offset)
-    dst_y1 = min(dim_y, ny - row_offset)
+    dst_y1 = min(dim_y, R.shape[2] - row_offset)
 
     if dst_x1 > dst_x0 and dst_y1 > dst_y0:
         R_[:, :, dst_y0:dst_y1, dst_x0:dst_x1] = R[
