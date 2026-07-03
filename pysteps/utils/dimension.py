@@ -375,75 +375,74 @@ def clip_domain(R, metadata, extent=None):
     if extent is None:
         return R, metadata
 
-    if len(R.shape) < 2:
+    if R.ndim < 2:
         raise ValueError("The number of dimension must be > 1")
-    if len(R.shape) == 2:
-        R = R[None, None, :, :]
-    if len(R.shape) == 3:
-        R = R[None, :, :, :]
-    if len(R.shape) > 4:
+    if R.ndim > 4:
         raise ValueError("The number of dimension must be <= 4")
+    if R.ndim == 2:
+        R = R[None, None, :, :]
+    elif R.ndim == 3:
+        R = R[None, :, :, :]
 
-    # extract original domain coordinates
-    left = metadata["x1"]
-    right = metadata["x2"]
-    bottom = metadata["y1"]
-    top = metadata["y2"]
+    # extract original domain geometry
+    x1 = metadata["x1"]
+    x2 = metadata["x2"]
+    y1 = metadata["y1"]
+    y2 = metadata["y2"]
+    xpixelsize = metadata["xpixelsize"]
+    ypixelsize = metadata["ypixelsize"]
 
     # extract bounding box coordinates
-    left_ = extent[0]
-    right_ = extent[1]
-    bottom_ = extent[2]
-    top_ = extent[3]
+    left_, right_, bottom_, top_ = extent
 
-    # compute its extent in pixels
-    dim_x_ = int((right_ - left_) / metadata["xpixelsize"])
-    dim_y_ = int((top_ - bottom_) / metadata["ypixelsize"])
-    R_ = np.ones((R.shape[0], R.shape[1], dim_y_, dim_x_)) * metadata["zerovalue"]
+    # size of the clipped domain in pixels
+    dim_x = int(round((right_ - left_) / xpixelsize))
+    dim_y = int(round((top_ - bottom_) / ypixelsize))
+    if dim_x <= 0 or dim_y <= 0:
+        raise ValueError("The requested extent has a non-positive size")
 
-    # build set of coordinates for the original domain
-    y_coord = (
-        np.linspace(bottom, top - metadata["ypixelsize"], R.shape[2])
-        + metadata["ypixelsize"] / 2.0
-    )
-    x_coord = (
-        np.linspace(left, right - metadata["xpixelsize"], R.shape[3])
-        + metadata["xpixelsize"] / 2.0
-    )
-
-    # build set of coordinates for the new domain
-    y_coord_ = (
-        np.linspace(bottom_, top_ - metadata["ypixelsize"], R_.shape[2])
-        + metadata["ypixelsize"] / 2.0
-    )
-    x_coord_ = (
-        np.linspace(left_, right_ - metadata["xpixelsize"], R_.shape[3])
-        + metadata["xpixelsize"] / 2.0
-    )
-
-    # origin='upper' reverses the vertical axes direction
+    # Since the pixel size is preserved, clipping is an integer-pixel window
+    # operation. Compute the offset (in pixels) between the first cell of the
+    # clipped domain and the first cell of the source array. Working with pixel
+    # offsets guarantees that the source and destination windows always have
+    # matching sizes, even when the requested extent lies strictly inside the
+    # source domain or extends beyond it.
+    col_offset = int(round((left_ - x1) / xpixelsize))
+    # The vertical origin determines which corner corresponds to row 0.
     if metadata["yorigin"] == "upper":
-        y_coord = y_coord[::-1]
-        y_coord_ = y_coord_[::-1]
+        row_offset = int(round((y2 - top_) / ypixelsize))
+    else:
+        row_offset = int(round((bottom_ - y1) / ypixelsize))
 
-    # extract original domain
-    idx_y = np.where(np.logical_and(y_coord < top_, y_coord > bottom_))[0]
-    idx_x = np.where(np.logical_and(x_coord < right_, x_coord > left_))[0]
+    num, nt, ny, nx = R.shape
 
-    # extract new domain
-    idx_y_ = np.where(np.logical_and(y_coord_ < top, y_coord_ > bottom))[0]
-    idx_x_ = np.where(np.logical_and(x_coord_ < right, x_coord_ > left))[0]
+    # start from a field filled with the zero value; cells that fall outside the
+    # source domain (when the extent is larger than the source) keep this value.
+    R_ = np.ones((num, nt, dim_y, dim_x)) * metadata["zerovalue"]
 
-    # compose the new array
-    R_[:, :, idx_y_[0] : (idx_y_[-1] + 1), idx_x_[0] : (idx_x_[-1] + 1)] = R[
-        :, :, idx_y[0] : (idx_y[-1] + 1), idx_x[0] : (idx_x[-1] + 1)
-    ]
+    # overlap window between the source array and the clipped domain
+    dst_x0 = max(0, -col_offset)
+    dst_x1 = min(dim_x, nx - col_offset)
+    dst_y0 = max(0, -row_offset)
+    dst_y1 = min(dim_y, ny - row_offset)
 
-    # update coordinates
-    metadata["y1"] = bottom_
-    metadata["y2"] = top_
-    metadata["x1"] = left_
-    metadata["x2"] = right_
+    if dst_x1 > dst_x0 and dst_y1 > dst_y0:
+        R_[:, :, dst_y0:dst_y1, dst_x0:dst_x1] = R[
+            :,
+            :,
+            dst_y0 + row_offset : dst_y1 + row_offset,
+            dst_x0 + col_offset : dst_x1 + col_offset,
+        ]
+
+    # update coordinates so that they stay consistent with the pixel grid
+    metadata["x1"] = x1 + col_offset * xpixelsize
+    metadata["x2"] = metadata["x1"] + dim_x * xpixelsize
+    if metadata["yorigin"] == "upper":
+        metadata["y2"] = y2 - row_offset * ypixelsize
+        metadata["y1"] = metadata["y2"] - dim_y * ypixelsize
+    else:
+        metadata["y1"] = y1 + row_offset * ypixelsize
+        metadata["y2"] = metadata["y1"] + dim_y * ypixelsize
 
     R_shape[-2] = R_.shape[-2]
     R_shape[-1] = R_.shape[-1]

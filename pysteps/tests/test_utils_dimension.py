@@ -220,6 +220,64 @@ test_data = [
         (2, 4, 2, 4),
         np.ones((2, 2)),
     ),
+    # Clip a box that lies strictly inside the source domain. This used to raise
+    # a broadcasting ValueError because the source and destination windows had
+    # mismatched sizes (see GH issue on clip_domain).
+    (
+        np.arange(16).reshape(4, 4).astype(float),
+        {
+            "x1": 0,
+            "x2": 4,
+            "y1": 0,
+            "y2": 4,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "zerovalue": 0,
+            "yorigin": "upper",
+        },
+        (1, 3, 1, 3),
+        np.array([[5.0, 6.0], [9.0, 10.0]]),
+    ),
+    # Same interior clip with yorigin="lower": row 0 is the bottom of the domain.
+    (
+        np.arange(16).reshape(4, 4).astype(float),
+        {
+            "x1": 0,
+            "x2": 4,
+            "y1": 0,
+            "y2": 4,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "zerovalue": 0,
+            "yorigin": "lower",
+        },
+        (1, 3, 1, 3),
+        np.array([[5.0, 6.0], [9.0, 10.0]]),
+    ),
+    # An extent larger than the source domain is padded with the zero value
+    # instead of raising an error.
+    (
+        np.ones((2, 2)),
+        {
+            "x1": 0,
+            "x2": 2,
+            "y1": 0,
+            "y2": 2,
+            "xpixelsize": 1,
+            "ypixelsize": 1,
+            "zerovalue": -1,
+            "yorigin": "upper",
+        },
+        (-1, 3, -1, 3),
+        np.array(
+            [
+                [-1.0, -1.0, -1.0, -1.0],
+                [-1.0, 1.0, 1.0, -1.0],
+                [-1.0, 1.0, 1.0, -1.0],
+                [-1.0, -1.0, -1.0, -1.0],
+            ]
+        ),
+    ),
 ]
 
 
@@ -227,6 +285,30 @@ test_data = [
 def test_clip_domain(R, metadata, extent, expected):
     """Test the clip_domain."""
     assert_array_equal(dimension.clip_domain(R, metadata, extent)[0], expected)
+
+
+def test_clip_domain_metadata():
+    """The clipped metadata must describe the returned pixel grid."""
+    R = np.arange(16).reshape(4, 4).astype(float)
+    metadata = {
+        "x1": 0,
+        "x2": 4,
+        "y1": 0,
+        "y2": 4,
+        "xpixelsize": 1,
+        "ypixelsize": 1,
+        "zerovalue": 0,
+        "yorigin": "upper",
+    }
+    R_clip, metadata_clip = dimension.clip_domain(R, metadata, (1, 3, 1, 3))
+    assert R_clip.shape == (2, 2)
+    assert metadata_clip["x1"] == 1
+    assert metadata_clip["x2"] == 3
+    assert metadata_clip["y1"] == 1
+    assert metadata_clip["y2"] == 3
+    # the pixel size must be preserved
+    assert metadata_clip["xpixelsize"] == metadata["xpixelsize"]
+    assert metadata_clip["ypixelsize"] == metadata["ypixelsize"]
 
 
 # square_domain
