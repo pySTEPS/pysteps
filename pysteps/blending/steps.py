@@ -416,8 +416,6 @@ class StepsBlendingState:
     # Final outputs
     final_blended_forecast: np.ndarray | None = None
     final_blended_forecast_non_perturbed: np.ndarray | None = None
-    weights: np.ndarray | None = None
-    weights_model_only: np.ndarray | None = None
 
     # Timing and indexing
     time_prev_timestep: list[float] | None = None
@@ -426,9 +424,23 @@ class StepsBlendingState:
     is_nowcast_time_step: bool | None = None
     subtimestep_index: int | None = None
 
-    # Weights used for blending
+    # Weights used for blending. `weights` / `weights_model_only` are per-worker
+    # scratch (the current member's weights, used by the downstream blends).
+    # `weights_per_member` / `weights_model_only_per_member` persist each member's
+    # weights across timesteps so members do not overwrite one another and the
+    # full-NWP smoothing reads each member's own previous-timestep weights.
+
+    # Current working copy: full weights (extrapolation + NWP + noise)
     weights: np.ndarray | None = None
+
+    # Current working copy: Extrapolation + radar removed (for when there is no radar)
     weights_model_only: np.ndarray | None = None
+
+    # List index by j that survives over timesteps (full weights)
+    weights_per_member: list[Any] | None = None
+
+    # List index by j that survives over timesteps (Extrapolation + radar removed)
+    weights_model_only_per_member: list[Any] | None = None
 
     # This is stores here as well because this is changed during the forecast loop and thus no longer part of the config
     extrapolation_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -665,7 +677,7 @@ class StepsBlendingNowcaster:
             def worker(j):
                 worker_state = copy(self.__state)
                 self.__determine_NWP_skill_for_next_timestep(t, j, worker_state)
-                self.__determine_weights_per_component(t, worker_state)
+                self.__determine_weights_per_component(t, j, worker_state)
                 self.__regress_extrapolation_and_noise_cascades(j, worker_state, t)
                 self.__perturb_blend_and_advect_extrapolation_and_noise_to_current_timestep(
                     t, j, worker_state
@@ -1629,6 +1641,14 @@ class StepsBlendingNowcaster:
         self.__state.previous_displacement_prob_matching = np.stack(
             [None for j in range(self.__config.n_ens_members)]
         )
+        # Per-member blending weights, persisted across timesteps so members do
+        # not overwrite one another (see StepsBlendingState).
+        self.__state.weights_per_member = [
+            None for j in range(self.__config.n_ens_members)
+        ]
+        self.__state.weights_model_only_per_member = [
+            None for j in range(self.__config.n_ens_members)
+        ]
         self.__state.final_blended_forecast = [
             [] for j in range(self.__config.n_ens_members)
         ]
@@ -2128,11 +2148,16 @@ class StepsBlendingNowcaster:
                 axis=0,
             )
 
-    def __determine_weights_per_component(self, t, worker_state):
+    def __determine_weights_per_component(self, t, j, worker_state):
         """
         Compute blending weights for each component based on the selected method
         ('bps' or 'spn'). Weights are determined for both full blending and
         model-only scenarios, accounting for correlations and covariance.
+
+        The resulting weights are stored per ensemble member ``j`` in
+        ``weights_per_member`` / ``weights_model_only_per_member`` so members do
+        not overwrite one another and the full-NWP smoothing reads each member's
+        own previous-timestep weights.
         """
         start_smoothing_to_final_weights = False
         if self.__config.timestep_start_full_nwp_weight is not None:
@@ -2149,7 +2174,7 @@ class StepsBlendingNowcaster:
             )
         else:
             worker_state.weights = calculate_end_weights(
-                previous_weights=self.__state.weights,
+                previous_weights=worker_state.weights_per_member[j],
                 timestep=t,
                 n_timesteps=self.__timesteps[-1],
                 start_full_nwp_weight=self.__config.timestep_start_full_nwp_weight,
@@ -2212,7 +2237,7 @@ class StepsBlendingNowcaster:
                 )
         elif start_smoothing_to_final_weights:
             worker_state.weights_model_only = calculate_end_weights(
-                previous_weights=self.__state.weights_model_only,
+                previous_weights=worker_state.weights_model_only_per_member[j],
                 timestep=t,
                 n_timesteps=self.__timesteps[-1],
                 start_full_nwp_weight=self.__config.timestep_start_full_nwp_weight,
@@ -2223,8 +2248,11 @@ class StepsBlendingNowcaster:
                 "Unknown weights method %s: must be 'bps' or 'spn'"
                 % self.__config.weights_method
             )
-        self.__state.weights = worker_state.weights
-        self.__state.weights_model_only = worker_state.weights_model_only
+        # Persist this member's weights without overwriting other members. The
+        # shallow copy shares the same list object, so index assignment touches a
+        # disjoint element per member (mirrors previous_displacement[j]).
+        worker_state.weights_per_member[j] = worker_state.weights
+        worker_state.weights_model_only_per_member[j] = worker_state.weights_model_only
 
     def __regress_extrapolation_and_noise_cascades(self, j, worker_state, t):
         """
@@ -2921,7 +2949,8 @@ class StepsBlendingNowcaster:
                     covariance=covariance_nwp_models,
                 )
 
-            self.__state.weights = worker_state.weights
+            # Persist this member's (spn) weights without overwriting other members.
+            worker_state.weights_per_member[j] = worker_state.weights
 
         # Create weights_with_noise to ensure there is always a 3D weights field, even
         # if self.__config.nowcasting_method is "external_nowcast" and n_ens_members is 1.
