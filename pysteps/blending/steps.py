@@ -711,9 +711,9 @@ class StepsBlendingNowcaster:
                             )
                         )
 
-                    final_blended_forecast_all_members_one_timestep[j] = (
-                        final_blended_forecast_single_member
-                    )
+                final_blended_forecast_all_members_one_timestep[j] = (
+                    final_blended_forecast_single_member
+                )
 
             dask_worker_collection = []
 
