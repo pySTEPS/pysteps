@@ -22,20 +22,18 @@ def test_io_import_knmi_hdf5_shape():
 
 # test_metadata: list of (variable,expected, tolerance) tuples
 
-expected_proj = (
-    "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
-)
+expected_proj = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378.137 +b=6356.752 +x_0=0 +y_0=0"
 
 # list of (variable,expected,tolerance) tuples
 test_attrs = [
     ("projection", expected_proj, None),
     ("x1", 0.0, 1e-10),
-    ("y1", -4415038.179210632, 1e-10),
-    ("x2", 699984.2646331593, 1e-10),
-    ("y2", -3649950.360247753, 1e-10),
-    ("xpixelsize", 1000.0, 1e-10),
-    ("xpixelsize", 1000.0, 1e-10),
-    ("cartesian_unit", "m", None),
+    ("y1", -4415.038179210632, 1e-10),
+    ("x2", 699.9842646331593, 1e-10),
+    ("y2", -3649.950360247753, 1e-10),
+    ("xpixelsize", 1.0, 1e-10),
+    ("xpixelsize", 1.0, 1e-10),
+    ("cartesian_unit", "km", None),
     ("accutime", 5.0, 1e-10),
     ("yorigin", "upper", None),
     ("unit", "mm", None),
