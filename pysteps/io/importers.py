@@ -765,7 +765,6 @@ def import_knmi_hdf5(
     filename,
     qty="ACRR",
     accutime=5.0,
-    pixelsize=None,
     **kwargs,
 ):
     """
@@ -784,10 +783,6 @@ def import_knmi_hdf5(
         The accumulation time of the dataset in minutes. A 5 min accumulation
         is used as default, but hourly, daily and monthly accumulations
         are also available.
-    pixelsize: float
-        The pixel size of a raster cell in meters. The default value for the
-        KNMI datasets is a 1000 m grid cell size, but datasets with 2400 m pixel
-        size are also available.
 
     {extra_kwargs_doc}
 
@@ -869,6 +864,15 @@ def import_knmi_hdf5(
     # KNMI data.
     geographic = f["geographic"]
     proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+
+    # There are a bunch of knmi hdf5 files out there with incorrect projection string, fix those
+    fix_metadata = False
+    if (
+        proj4str
+        == "+proj=stere +lat_0=90 +lon_0=0 +lat_ts=60 +a=6378.14 +b=6356.75 +x_0=0 y_0=0"
+    ):
+        fix_metadata = True
+        proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
     pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
 
@@ -898,18 +902,16 @@ def import_knmi_hdf5(
     metadata["x2"] = x2
     metadata["y2"] = y2
     metadata["xpixelsize"] = (
-        float(geographic.attrs["geo_pixel_size_x"][0])
-        if pixelsize is None
-        else pixelsize
+        1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_x"][0])
     )
     ypixelsize = (
-        float(geographic.attrs["geo_pixel_size_y"][0])
-        if pixelsize is None
-        else pixelsize
+        -1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_y"][0])
     )
     metadata["ypixelsize"] = abs(ypixelsize)
     dim_pixel = geographic.attrs["geo_dim_pixel"].decode().split(",")[0]
-    if dim_pixel == "KM":
+    if fix_metadata:
+        metadata["cartesian_unit"] = "m"
+    elif dim_pixel == "KM":
         metadata["cartesian_unit"] = "km"
     elif dim_pixel == "M":
         metadata["cartesian_unit"] = "m"
