@@ -902,11 +902,12 @@ def import_knmi_hdf5(
         if pixelsize is None
         else pixelsize
     )
-    metadata["ypixelsize"] = (
+    ypixelsize = (
         float(geographic.attrs["geo_pixel_size_y"][0])
         if pixelsize is None
         else pixelsize
     )
+    metadata["ypixelsize"] = abs(ypixelsize)
     dim_pixel = geographic.attrs["geo_dim_pixel"].decode().split(",")[0]
     if dim_pixel == "KM":
         metadata["cartesian_unit"] = "km"
@@ -916,9 +917,7 @@ def import_knmi_hdf5(
         metadata["cartesian_unit"] = "degrees"
     else:
         metadata["cartesian_unit"] = "km"
-    metadata["yorigin"] = (
-        "upper" if geographic.attrs["geo_pixel_def"].decode()[1] == "U" else "lower"
-    )
+    metadata["yorigin"] = "upper" if ypixelsize < 0 else "lower"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
