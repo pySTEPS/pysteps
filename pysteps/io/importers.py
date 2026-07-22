@@ -86,19 +86,17 @@ Available Importers
     import_dwd_radolan
 """
 
-import gzip
-import os
 import array
 import datetime
+import gzip
+import os
 from functools import partial
 
 import numpy as np
-
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import
-from pysteps.exceptions import DataModelError
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 
 try:
@@ -321,7 +319,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     try:
         grib_file = pygrib.open(filename)
     except OSError:
-        raise OSError(f"Error opening NCEP's MRMS file. " f"File Not Found: {filename}")
+        raise OSError(f"Error opening NCEP's MRMS file. File Not Found: {filename}")
 
     if isinstance(window_size, int):
         window_size = (window_size, window_size)
@@ -767,7 +765,7 @@ def import_knmi_hdf5(
     filename,
     qty="ACRR",
     accutime=5.0,
-    pixelsize=1000.0,
+    pixelsize=None,
     **kwargs,
 ):
     """
@@ -870,7 +868,7 @@ def import_knmi_hdf5(
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
+    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
     pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
 
@@ -899,10 +897,28 @@ def import_knmi_hdf5(
     metadata["y1"] = y1
     metadata["x2"] = x2
     metadata["y2"] = y2
-    metadata["xpixelsize"] = pixelsize
-    metadata["ypixelsize"] = pixelsize
-    metadata["cartesian_unit"] = "m"
-    metadata["yorigin"] = "upper"
+    metadata["xpixelsize"] = (
+        float(geographic.attrs["geo_pixel_size_x"][0])
+        if pixelsize is None
+        else pixelsize
+    )
+    metadata["ypixelsize"] = (
+        float(geographic.attrs["geo_pixel_size_y"][0])
+        if pixelsize is None
+        else pixelsize
+    )
+    dim_pixel = geographic.attrs["geo_dim_pixel"].decode().split(",")[0]
+    if dim_pixel == "KM":
+        metadata["cartesian_unit"] = "km"
+    elif dim_pixel == "M":
+        metadata["cartesian_unit"] = "m"
+    elif dim_pixel == "DEG":
+        metadata["cartesian_unit"] = "degrees"
+    else:
+        metadata["cartesian_unit"] = "km"
+    metadata["yorigin"] = (
+        "upper" if geographic.attrs["geo_pixel_def"].decode()[1] == "U" else "lower"
+    )
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
@@ -1925,7 +1941,6 @@ def _read_hdf5_cont(f, d):
                 }
 
         else:
-
             # Save h5py.Dataset by group name
             d[key] = np.array(value)
 
