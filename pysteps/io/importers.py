@@ -873,34 +873,28 @@ def import_knmi_hdf5(
     ):
         fix_metadata = True
         proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
-    pr = pyproj.Proj(proj4str)
     metadata["projection"] = proj4str
 
-    # Get coordinates
-    latlon_corners = geographic.attrs["geo_product_corners"]
-    ll_lat = latlon_corners[1]
-    ll_lon = latlon_corners[0]
-    ur_lat = latlon_corners[5]
-    ur_lon = latlon_corners[4]
-    lr_lat = latlon_corners[7]
-    lr_lon = latlon_corners[6]
-    ul_lat = latlon_corners[3]
-    ul_lon = latlon_corners[2]
-
-    ll_x, ll_y = pr(ll_lon, ll_lat)
-    ur_x, ur_y = pr(ur_lon, ur_lat)
-    lr_x, lr_y = pr(lr_lon, lr_lat)
-    ul_x, ul_y = pr(ul_lon, ul_lat)
-    x1 = min(ll_x, ul_x)
-    y1 = min(ll_y, lr_y)
-    x2 = max(lr_x, ur_x)
-    y2 = max(ul_y, ur_y)
+    x1 = float(geographic.attrs["geo_column_offset"][0]) * float(
+        geographic.attrs["geo_pixel_size_x"][0]
+    )
+    y1 = float(geographic.attrs["geo_row_offset"][0]) * float(
+        geographic.attrs["geo_pixel_size_y"][0]
+    )
+    x2 = (
+        float(geographic.attrs["geo_column_offset"][0])
+        + float(geographic.attrs["geo_number_columns"][0])
+    ) * float(geographic.attrs["geo_pixel_size_x"][0])
+    y2 = (
+        float(geographic.attrs["geo_row_offset"][0])
+        + float(geographic.attrs["geo_number_rows"][0])
+    ) * float(geographic.attrs["geo_pixel_size_y"][0])
 
     # Fill in the metadata
-    metadata["x1"] = x1
-    metadata["y1"] = y1
-    metadata["x2"] = x2
-    metadata["y2"] = y2
+    metadata["x1"] = 0.0 if fix_metadata else x1
+    metadata["y1"] = -4415000.0 if fix_metadata else y1
+    metadata["x2"] = 700000.0 if fix_metadata else x2
+    metadata["y2"] = -3650000.0 if fix_metadata else y2
     metadata["xpixelsize"] = (
         1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_x"][0])
     )
