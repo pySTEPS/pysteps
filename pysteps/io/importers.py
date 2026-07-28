@@ -889,6 +889,13 @@ def import_knmi_hdf5(
         float(geographic.attrs["geo_row_offset"][0])
         + float(geographic.attrs["geo_number_rows"][0])
     ) * float(geographic.attrs["geo_pixel_size_y"][0])
+    ypixelsize = (
+        -1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_y"][0])
+    )
+    if ypixelsize < 0:
+        y_temp = y1
+        y1 = y2
+        y2 = y_temp
 
     # Fill in the metadata
     metadata["x1"] = 0.0 if fix_metadata else x1
@@ -897,9 +904,6 @@ def import_knmi_hdf5(
     metadata["y2"] = -3650000.0 if fix_metadata else y2
     metadata["xpixelsize"] = (
         1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_x"][0])
-    )
-    ypixelsize = (
-        -1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_y"][0])
     )
     metadata["ypixelsize"] = abs(ypixelsize)
     dim_pixel = geographic.attrs["geo_dim_pixel"].decode().split(",")[0]

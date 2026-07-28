@@ -28,9 +28,9 @@ expected_proj = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378.137 +b=63
 test_attrs = [
     ("projection", expected_proj, None),
     ("x1", 0.0, 1e-10),
-    ("y1", -4415.038179210632, 1e-10),
-    ("x2", 699.9842646331593, 1e-10),
-    ("y2", -3649.950360247753, 1e-10),
+    ("y1", -4415.0, 1e-10),
+    ("x2", 700.0, 1e-10),
+    ("y2", -3650.0, 1e-10),
     ("xpixelsize", 1.0, 1e-10),
     ("xpixelsize", 1.0, 1e-10),
     ("cartesian_unit", "km", None),
