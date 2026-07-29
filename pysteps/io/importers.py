@@ -86,19 +86,17 @@ Available Importers
     import_dwd_radolan
 """
 
-import gzip
-import os
 import array
 import datetime
+import gzip
+import os
 from functools import partial
 
 import numpy as np
-
 from matplotlib.pyplot import imread
 
 from pysteps.decorators import postprocess_import
-from pysteps.exceptions import DataModelError
-from pysteps.exceptions import MissingOptionalDependency
+from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 
 try:
@@ -321,7 +319,7 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     try:
         grib_file = pygrib.open(filename)
     except OSError:
-        raise OSError(f"Error opening NCEP's MRMS file. " f"File Not Found: {filename}")
+        raise OSError(f"Error opening NCEP's MRMS file. File Not Found: {filename}")
 
     if isinstance(window_size, int):
         window_size = (window_size, window_size)
@@ -767,7 +765,6 @@ def import_knmi_hdf5(
     filename,
     qty="ACRR",
     accutime=5.0,
-    pixelsize=1000.0,
     **kwargs,
 ):
     """
@@ -786,10 +783,6 @@ def import_knmi_hdf5(
         The accumulation time of the dataset in minutes. A 5 min accumulation
         is used as default, but hourly, daily and monthly accumulations
         are also available.
-    pixelsize: float
-        The pixel size of a raster cell in meters. The default value for the
-        KNMI datasets is a 1000 m grid cell size, but datasets with 2400 m pixel
-        size are also available.
 
     {extra_kwargs_doc}
 
@@ -870,39 +863,61 @@ def import_knmi_hdf5(
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
-    pr = pyproj.Proj(proj4str)
+    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+
+    # There are a bunch of knmi hdf5 files out there with incorrect projection string, fix those
+    fix_metadata = False
+    if (
+        proj4str
+        == "+proj=stere +lat_0=90 +lon_0=0 +lat_ts=60 +a=6378.14 +b=6356.75 +x_0=0 y_0=0"
+    ):
+        fix_metadata = True
+        proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
     metadata["projection"] = proj4str
 
-    # Get coordinates
-    latlon_corners = geographic.attrs["geo_product_corners"]
-    ll_lat = latlon_corners[1]
-    ll_lon = latlon_corners[0]
-    ur_lat = latlon_corners[5]
-    ur_lon = latlon_corners[4]
-    lr_lat = latlon_corners[7]
-    lr_lon = latlon_corners[6]
-    ul_lat = latlon_corners[3]
-    ul_lon = latlon_corners[2]
-
-    ll_x, ll_y = pr(ll_lon, ll_lat)
-    ur_x, ur_y = pr(ur_lon, ur_lat)
-    lr_x, lr_y = pr(lr_lon, lr_lat)
-    ul_x, ul_y = pr(ul_lon, ul_lat)
-    x1 = min(ll_x, ul_x)
-    y1 = min(ll_y, lr_y)
-    x2 = max(lr_x, ur_x)
-    y2 = max(ul_y, ur_y)
+    x1 = float(geographic.attrs["geo_column_offset"][0]) * float(
+        geographic.attrs["geo_pixel_size_x"][0]
+    )
+    y1 = float(geographic.attrs["geo_row_offset"][0]) * float(
+        geographic.attrs["geo_pixel_size_y"][0]
+    )
+    x2 = (
+        float(geographic.attrs["geo_column_offset"][0])
+        + float(geographic.attrs["geo_number_columns"][0])
+    ) * float(geographic.attrs["geo_pixel_size_x"][0])
+    y2 = (
+        float(geographic.attrs["geo_row_offset"][0])
+        + float(geographic.attrs["geo_number_rows"][0])
+    ) * float(geographic.attrs["geo_pixel_size_y"][0])
+    ypixelsize = (
+        -1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_y"][0])
+    )
+    if ypixelsize < 0:
+        y_temp = y1
+        y1 = y2
+        y2 = y_temp
 
     # Fill in the metadata
-    metadata["x1"] = x1
-    metadata["y1"] = y1
-    metadata["x2"] = x2
-    metadata["y2"] = y2
-    metadata["xpixelsize"] = pixelsize
-    metadata["ypixelsize"] = pixelsize
-    metadata["cartesian_unit"] = "m"
-    metadata["yorigin"] = "upper"
+    metadata["x1"] = 0.0 if fix_metadata else x1
+    metadata["y1"] = -4415000.0 if fix_metadata else y1
+    metadata["x2"] = 700000.0 if fix_metadata else x2
+    metadata["y2"] = -3650000.0 if fix_metadata else y2
+    metadata["xpixelsize"] = (
+        1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_x"][0])
+    )
+    metadata["ypixelsize"] = abs(ypixelsize)
+    dim_pixel = geographic.attrs["geo_dim_pixel"].decode().split(",")[0]
+    if fix_metadata:
+        metadata["cartesian_unit"] = "m"
+    elif dim_pixel == "KM":
+        metadata["cartesian_unit"] = "km"
+    elif dim_pixel == "M":
+        metadata["cartesian_unit"] = "m"
+    elif dim_pixel == "DEG":
+        metadata["cartesian_unit"] = "degrees"
+    else:
+        metadata["cartesian_unit"] = "km"
+    metadata["yorigin"] = "upper" if ypixelsize < 0 else "lower"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
@@ -1925,7 +1940,6 @@ def _read_hdf5_cont(f, d):
                 }
 
         else:
-
             # Save h5py.Dataset by group name
             d[key] = np.array(value)
 
