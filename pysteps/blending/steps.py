@@ -117,6 +117,8 @@ class StepsBlendingConfig:
       autoregression and advection of the extrapolation cascade. Defaults to 'steps',
       which follows the method described in :cite:`Imhoff2023`. Note, if
       nowcasting_method is 'external_nowcast', precip_nowcast cannot be None.
+      See ``precip_nowcast`` for the two recommended ways of combining an
+      external nowcast with the noise generator.
     noise_method: {'parametric','nonparametric','ssft','nested',None}, optional
       Name of the noise generator to use for perturbating the precipitation
       field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to None,
@@ -2962,11 +2964,24 @@ class StepsBlendingNowcaster:
             self.__config.nowcasting_method == "external_nowcast"
             and self.__config.noise_method is None
         ):
-            # First determine the weights without noise
-            worker_state.weights = worker_state.weights[:-1, :] / np.sum(
-                worker_state.weights[:-1, :], axis=0
+            # The external nowcast already contains the stochastic variance
+            # that the separate noise cascade supplies in the standard STEPS
+            # path. Fold the noise weight into the nowcast (extrapolation)
+            # component in quadrature instead of discarding it, so that
+            # w_nowcast**2 + w_nwp**2 == 1 is preserved. Simply dropping the
+            # noise weight and renormalizing would collapse the forecast onto
+            # the NWP far too quickly, because the extrapolation weight alone
+            # decays much faster than the combined radar-side (extrapolation +
+            # noise) weight.
+            nowcast_weight = np.sqrt(
+                worker_state.weights[0, :] ** 2 + worker_state.weights[-1, :] ** 2
+            )
+            worker_state.weights = np.concatenate(
+                (nowcast_weight[None, :], worker_state.weights[1:-1, :]), axis=0
             )
 
+            # Outside the radar domain there is no nowcast component; with noise
+            # disabled the model-only blend reduces to the NWP model weight(s).
             worker_state.weights_model_only = worker_state.weights_model_only[
                 :-1, :
             ] / np.sum(worker_state.weights_model_only[:-1, :], axis=0)
@@ -3476,9 +3491,19 @@ def forecast(
       method described in :cite:`Imhoff2023`.
       Note that nowcasting_method should be set to 'external_nowcast' if
       precip_nowcast is not None.
-      Note that in the current setup, only a deterministic precip_nowcast model can
-      be provided and only one ensemble member (without noise generation) is
-      returned. This will change soon.
+
+      There are two recommended ways of using an external nowcast, both of which
+      reproduce the radar-side/NWP variance balance of the standard STEPS path:
+
+      1. A probabilistic nowcast (e.g. the members of a STEPS ensemble, providing
+         one member per blending call) combined with ``noise_method=None``. The
+         external members already carry the stochastic variance, so no separate
+         noise cascade is added and its weight is folded into the nowcast
+         component (in quadrature) instead of being discarded.
+      2. A deterministic nowcast (e.g. an advection-only or deterministic
+         AI-based nowcast) combined with a noise generator (e.g.
+         ``noise_method='nonparametric'``). A separate stochastic noise cascade
+         is then generated, exactly as in the standard STEPS path.
     n_cascade_levels: int, optional
       The number of cascade levels to use. Defaults to 6,
       see issue #385 on GitHub.
@@ -3512,6 +3537,8 @@ def forecast(
       autoregression and advection of the extrapolation cascade. Defaults to 'steps',
       which follows the method described in :cite:`Imhoff2023`. Note, if
       nowcasting_method is 'external_nowcast', precip_nowcast cannot be None.
+      See ``precip_nowcast`` for the two recommended ways of combining an
+      external nowcast with the noise generator.
     noise_method: {'parametric','nonparametric','ssft','nested',None}, optional
       Name of the noise generator to use for perturbating the precipitation
       field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to None,
