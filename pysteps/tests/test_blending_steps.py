@@ -611,9 +611,7 @@ def test_steps_blending_external_nowcast_weight_distribution():
     """
     pytest.importorskip("cv2")
 
-    radar_precip, precip_nowcast, common_kwargs = (
-        _make_external_nowcast_weight_inputs()
-    )
+    radar_precip, precip_nowcast, common_kwargs = _make_external_nowcast_weight_inputs()
 
     def variance_shares(weights_list, has_noise):
         radar_side, nwp_side = [], []
@@ -676,9 +674,7 @@ def test_steps_blending_external_nowcast_with_noise_weight_distribution():
     """
     pytest.importorskip("cv2")
 
-    radar_precip, precip_nowcast, common_kwargs = (
-        _make_external_nowcast_weight_inputs()
-    )
+    radar_precip, precip_nowcast, common_kwargs = _make_external_nowcast_weight_inputs()
 
     # Standard STEPS path.
     normal_weights = _capture_full_blend_weights(
