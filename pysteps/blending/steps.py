@@ -3152,7 +3152,7 @@ class StepsBlendingNowcaster:
         # areas with the "..._mod_only" blended forecasts, consisting
         # of the NWP and noise components.
         nan_indices = np.isnan(worker_state.final_blended_forecast_recomposed)
-        if self.__config.smooth_radar_mask_range != 0:
+        if self.__config.smooth_radar_mask_range != 0 and np.any(nan_indices):
             # Compute the smooth dilated mask
             new_mask = blending.utils.compute_smooth_dilated_mask(
                 nan_indices,
