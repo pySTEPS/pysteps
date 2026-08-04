@@ -444,6 +444,272 @@ def test_steps_blending(
     )
 
 
+def _make_external_nowcast_weight_inputs():
+    """Build small dummy radar, NWP and external-nowcast fields plus the shared
+    forecast kwargs used by the external-nowcast weight regression tests.
+
+    Returns ``(radar_precip, precip_nowcast, common_kwargs)`` where
+    ``common_kwargs`` omits ``precip``, ``precip_nowcast``, ``nowcasting_method``
+    and ``noise_method`` so each test can set those per run.
+    """
+    n_cascade_levels = 6
+    timesteps = 8
+
+    nwp_precip = np.zeros((1, timesteps + 1, 200, 200))
+    for i in range(nwp_precip.shape[1]):
+        nwp_precip[0, i, 30:185, 30 + i] = 0.1
+        nwp_precip[0, i, 30:185, 31 + i] = 0.1
+        nwp_precip[0, i, 30:185, 32 + i] = 1.0
+        nwp_precip[0, i, 30:185, 33 + i] = 5.0
+        nwp_precip[0, i, 30:185, 34 + i] = 5.0
+        nwp_precip[0, i, 30:185, 35 + i] = 4.5
+        nwp_precip[0, i, 30:185, 36 + i] = 4.5
+        nwp_precip[0, i, 30:185, 37 + i] = 4.0
+        nwp_precip[0, i, 30:185, 38 + i] = 2.0
+        nwp_precip[0, i, 30:185, 39 + i] = 1.0
+
+    radar_precip = np.zeros((3, 200, 200))
+    for i in range(3):
+        radar_precip[i, 5:150, 30 + i] = 0.1
+        radar_precip[i, 5:150, 31 + i] = 0.5
+        radar_precip[i, 5:150, 32 + i] = 0.5
+        radar_precip[i, 5:150, 33 + i] = 5.0
+        radar_precip[i, 5:150, 34 + i] = 5.0
+        radar_precip[i, 5:150, 35 + i] = 4.5
+        radar_precip[i, 5:150, 36 + i] = 4.5
+        radar_precip[i, 5:150, 37 + i] = 4.0
+        radar_precip[i, 5:150, 38 + i] = 1.0
+        radar_precip[i, 5:150, 39 + i] = 0.5
+
+    precip_nowcast = np.zeros((1, timesteps + 1, 200, 200))
+    for i in range(precip_nowcast.shape[1]):
+        precip_nowcast[0, i, 30:165, 30 + i] = 0.1
+        precip_nowcast[0, i, 30:165, 31 + i] = 0.5
+        precip_nowcast[0, i, 30:165, 32 + i] = 0.5
+        precip_nowcast[0, i, 30:165, 33 + i] = 5.0
+        precip_nowcast[0, i, 30:165, 34 + i] = 5.0
+        precip_nowcast[0, i, 30:165, 35 + i] = 4.5
+        precip_nowcast[0, i, 30:165, 36 + i] = 4.5
+        precip_nowcast[0, i, 30:165, 37 + i] = 4.0
+        precip_nowcast[0, i, 30:165, 38 + i] = 1.0
+
+    metadata = dict(
+        unit="mm",
+        transformation="dB",
+        accutime=5.0,
+        transform="dB",
+        zerovalue=0.0,
+        threshold=0.01,
+        zr_a=200.0,
+        zr_b=1.6,
+    )
+
+    radar_precip[radar_precip < metadata["threshold"]] = 0.0
+    nwp_precip[nwp_precip < metadata["threshold"]] = 0.0
+    precip_nowcast[precip_nowcast < metadata["threshold"]] = 0.0
+
+    converter = pysteps.utils.get_method("mm/h")
+    radar_precip, _ = converter(radar_precip, metadata)
+    nwp_precip, _ = converter(nwp_precip, metadata)
+    precip_nowcast, metadata = converter(precip_nowcast, metadata)
+
+    transformer = pysteps.utils.get_method(metadata["transformation"])
+    radar_precip, _ = transformer(radar_precip, metadata)
+    nwp_precip, _ = transformer(nwp_precip, metadata)
+    precip_nowcast, metadata = transformer(precip_nowcast, metadata)
+
+    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
+    nwp_precip[~np.isfinite(nwp_precip)] = metadata["zerovalue"]
+    precip_nowcast[~np.isfinite(precip_nowcast)] = metadata["zerovalue"]
+
+    oflow_method = pysteps.motion.get_method("lucaskanade")
+    radar_velocity = oflow_method(radar_precip)
+    _v_nwp = [
+        oflow_method(nwp_precip[0, t - 1 : t + 1, :])
+        for t in range(1, nwp_precip.shape[1])
+    ]
+    nwp_velocity = np.stack([np.insert(_v_nwp, 0, _v_nwp[0], axis=0)])
+
+    common_kwargs = dict(
+        precip_models=nwp_precip,
+        velocity=radar_velocity,
+        velocity_models=nwp_velocity,
+        timesteps=timesteps,
+        timestep=5.0,
+        issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
+        n_ens_members=1,
+        n_cascade_levels=n_cascade_levels,
+        blend_nwp_members=False,
+        precip_thr=metadata["threshold"],
+        kmperpixel=1.0,
+        extrap_method="semilagrangian",
+        decomp_method="fft",
+        bandpass_filter_method="gaussian",
+        noise_stddev_adj="auto",
+        ar_order=2,
+        vel_pert_method=None,
+        weights_method="bps",
+        conditional=False,
+        probmatching_method=None,
+        mask_method=None,
+        resample_distribution=False,
+        smooth_radar_mask_range=0,
+        callback=None,
+        return_output=True,
+        seed=42,
+        num_workers=1,
+        fft_method="numpy",
+        domain="spatial",
+        outdir_path_skill="./tmp/",
+        clim_kwargs=None,
+        measure_time=False,
+    )
+
+    return radar_precip, precip_nowcast, common_kwargs
+
+
+def _capture_full_blend_weights(forecast_kwargs):
+    """Run a blended forecast and return the weights passed to the full-blend
+    ``blend_cascades`` calls.
+
+    ``__blend_cascades`` calls ``blend_cascades`` twice per member/subtimestep:
+    once with all components (the full blend) and once with the first
+    (nowcast/extrapolation) component dropped (the model-only blend, one fewer
+    row). The full-blend calls are the ones with the maximum number of rows.
+    """
+    original = blending.utils.blend_cascades
+    captured = []
+
+    def wrapper(cascades_norm, weights):
+        captured.append(np.asarray(weights).copy())
+        return original(cascades_norm=cascades_norm, weights=weights)
+
+    blending.utils.blend_cascades = wrapper
+    try:
+        blending.steps.forecast(**forecast_kwargs)
+    finally:
+        blending.utils.blend_cascades = original
+
+    n_rows = max(w.shape[0] for w in captured)
+    return [w for w in captured if w.shape[0] == n_rows]
+
+
+def test_steps_blending_external_nowcast_weight_distribution():
+    """Regression test for the external-nowcast blending weights (no noise).
+
+    Blending a precomputed (external) nowcast with noise disabled must give the
+    NWP component the same variance share as the standard STEPS path, where the
+    radar side is split over a separate extrapolation and noise cascade. Both
+    paths compute the same extrapolation and NWP skill, and BPS weights are
+    L2-normalized (sum of squares == 1), so the radar-side and NWP variance
+    shares fed to ``blend_cascades`` must match.
+
+    The external path folds the noise weight into the nowcast component in
+    quadrature (w_nowcast**2 = w_extrap**2 + w_noise**2). Simply dropping the
+    noise weight and L1-renormalizing (the previous behaviour) inflated the NWP
+    share and collapsed the forecast onto the NWP far too quickly.
+    """
+    pytest.importorskip("cv2")
+
+    radar_precip, precip_nowcast, common_kwargs = _make_external_nowcast_weight_inputs()
+
+    def variance_shares(weights_list, has_noise):
+        radar_side, nwp_side = [], []
+        for w in weights_list:
+            if has_noise:
+                # [w_extrap, w_nwp..., w_noise]
+                radar_side.append(w[0] ** 2 + w[-1] ** 2)
+                nwp_side.append(np.sum(w[1:-1] ** 2, axis=0))
+            else:
+                # [w_nowcast, w_nwp...] with the noise weight folded in
+                radar_side.append(w[0] ** 2)
+                nwp_side.append(np.sum(w[1:] ** 2, axis=0))
+        return np.array(radar_side), np.array(nwp_side)
+
+    # Standard STEPS path: separate extrapolation + noise cascades.
+    normal_weights = _capture_full_blend_weights(
+        dict(
+            precip=radar_precip.copy(),
+            nowcasting_method="steps",
+            noise_method="nonparametric",
+            **common_kwargs,
+        )
+    )
+    normal_radar, normal_nwp = variance_shares(normal_weights, has_noise=True)
+
+    # External-nowcast path with noise disabled.
+    external_weights = _capture_full_blend_weights(
+        dict(
+            precip=radar_precip.copy(),
+            precip_nowcast=precip_nowcast,
+            nowcasting_method="external_nowcast",
+            noise_method=None,
+            **common_kwargs,
+        )
+    )
+    external_radar, external_nwp = variance_shares(external_weights, has_noise=False)
+
+    assert normal_nwp.size > 0, "No full-blend weights were captured"
+    assert (
+        normal_nwp.shape == external_nwp.shape
+    ), "The two paths produced a different number/shape of blend weights"
+
+    # The NWP (and thus radar-side) variance share must be identical between
+    # the standard and external-nowcast paths at every blend call and scale.
+    np.testing.assert_allclose(external_nwp, normal_nwp, rtol=1e-6, atol=1e-8)
+    np.testing.assert_allclose(external_radar, normal_radar, rtol=1e-6, atol=1e-8)
+
+
+def test_steps_blending_external_nowcast_with_noise_weight_distribution():
+    """Regression test for a deterministic external nowcast blended *with* noise.
+
+    When a deterministic (e.g. advection-only) external nowcast is provided and
+    ``noise_method`` is left enabled, the separate stochastic noise cascade is
+    still generated - exactly as in the standard STEPS path - and the external
+    nowcast merely substitutes the extrapolation cascade values. The AR fit
+    (``PHI``), extrapolation skill and NWP skill are computed from the radar
+    regardless of the external nowcast, so the full three-component weights
+    ``[w_extrap/nowcast, w_nwp, w_noise]`` must be identical to the standard
+    path, component-for-component.
+    """
+    pytest.importorskip("cv2")
+
+    radar_precip, precip_nowcast, common_kwargs = _make_external_nowcast_weight_inputs()
+
+    # Standard STEPS path.
+    normal_weights = _capture_full_blend_weights(
+        dict(
+            precip=radar_precip.copy(),
+            nowcasting_method="steps",
+            noise_method="nonparametric",
+            **common_kwargs,
+        )
+    )
+
+    # External deterministic nowcast, but with the noise cascade left enabled.
+    external_weights = _capture_full_blend_weights(
+        dict(
+            precip=radar_precip.copy(),
+            precip_nowcast=precip_nowcast,
+            nowcasting_method="external_nowcast",
+            noise_method="nonparametric",
+            **common_kwargs,
+        )
+    )
+
+    assert len(normal_weights) > 0, "No full-blend weights were captured"
+    assert len(normal_weights) == len(
+        external_weights
+    ), "The two paths produced a different number of blend weights"
+
+    # Both paths use the full three-component weights, so they must match
+    # exactly (extrapolation, NWP and noise weights alike).
+    for w_normal, w_external in zip(normal_weights, external_weights):
+        assert w_normal.shape[0] == 3
+        assert w_external.shape[0] == 3
+        np.testing.assert_allclose(w_external, w_normal, rtol=1e-6, atol=1e-8)
+
+
 @pytest.mark.parametrize("ar_order", [1, 2])
 def test_steps_blending_partial_zero_radar(ar_order):
     """Test that a forecast succeeds when only the 2 latest radar frames have
