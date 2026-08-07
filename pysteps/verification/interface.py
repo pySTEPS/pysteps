@@ -87,6 +87,8 @@ def get_method(name, type="deterministic"):
         +------------+--------------------------------------------------------+
         |  FSS       | fractions skill score                                  |
         +------------+--------------------------------------------------------+
+        |  FSS_ens   | fractions skill score for ensemble forecast            |
+        +------------+--------------------------------------------------------+
         |  SAL       | Structure-Amplitude-Location score                     |
         +------------+--------------------------------------------------------+
 
@@ -164,12 +166,12 @@ def get_method(name, type="deterministic"):
     type = type.lower()
 
     if type == "deterministic":
-        from .detcatscores import det_cat_fct
+        from .detcatscores import det_cat_fct, det_cat_fct_spatial
         from .detcontscores import det_cont_fct
-        from .spatialscores import binary_mse, fss
+        from .spatialscores import binary_mse, fss, fss_ens
         from .salscores import sal
 
-        # categorical
+        # categorical or spatial categorical
         if name in [
             "acc",
             "bias",
@@ -184,11 +186,22 @@ def get_method(name, type="deterministic"):
             "pod",
             "sedi",
         ]:
-
             def f(fct, obs, **kwargs):
-                return det_cat_fct(fct, obs, kwargs.pop("thr"), [name])
-
+                if "scales" in kwargs:
+                    return det_cat_fct_spatial(
+                        fct,
+                        obs,
+                        thr=kwargs.pop("thr", 0.0),
+                        scales=kwargs.pop("scales"),
+                        axis=kwargs.pop("axis", None),
+                        scores=[name],
+                        smooth_thr=kwargs.pop("smooth_thr", 0.0),
+                    )[name.upper()]
+                else:
+                    return det_cat_fct(fct, obs, kwargs.pop("thr"), [name])[name.upper()]
+        
             return f
+
 
         # continuous
         elif name in [
@@ -217,6 +230,8 @@ def get_method(name, type="deterministic"):
             return binary_mse
         elif name == "fss":
             return fss
+        elif name == "fss_ens":
+            return fss_ens
         elif name == "sal":
             return sal
 
