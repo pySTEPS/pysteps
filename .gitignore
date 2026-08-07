@@ -95,3 +95,6 @@ venv.bak/
 # Running local tests
 /tmp
 /pysteps/tests/tmp/
+/pysteps_data/
+/examples/data_download.py
+
