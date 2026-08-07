@@ -17,6 +17,10 @@ steps_arg_values = [
     (1, 3, 4, 8,'steps', None, "mean", False, "spn", True, 4, False, False, 0, True, None, None, None),
     (1, 3, 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
     (1, [1, 2, 3], 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
+    # Regression test for a gap in the timesteps list (e.g. [1, 3] skips 2): this used to raise
+    # "TypeError: 'NoneType' object is not iterable" because the bin for the skipped step never
+    # got a value written to final_blended_forecast_all_members_one_timestep.
+    (1, [1, 3], 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
     (1, 3, 4, 8,'steps', "incremental", "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
     (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", True, 4, False, False, 0, False, None, None, None),
     (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", False, 4, False, False, 0, False, None, None, None),
