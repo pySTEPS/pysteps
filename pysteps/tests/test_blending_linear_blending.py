@@ -284,6 +284,96 @@ def test_linear_blending(
             )
 
 
+def test_linear_blending_ar_nowcast_3d_precip():
+    """Regression test: AR-based nowcast methods (e.g. sprog) require several past
+    precipitation fields (shape (ar_order + 1, m, n)) rather than a single 2D field.
+    forecast() used to always collapse a 3D precip input down to its last frame,
+    which broke these methods. This test checks that a 3D precip stack is passed
+    through to the nowcast method unmodified."""
+
+    np.random.seed(42)
+
+    timestep = 5
+    n_timesteps = 5
+
+    r_input = np.random.rand(3, 32, 32) * 5.0
+    r_input, _ = transformation.dB_transform(
+        r_input, None, threshold=0.1, zerovalue=-15.0
+    )
+    velocity = np.zeros((2, 32, 32))
+    r_nwp = np.random.rand(n_timesteps, 32, 32) * 5.0
+
+    r_blended = forecast(
+        r_input,
+        dict({"unit": "mm/h", "transform": "dB"}),
+        velocity,
+        n_timesteps,
+        timestep,
+        "sprog",
+        r_nwp,
+        dict({"unit": "mm/h", "transform": None}),
+        start_blending=10,
+        end_blending=20,
+        nowcast_kwargs=dict(n_cascade_levels=4, precip_thr=-10.0),
+    )
+
+    assert r_blended.shape == (
+        n_timesteps,
+        32,
+        32,
+    ), "The shape of the blended array does not have the expected value. The shape is {}".format(
+        r_blended.shape
+    )
+    assert np.all(
+        np.isfinite(r_blended)
+    ), "The blended array contains non-finite values"
+
+
+def test_linear_blending_timesteps_nowcast_clamp():
+    """Regression test: when end_blending / timestep exceeds the requested number of
+    timesteps, the nowcast used to be computed for more timesteps than precip_nwp
+    (and thus precip_blended) has. Combined with fill_nwp and NaNs in the nowcast,
+    this caused a shape mismatch when filling in the NWP data. timesteps_nowcast is
+    now clamped to timesteps to prevent this."""
+
+    timestep = 5
+    n_timesteps = 5
+
+    r_input = np.random.rand(32, 32) * 5.0
+    r_input, _ = transformation.dB_transform(
+        r_input, None, threshold=0.1, zerovalue=-15.0
+    )
+    r_input[0, 0] = np.nan
+    velocity = np.zeros((2, 32, 32))
+    r_nwp = np.random.rand(n_timesteps, 32, 32) * 5.0
+
+    # end_blending / timestep = 10, which is larger than n_timesteps = 5
+    r_blended = forecast(
+        r_input,
+        dict({"unit": "mm/h", "transform": "dB"}),
+        velocity,
+        n_timesteps,
+        timestep,
+        "eulerian",
+        r_nwp,
+        dict({"unit": "mm/h", "transform": None}),
+        start_blending=10,
+        end_blending=50,
+        fill_nwp=True,
+    )
+
+    assert r_blended.shape == (
+        n_timesteps,
+        32,
+        32,
+    ), "The shape of the blended array does not have the expected value. The shape is {}".format(
+        r_blended.shape
+    )
+    assert np.all(
+        np.isfinite(r_blended)
+    ), "The blended array contains non-finite values after filling with NWP data"
+
+
 ranked_salience_values = [
     (np.ones((200, 200)), np.ones((200, 200)), 0.9),
     (np.zeros((200, 200)), np.random.rand(200, 200), 0.7),
