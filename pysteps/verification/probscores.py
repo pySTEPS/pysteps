@@ -75,7 +75,8 @@ def CRPS_accum(CRPS, X_f, X_o):
     Parameters
     ----------
     CRPS : dict
-        The CRPS object.
+        The CRPS object initialized with
+        :py:func:`pysteps.verification.probscores.CRPS_init`.
     X_f : array_like
         Array of shape (k,m,n,...) containing the values from an ensemble
         forecast of k members with shape (m,n,...).
@@ -137,7 +138,8 @@ def CRPS_compute(CRPS):
     Parameters
     ----------
     CRPS : dict
-        A CRPS object created with ``CRPS_init``.
+        A CRPS object initialized with
+        :py:func:`pysteps.verification.probscores.CRPS_init`.
 
     Returns
     -------
@@ -221,13 +223,14 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
 
 
 def reldiag_accum(reldiag, P_f, X_o):
-    """Accumulate the given probability-observation pairs into the reliability
+    """Accumulate the given probability-observation pairs into a reliability
     diagram.
 
     Parameters
     ----------
     reldiag : dict
-        A reliability diagram object created with ``reldiag_init``.
+        A reliability diagram object initialized with
+        :py:func:`pysteps.verification.probscores.reldiag_init`.
     P_f : array-like
         Forecast probabilities for exceeding the intensity threshold specified
         in the reliability diagram object.
@@ -275,7 +278,8 @@ def reldiag_compute(reldiag):
     Parameters
     ----------
     reldiag : dict
-        A reliability diagram object created with ``reldiag_init``.
+        A reliability diagram object initialized with
+        :py:func:`pysteps.verification.probscores.reldiag_init`.
 
     Returns
     -------
@@ -326,6 +330,7 @@ def ROC_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     X_o = X_o.copy()
     roc = ROC_curve_init(X_min, n_prob_thrs)
     ROC_curve_accum(roc, P_f, X_o)
+
     return ROC_curve_compute(roc, compute_area)
 
 
@@ -360,12 +365,13 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
 
 def ROC_curve_accum(ROC, P_f, X_o):
     """Accumulate the given probability-observation pairs into the given ROC
-    object.
+    curve object.
 
     Parameters
     ----------
     ROC : dict
-        A ROC curve object created with ``ROC_curve_init``.
+        A ROC curve object initialized with
+        :py:func:`pysteps.verification.probscores.ROC_curve_init`.
     P_f : array_like
         Forecasted probabilities for exceeding the threshold specified in the
         ROC object. Non-finite values are ignored.
@@ -397,7 +403,8 @@ def ROC_curve_compute(ROC, compute_area=False):
     Parameters
     ----------
     ROC : dict
-        A ROC curve object created with ``ROC_curve_init``.
+        A ROC curve object initialized with
+        :py:func:`pysteps.verification.probscores.ROC_curve_init`.
     compute_area : bool, optional
         If ``True``, compute the area under the ROC curve (between 0.5 and 1).
         Defaults to ``False``.
