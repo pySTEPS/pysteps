@@ -287,30 +287,35 @@ def reldiag_compute(reldiag):
 
 def ROC_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     """
-    Compute the ROC curve and its area from the given ROC object.
+    Compute the ROC curve from the given forecast exceedance probabilities and
+    observations.
 
     Parameters
     ----------
-    P_f: array_like
-      Forecasted probabilities for exceeding the threshold specified in the ROC
-      object. Non-finite values are ignored.
-    X_o: array_like
-      Observed values. Non-finite values are ignored.
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_prob_thrs: int
-      The number of probability thresholds to use.
-      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
-    compute_area: bool
-      If True, compute the area under the ROC curve (between 0.5 and 1).
+    P_f : array_like
+        Forecasted probabilities for exceeding the threshold ``X_min``.
+        Non-finite values are ignored.
+    X_o : array_like
+        Observed values that are compared against the threshold ``X_min`` and
+        converted into yes/no predictions of exceedance. Non-finite values are
+        ignored.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction of exceedance.
+    n_prob_thrs : int, optional
+        The number of probability thresholds to use. The interval [0,1] is
+        divided into ``n_prob_thrs`` evenly spaced values. Defaults to 10.
+    compute_area : bool, optional
+        If ``True``, compute the area under the ROC curve (between 0.5 and 1).
+        Defaults to ``False``.
 
     Returns
     -------
-    out: tuple
-      A two-element tuple containing the probability of detection (POD) and
-      probability of false detection (POFD) for the probability thresholds
-      specified in the ROC curve object. If compute_area is True, return the
-      area under the ROC curve as the third element of the tuple.
+    out : tuple
+        A two-element tuple containing the probabilities of false detection
+        (POFD, x-coordinate) and the probabilities of detection (POD,
+        y-coordinate) for the specified probability thresholds. If compute_area
+        is ``True``, return the area under the ROC curve as the third element
+        of the tuple.
     """
 
     P_f = P_f.copy()
@@ -326,16 +331,16 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
 
     Parameters
     ----------
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_prob_thrs: int
-      The number of probability thresholds to use.
-      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction of exceedance.
+    n_prob_thrs : int, optional
+        The number of probability thresholds to use. The interval [0,1] is
+        divided into ``n_prob_thrs`` evenly spaced values. Defaults to 10.
 
     Returns
     -------
-    out: dict
-      The ROC curve object.
+    out : dict
+        The ROC curve object.
     """
     ROC = {}
 
@@ -355,13 +360,15 @@ def ROC_curve_accum(ROC, P_f, X_o):
 
     Parameters
     ----------
-    ROC: dict
-      A ROC curve object created with ROC_curve_init.
-    P_f: array_like
-      Forecasted probabilities for exceeding the threshold specified in the ROC
-      object. Non-finite values are ignored.
-    X_o: array_like
-      Observed values. Non-finite values are ignored.
+    ROC : dict
+        A ROC curve object created with ``ROC_curve_init``.
+    P_f : array_like
+        Forecasted probabilities for exceeding the threshold specified in the
+        ROC object. Non-finite values are ignored.
+    X_o : array_like
+        Observed values that are compared against the intensity threshold
+        specified in the ROC curve object and converted into yes/no predictions
+        of exceedance. Non-finite values are ignored.
     """
     mask = np.logical_and(np.isfinite(P_f), np.isfinite(X_o))
 
@@ -385,18 +392,20 @@ def ROC_curve_compute(ROC, compute_area=False):
 
     Parameters
     ----------
-    ROC: dict
-      A ROC curve object created with ROC_curve_init.
-    compute_area: bool
-      If True, compute the area under the ROC curve (between 0.5 and 1).
+    ROC : dict
+        A ROC curve object created with ``ROC_curve_init``.
+    compute_area : bool, optional
+        If ``True``, compute the area under the ROC curve (between 0.5 and 1).
+        Defaults to ``False``.
 
     Returns
     -------
-    out: tuple
-      A two-element tuple containing the probability of detection (POD) and
-      probability of false detection (POFD) for the probability thresholds
-      specified in the ROC curve object. If compute_area is True, return the
-      area under the ROC curve as the third element of the tuple.
+    out : tuple
+        A two-element tuple containing the probabilities of false detection
+        (POFD, x-coordinate) and the probabilities of detection (POD,
+        y-coordinate) for the probability thresholds specified in the ROC curve
+        object. If compute_area is ``True``, return the area under the ROC
+        curve as the third element of the tuple.
     """
     POD_vals = []
     POFD_vals = []
