@@ -229,7 +229,16 @@ def test_linear_blending(
     )
     if len(r_input.shape) == 3:
         r_input = (
-            r_input[-1] if nowcast_method in ["extrapolation", "eulerian"] else r_input
+            r_input[-1]
+            if nowcast_method
+            in [
+                "extrapolation",
+                "eulerian",
+                "lagrangian",
+                "lagrangian_probability",
+                "probability",
+            ]
+            else r_input
         )
 
     # Calculate the blended field
