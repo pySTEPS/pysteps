@@ -21,9 +21,10 @@ Implementation of the linear blending and saliency-based blending between nowcas
 """
 
 import numpy as np
+from scipy.stats import rankdata
+
 from pysteps import nowcasts
 from pysteps.utils import conversion
-from scipy.stats import rankdata
 
 
 def forecast(
@@ -105,13 +106,10 @@ def forecast(
     if nowcast_kwargs is None:
         nowcast_kwargs = dict()
 
-    # Ensure that only the most recent precip timestep is used
-    if len(precip.shape) == 3:
-        precip = precip[-1, :, :]
-
     # First calculate the number of needed timesteps (up to end_blending) for the nowcast
     # to ensure that the nowcast calculation time is limited.
     timesteps_nowcast = int(end_blending / timestep)
+    timesteps_nowcast = min(timesteps, timesteps_nowcast)
 
     nowcast_method_func = nowcasts.get_method(nowcast_method)
 
