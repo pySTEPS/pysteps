@@ -462,14 +462,6 @@ class StepsBlendingNowcaster:
         """Initializes the StepsBlendingNowcaster with inputs and configurations."""
         # Store inputs
         self.__precip = precip
-        # precip_nowcast can be a large shared-memory array covering all
-        # ensemble members and lead times, so it is kept as-is here: it is
-        # neither copied nor decomposed upfront. Its NaNs are also left in
-        # place (rather than replaced), so they remain available to restore
-        # the NaN domain mask for probability matching in the
-        # external_nowcast path. Both the copy and the NaN replacement are
-        # done per time step, only for the slice that is actually needed, in
-        # __decompose_nowcast_if_needed_and_fill_nans_in_nowcast.
         self.__precip_nowcast = precip_nowcast
         self.__precip_models = precip_models
         self.__velocity = velocity
@@ -696,7 +688,9 @@ class StepsBlendingNowcaster:
                             self.__config.nowcasting_method == "external_nowcast"
                             and self.__precip_nowcast is not None
                         ):
-                            nan_mask_t = worker_state.precip_nowcast_nan_mask_timestep[j]
+                            nan_mask_t = worker_state.precip_nowcast_nan_mask_timestep[
+                                j
+                            ]
                             worker_state.final_blended_forecast_recomposed[
                                 nan_mask_t
                             ] = np.nan
@@ -1176,10 +1170,6 @@ class StepsBlendingNowcaster:
         precip_forecast_decomp = precip_forecast_decomp[-1]
         self.__state.mean_extrapolation = np.array(precip_forecast_decomp["means"])
         self.__state.std_extrapolation = np.array(precip_forecast_decomp["stds"])
-
-        # Note: precomputed nowcasts (precip_nowcast) are decomposed per time
-        # step in __decompose_nowcast_if_needed_and_fill_nans_in_nowcast,
-        # called from the main forecasting loop, rather than upfront here.
 
         # If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
