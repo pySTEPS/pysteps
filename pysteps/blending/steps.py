@@ -2730,12 +2730,7 @@ class StepsBlendingNowcaster:
                     precip_extrapolated_decomp.copy()
                 )
 
-            # Also update the probability matching fields. precip_nowcast is
-            # never modified in place (NaNs are only replaced with nanmin on a
-            # per-time-step copy for cascade decomposition, see
-            # __decompose_nowcast_if_needed_and_fill_nans_in_nowcast), so this
-            # slice still carries the original NaN domain mask needed to
-            # exclude out-of-domain pixels from CDF probability matching.
+            # Also update the probability matching fields.
             precip_extrapolated = self.__precip_nowcast[j][t][:, :].copy()
             worker_state.precip_extrapolated_probability_matching.append(
                 precip_extrapolated
