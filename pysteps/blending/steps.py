@@ -364,7 +364,8 @@ class StepsBlendingParams:
 class StepsBlendingState:
     # Radar and noise states
     precip_cascades: np.ndarray | None = None
-    precip_nowcast_cascades: np.ndarray | None = None
+    precip_nowcast_cascades_timestep: np.ndarray | None = None
+    precip_nowcast_nan_mask_timestep: np.ndarray | None = None
     precip_noise_input: np.ndarray | None = None
     precip_noise_cascades: np.ndarray | None = None
     precip_mean_noise: np.ndarray | None = None
@@ -373,8 +374,6 @@ class StepsBlendingState:
     # Extrapolation states
     mean_extrapolation: np.ndarray | None = None
     std_extrapolation: np.ndarray | None = None
-    mean_nowcast: np.ndarray | None = None
-    std_nowcast: np.ndarray | None = None
     mean_nowcast_timestep: np.ndarray | None = None
     std_nowcast_timestep: np.ndarray | None = None
     rho_extrap_cascade_prev: np.ndarray | None = None
@@ -464,15 +463,6 @@ class StepsBlendingNowcaster:
         # Store inputs
         self.__precip = precip
         self.__precip_nowcast = precip_nowcast
-        if precip_nowcast is not None:
-            # Save the original NaN mask before replacement, so it can be
-            # restored for probability matching in the external_nowcast path.
-            # The NaN replacement is needed for cascade decomposition (FFT),
-            # but probability matching needs the NaN domain mask to exclude
-            # out-of-domain pixels from the CDF matching.
-            self.__precip_nowcast_nan_mask = ~np.isfinite(self.__precip_nowcast)
-        else:
-            self.__precip_nowcast_nan_mask = None
         self.__precip_models = precip_models
         self.__velocity = velocity
         self.__velocity_models = velocity_models
@@ -666,21 +656,19 @@ class StepsBlendingNowcaster:
             if self.__config.measure_time:
                 starttime = time.time()
             self.__decompose_nwp_if_needed_and_fill_nans_in_nwp(t)
+            self.__decompose_nowcast_if_needed_and_fill_nans_in_nowcast(t)
             self.__find_nowcast_NWP_combination(t)
             self.__determine_skill_for_current_timestep(t)
             # the nowcast iteration for each ensemble member
             final_blended_forecast_all_members_one_timestep = [
                 None for _ in range(self.__config.n_ens_members)
             ]
-            if self.__config.nowcasting_method == "external_nowcast":
-                self.__state.mean_nowcast_timestep = self.__state.mean_nowcast[:, :, t]
-                self.__state.std_nowcast_timestep = self.__state.std_nowcast[:, :, t]
 
             def worker(j):
                 worker_state = copy(self.__state)
                 self.__determine_NWP_skill_for_next_timestep(t, j, worker_state)
                 self.__determine_weights_per_component(t, j, worker_state)
-                self.__regress_extrapolation_and_noise_cascades(j, worker_state, t)
+                self.__regress_extrapolation_and_noise_cascades(j, worker_state)
                 self.__perturb_blend_and_advect_extrapolation_and_noise_to_current_timestep(
                     t, j, worker_state
                 )
@@ -698,9 +686,11 @@ class StepsBlendingNowcaster:
                         # same as the standard STEPS path.
                         if (
                             self.__config.nowcasting_method == "external_nowcast"
-                            and self.__precip_nowcast_nan_mask is not None
+                            and self.__precip_nowcast is not None
                         ):
-                            nan_mask_t = self.__precip_nowcast_nan_mask[j][t]
+                            nan_mask_t = worker_state.precip_nowcast_nan_mask_timestep[
+                                j
+                            ]
                             worker_state.final_blended_forecast_recomposed[
                                 nan_mask_t
                             ] = np.nan
@@ -1154,16 +1144,6 @@ class StepsBlendingNowcaster:
             self.__precip[i, ~np.isfinite(self.__precip[i, :])] = np.nanmin(
                 self.__precip[i, :]
             )
-        if self.__precip_nowcast is not None:
-            self.__precip_nowcast = self.__precip_nowcast.copy()
-            for ens_mem in range(self.__precip_nowcast.shape[0]):
-                for t in range(self.__precip_nowcast.shape[1]):
-                    self.__precip_nowcast[
-                        ens_mem,
-                        t,
-                        ~np.isfinite(self.__precip_nowcast[ens_mem, t, :, :]),
-                    ] = np.nanmin(self.__precip_nowcast[ens_mem, t, :, :])
-
         # Perform the cascade decomposition for the input precip fields and,
         # if necessary, for the (NWP) model fields
         # Compute the cascade decompositions of the input precipitation fields
@@ -1190,27 +1170,6 @@ class StepsBlendingNowcaster:
         precip_forecast_decomp = precip_forecast_decomp[-1]
         self.__state.mean_extrapolation = np.array(precip_forecast_decomp["means"])
         self.__state.std_extrapolation = np.array(precip_forecast_decomp["stds"])
-
-        # Decompose precomputed nowcasts and rearange them again into the required components
-        if self.__precip_nowcast is not None:
-            if self.__precip_nowcast.shape[0] == 1:
-                results = [self.__decompose_member(self.__precip_nowcast[0])]
-            else:
-                with ThreadPool(self.__config.num_workers) as pool:
-                    results = pool.map(
-                        partial(self.__decompose_member),
-                        list(self.__precip_nowcast),
-                    )
-
-            self.__state.precip_nowcast_cascades = np.array(
-                [result["precip_nowcast_decomp"] for result in results]
-            ).swapaxes(1, 2)
-            self.__state.mean_nowcast = np.array(
-                [result["precip_nowcast_means"] for result in results]
-            ).swapaxes(1, 2)
-            self.__state.std_nowcast = np.array(
-                [result["precip_nowcast_stds"] for result in results]
-            ).swapaxes(1, 2)
 
         # If necessary, recompose (NWP) model forecasts
         self.__state.precip_models_cascades = None
@@ -1258,34 +1217,25 @@ class StepsBlendingNowcaster:
             self.__params.noise_kwargs["win_fun"],
         )
 
-    def __decompose_member(self, member_field):
-        """Loop over timesteps for a single ensemble member."""
-        results_decomp = []
-        means = []
-        stds = []
-        for t in range(member_field.shape[0]):  # loop over timesteps
-            res = self.__params.decomposition_method(
-                field=member_field[t, :, :],
-                bp_filter=self.__params.bandpass_filter,
-                n_levels=self.__config.n_cascade_levels,
-                mask=self.__params.mask_threshold,
-                method="fft",
-                fft_method=self.__params.fft,
-                output_domain=self.__config.domain,
-                compute_stats=True,
-                normalize=True,
-                compact_output=True,
-            )
-            results_decomp.append(res["cascade_levels"])
-            means.append(res["means"])
-            stds.append(res["stds"])
-        results = {
-            "precip_nowcast_decomp": results_decomp,
-            "precip_nowcast_means": means,
-            "precip_nowcast_stds": stds,
+    def __decompose_nowcast_member_timestep(self, member_field_t):
+        """Decompose a single ensemble member's nowcast field for one time step."""
+        res = self.__params.decomposition_method(
+            field=member_field_t,
+            bp_filter=self.__params.bandpass_filter,
+            n_levels=self.__config.n_cascade_levels,
+            mask=self.__params.mask_threshold,
+            method="fft",
+            fft_method=self.__params.fft,
+            output_domain=self.__config.domain,
+            compute_stats=True,
+            normalize=True,
+            compact_output=True,
+        )
+        return {
+            "precip_nowcast_decomp": res["cascade_levels"],
+            "precip_nowcast_means": res["means"],
+            "precip_nowcast_stds": res["stds"],
         }
-
-        return results
 
     def __zero_precipitation_forecast(self):
         """
@@ -1846,6 +1796,47 @@ class StepsBlendingNowcaster:
             ~np.isfinite(self.__state.std_models_timestep)
         ] = 0.0
 
+    def __decompose_nowcast_if_needed_and_fill_nans_in_nowcast(self, t):
+        """
+        Decompose the externally provided nowcast for the current time step only.
+        precip_nowcast can be a large shared-memory array covering all ensemble
+        members and lead times, so only the slice for this time step is copied
+        out of it (leaving the original array untouched), before replacing any
+        NaN or infinite values with the per-member minimum and decomposing.
+        """
+        if self.__precip_nowcast is None:
+            return
+
+        precip_nowcast_timestep = self.__precip_nowcast[:, t, :, :].copy()
+        self.__state.precip_nowcast_nan_mask_timestep = ~np.isfinite(
+            precip_nowcast_timestep
+        )
+        for ens_mem in range(precip_nowcast_timestep.shape[0]):
+            precip_nowcast_timestep[
+                ens_mem, self.__state.precip_nowcast_nan_mask_timestep[ens_mem]
+            ] = np.nanmin(precip_nowcast_timestep[ens_mem])
+
+        if precip_nowcast_timestep.shape[0] == 1:
+            results = [
+                self.__decompose_nowcast_member_timestep(precip_nowcast_timestep[0])
+            ]
+        else:
+            with ThreadPool(self.__config.num_workers) as pool:
+                results = pool.map(
+                    self.__decompose_nowcast_member_timestep,
+                    list(precip_nowcast_timestep),
+                )
+
+        self.__state.precip_nowcast_cascades_timestep = np.array(
+            [result["precip_nowcast_decomp"] for result in results]
+        )
+        self.__state.mean_nowcast_timestep = np.array(
+            [result["precip_nowcast_means"] for result in results]
+        )
+        self.__state.std_nowcast_timestep = np.array(
+            [result["precip_nowcast_stds"] for result in results]
+        )
+
     def __find_nowcast_NWP_combination(self, t):
         """
         Determine which (NWP) models will be combined with which nowcast ensemble members.
@@ -1921,8 +1912,8 @@ class StepsBlendingNowcaster:
                     )
                 if model_type == "nowcast":
                     print("Repeating the nowcast for all ensemble members")
-                    self.__state.precip_nowcast_cascades = np.repeat(
-                        self.__state.precip_nowcast_cascades,
+                    self.__state.precip_nowcast_cascades_timestep = np.repeat(
+                        self.__state.precip_nowcast_cascades_timestep,
                         repeats,
                         axis=0,
                     )
@@ -1931,16 +1922,16 @@ class StepsBlendingNowcaster:
                         repeats,
                         axis=0,
                     )
-                    self.__precip_nowcast_nan_mask = np.repeat(
-                        self.__precip_nowcast_nan_mask,
+                    self.__state.precip_nowcast_nan_mask_timestep = np.repeat(
+                        self.__state.precip_nowcast_nan_mask_timestep,
                         repeats,
                         axis=0,
                     )
-                    self.__state.mean_nowcast = np.repeat(
-                        self.__state.mean_nowcast, repeats, axis=0
+                    self.__state.mean_nowcast_timestep = np.repeat(
+                        self.__state.mean_nowcast_timestep, repeats, axis=0
                     )
-                    self.__state.std_nowcast = np.repeat(
-                        self.__state.std_nowcast, repeats, axis=0
+                    self.__state.std_nowcast_timestep = np.repeat(
+                        self.__state.std_nowcast_timestep, repeats, axis=0
                     )
                     # For the prob. matching
                     self.__state.precip_nowcast_timestep = np.repeat(
@@ -2256,7 +2247,7 @@ class StepsBlendingNowcaster:
         worker_state.weights_per_member[j] = worker_state.weights
         worker_state.weights_model_only_per_member[j] = worker_state.weights_model_only
 
-    def __regress_extrapolation_and_noise_cascades(self, j, worker_state, t):
+    def __regress_extrapolation_and_noise_cascades(self, j, worker_state):
         """
         Apply autoregressive (AR) updates to the extrapolation and noise cascades
         for the next time step. If noise is enabled, generate and decompose a
@@ -2293,7 +2284,7 @@ class StepsBlendingNowcaster:
             for i in range(self.__config.n_cascade_levels):
                 # Use a deterministic Externally computed nowcasting model
                 worker_state.precip_cascades[j][i] = (
-                    self.__state.precip_nowcast_cascades[j][i][t]
+                    worker_state.precip_nowcast_cascades_timestep[j][i]
                 )
 
         # Follow the 'standard' STEPS blending approach as described in :cite:`Imhoff2023`
@@ -2740,11 +2731,7 @@ class StepsBlendingNowcaster:
                 )
 
             # Also update the probability matching fields.
-            # Restore the original NaN mask so that CDF probability matching
-            # correctly excludes out-of-domain pixels (NaN was replaced with
-            # nanmin for cascade decomposition in __prepare_radar_and_NWP_fields).
             precip_extrapolated = self.__precip_nowcast[j][t][:, :].copy()
-            precip_extrapolated[self.__precip_nowcast_nan_mask[j][t]] = np.nan
             worker_state.precip_extrapolated_probability_matching.append(
                 precip_extrapolated
             )
