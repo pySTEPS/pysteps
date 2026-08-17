@@ -1,4 +1,3 @@
-# -- coding: utf-8 --
 """
 pysteps.verification.probscores
 ===============================
@@ -31,17 +30,17 @@ def CRPS(X_f, X_o):
 
     Parameters
     ----------
-    X_f: array_like
-      Array of shape (k,m,n,...) containing the values from an ensemble
-      forecast of k members with shape (m,n,...).
-    X_o: array_like
-      Array of shape (m,n,...) containing the observed values corresponding
-      to the forecast.
+    X_f : array_like
+        Array of shape (k,m,n,...) containing the values from an ensemble
+        forecast of k members with shape (m,n,...).
+    X_o : array_like
+        Array of shape (m,n,...) containing the observed values corresponding
+        to the forecast.
 
     Returns
     -------
-    out: float
-      The computed CRPS.
+    out : float
+        The computed CRPS.
 
     References
     ----------
@@ -61,8 +60,8 @@ def CRPS_init():
 
     Returns
     -------
-    out: dict
-      The CRPS object.
+    out : dict
+        The CRPS object.
     """
     return {"CRPS_sum": 0.0, "n": 0.0}
 
@@ -75,14 +74,15 @@ def CRPS_accum(CRPS, X_f, X_o):
 
     Parameters
     ----------
-    CRPS: dict
-      The CRPS object.
-    X_f: array_like
-      Array of shape (k,m,n,...) containing the values from an ensemble
-      forecast of k members with shape (m,n,...).
-    X_o: array_like
-      Array of shape (m,n,...) containing the observed values corresponding
-      to the forecast.
+    CRPS : dict
+        The CRPS object initialized with
+        :py:func:`pysteps.verification.probscores.CRPS_init`.
+    X_f : array_like
+        Array of shape (k,m,n,...) containing the values from an ensemble
+        forecast of k members with shape (m,n,...).
+    X_o : array_like
+        Array of shape (m,n,...) containing the observed values corresponding
+        to the forecast.
 
     References
     ----------
@@ -137,47 +137,50 @@ def CRPS_compute(CRPS):
 
     Parameters
     ----------
-    CRPS: dict
-      A CRPS object created with CRPS_init.
+    CRPS : dict
+        A CRPS object initialized with
+        :py:func:`pysteps.verification.probscores.CRPS_init`.
 
     Returns
     -------
-    out: float
-      The computed CRPS.
+    out : float
+        The computed CRPS.
     """
     return 1.0 * CRPS["CRPS_sum"] / CRPS["n"]
 
 
 def reldiag(P_f, X_o, X_min, n_bins=10, min_count=10):
     """
-    Compute the x- and y- coordinates of the points in the reliability diagram.
+    Compute a reliability diagram from the given forecast exceedance
+    probabilities and observations.
 
     Parameters
     ----------
-    P_f: array-like
-      Forecast probabilities for exceeding the intensity threshold specified
-      in the reliability diagram object.
-    X_o: array-like
-      Observed values.
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_bins: int
-        Number of bins to use in the reliability diagram.
-    min_count: int
-      Minimum number of samples required for each bin. A zero value is assigned
-      if the number of samples in a bin is smaller than bin_count.
+    P_f : array_like
+        Forecast probabilities for exceeding the intensity threshold ``X_min``.
+    X_o : array_like
+        Observed values that are converted into yes/no predictions of exceeding
+        the threshold ``X_min``.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction.
+    n_bins: int, optional
+        Number of bins to use in the reliability diagram. Defaults to 10.
+    min_count: int, optional
+        Minimum number of samples required for each bin. A zero value is
+        assigned if the number of samples in a bin is smaller than
+        ``bin_count``. Defaults to 10.
 
     Returns
     -------
-    out: tuple
-      Two-element tuple containing the x- and y-coordinates of the points in
-      the reliability diagram.
+    out : tuple
+        Two-element tuple containing the x- and y-coordinates of the points in
+        the reliability curve.
     """
-
     P_f = P_f.copy()
     X_o = X_o.copy()
     rdiag = reldiag_init(X_min, n_bins, min_count)
     reldiag_accum(rdiag, P_f, X_o)
+
     return reldiag_compute(rdiag)
 
 
@@ -187,18 +190,19 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
 
     Parameters
     ----------
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_bins: int
-        Number of bins to use in the reliability diagram.
-    min_count: int
-      Minimum number of samples required for each bin. A zero value is assigned
-      if the number of samples in a bin is smaller than bin_count.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction.
+    n_bins : int, optional
+        Number of bins to use in the reliability diagram. Defaults to 10.
+    min_count : int, optional
+        Minimum number of samples required for each bin. A zero value is
+        assigned if the number of samples in a bin is smaller than
+        ``bin_count``. Defaults to 10.
 
     Returns
     -------
-    out: dict
-      The reliability diagram object.
+    out : dict
+        The reliability diagram object.
 
     References
     ----------
@@ -219,18 +223,20 @@ def reldiag_init(X_min, n_bins=10, min_count=10):
 
 
 def reldiag_accum(reldiag, P_f, X_o):
-    """Accumulate the given probability-observation pairs into the reliability
+    """Accumulate the given probability-observation pairs into a reliability
     diagram.
 
     Parameters
     ----------
-    reldiag: dict
-      A reliability diagram object created with reldiag_init.
-    P_f: array-like
-      Forecast probabilities for exceeding the intensity threshold specified
-      in the reliability diagram object.
-    X_o: array-like
-      Observed values.
+    reldiag : dict
+        A reliability diagram object initialized with
+        :py:func:`pysteps.verification.probscores.reldiag_init`.
+    P_f : array-like
+        Forecast probabilities for exceeding the intensity threshold specified
+        in the reliability diagram object.
+    X_o : array-like
+        Observed values that are converted into yes/no predictions of exceeding
+        the intensity threshold specified in the reliability diagram object.
     """
     mask = np.logical_and(np.isfinite(P_f), np.isfinite(X_o))
 
@@ -266,18 +272,20 @@ def reldiag_accum(reldiag, P_f, X_o):
 
 def reldiag_compute(reldiag):
     """
-    Compute the x- and y- coordinates of the points in the reliability diagram.
+    Compute the x- and y- coordinates of the curve points from the given
+    reliability diagram object.
 
     Parameters
     ----------
-    reldiag: dict
-      A reliability diagram object created with reldiag_init.
+    reldiag : dict
+        A reliability diagram object initialized with
+        :py:func:`pysteps.verification.probscores.reldiag_init`.
 
     Returns
     -------
-    out: tuple
-      Two-element tuple containing the x- and y-coordinates of the points in
-      the reliability diagram.
+    out : tuple
+        Two-element tuple containing the x- and y-coordinates of the points in
+        the reliability curve.
     """
     f = 1.0 * reldiag["Y_sum"] / reldiag["num_idx"]
     r = 1.0 * reldiag["X_sum"] / reldiag["num_idx"]
@@ -287,36 +295,42 @@ def reldiag_compute(reldiag):
 
 def ROC_curve(P_f, X_o, X_min, n_prob_thrs=10, compute_area=False):
     """
-    Compute the ROC curve and its area from the given ROC object.
+    Compute the ROC curve from the given forecast exceedance probabilities and
+    observations.
 
     Parameters
     ----------
-    P_f: array_like
-      Forecasted probabilities for exceeding the threshold specified in the ROC
-      object. Non-finite values are ignored.
-    X_o: array_like
-      Observed values. Non-finite values are ignored.
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_prob_thrs: int
-      The number of probability thresholds to use.
-      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
-    compute_area: bool
-      If True, compute the area under the ROC curve (between 0.5 and 1).
+    P_f : array_like
+        Forecasted probabilities for exceeding the threshold ``X_min``.
+        Non-finite values are ignored.
+    X_o : array_like
+        Observed values that are compared against the threshold ``X_min`` and
+        converted into yes/no predictions of exceedance. Non-finite values are
+        ignored.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction of exceedance.
+    n_prob_thrs : int, optional
+        The number of probability thresholds to use. The interval [0,1] is
+        divided into ``n_prob_thrs`` evenly spaced values. Defaults to 10.
+    compute_area : bool, optional
+        If ``True``, compute the area under the ROC curve (between 0.5 and 1).
+        Defaults to ``False``.
 
     Returns
     -------
-    out: tuple
-      A two-element tuple containing the probability of detection (POD) and
-      probability of false detection (POFD) for the probability thresholds
-      specified in the ROC curve object. If compute_area is True, return the
-      area under the ROC curve as the third element of the tuple.
+    out : tuple
+        A two-element tuple containing the probabilities of false detection
+        (POFD, x-coordinate) and the probabilities of detection (POD,
+        y-coordinate) for the specified probability thresholds. If compute_area
+        is ``True``, return the area under the ROC curve as the third element
+        of the tuple.
     """
 
     P_f = P_f.copy()
     X_o = X_o.copy()
     roc = ROC_curve_init(X_min, n_prob_thrs)
     ROC_curve_accum(roc, P_f, X_o)
+
     return ROC_curve_compute(roc, compute_area)
 
 
@@ -326,16 +340,16 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
 
     Parameters
     ----------
-    X_min: float
-      Precipitation intensity threshold for yes/no prediction.
-    n_prob_thrs: int
-      The number of probability thresholds to use.
-      The interval [0,1] is divided into n_prob_thrs evenly spaced values.
+    X_min : float
+        Precipitation intensity threshold for yes/no prediction of exceedance.
+    n_prob_thrs : int, optional
+        The number of probability thresholds to use. The interval [0,1] is
+        divided into ``n_prob_thrs`` evenly spaced values. Defaults to 10.
 
     Returns
     -------
-    out: dict
-      The ROC curve object.
+    out : dict
+        The ROC curve object.
     """
     ROC = {}
 
@@ -351,17 +365,20 @@ def ROC_curve_init(X_min, n_prob_thrs=10):
 
 def ROC_curve_accum(ROC, P_f, X_o):
     """Accumulate the given probability-observation pairs into the given ROC
-    object.
+    curve object.
 
     Parameters
     ----------
-    ROC: dict
-      A ROC curve object created with ROC_curve_init.
-    P_f: array_like
-      Forecasted probabilities for exceeding the threshold specified in the ROC
-      object. Non-finite values are ignored.
-    X_o: array_like
-      Observed values. Non-finite values are ignored.
+    ROC : dict
+        A ROC curve object initialized with
+        :py:func:`pysteps.verification.probscores.ROC_curve_init`.
+    P_f : array_like
+        Forecasted probabilities for exceeding the threshold specified in the
+        ROC object. Non-finite values are ignored.
+    X_o : array_like
+        Observed values that are compared against the intensity threshold
+        specified in the ROC curve object and converted into yes/no predictions
+        of exceedance. Non-finite values are ignored.
     """
     mask = np.logical_and(np.isfinite(P_f), np.isfinite(X_o))
 
@@ -385,18 +402,21 @@ def ROC_curve_compute(ROC, compute_area=False):
 
     Parameters
     ----------
-    ROC: dict
-      A ROC curve object created with ROC_curve_init.
-    compute_area: bool
-      If True, compute the area under the ROC curve (between 0.5 and 1).
+    ROC : dict
+        A ROC curve object initialized with
+        :py:func:`pysteps.verification.probscores.ROC_curve_init`.
+    compute_area : bool, optional
+        If ``True``, compute the area under the ROC curve (between 0.5 and 1).
+        Defaults to ``False``.
 
     Returns
     -------
-    out: tuple
-      A two-element tuple containing the probability of detection (POD) and
-      probability of false detection (POFD) for the probability thresholds
-      specified in the ROC curve object. If compute_area is True, return the
-      area under the ROC curve as the third element of the tuple.
+    out : tuple
+        A two-element tuple containing the probabilities of false detection
+        (POFD, x-coordinate) and the probabilities of detection (POD,
+        y-coordinate) for the probability thresholds specified in the ROC curve
+        object. If compute_area is ``True``, return the area under the ROC
+        curve as the third element of the tuple.
     """
     POD_vals = []
     POFD_vals = []
