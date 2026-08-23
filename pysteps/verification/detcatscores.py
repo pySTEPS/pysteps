@@ -18,9 +18,9 @@ forecasts.
 
 import collections
 import numpy as np
+from pysteps.verification.spatialscores import smooth_fields, normalize_forecast_obs
 
-
-def det_cat_fct(pred, obs, thr, scores="", axis=None):
+def det_cat_fct(pred, obs, thr, scores="", axis=None, return_table=False):
     """
     Calculate simple and skill scores for deterministic categorical
     (dichotomous) forecasts.
@@ -94,7 +94,7 @@ def det_cat_fct(pred, obs, thr, scores="", axis=None):
 
     contab = det_cat_fct_init(thr, axis)
     det_cat_fct_accum(contab, pred, obs)
-    return det_cat_fct_compute(contab, scores)
+    return det_cat_fct_compute(contab, scores, return_table)
 
 
 def det_cat_fct_init(thr, axis=None):
@@ -198,11 +198,22 @@ def det_cat_fct_accum(contab, pred, obs):
         obs = obs[None, :]
         axis = (0,)
     axis = tuple([a for a in axis if a >= 0])
-
+    
+    # Auto-detect binary inputs: unique values subset of {0,1} or {False,True}
+    def is_binary(arr):
+        vals = np.unique(arr[~np.isnan(arr)])
+        return np.all(np.isin(vals, [0, 1, False, True]))
+    
+    binary_input = is_binary(pred) and is_binary(obs)
+    
     # apply threshold
-    predb = pred > contab["thr"]
-    obsb = obs > contab["thr"]
-
+    if binary_input:
+        predb = pred.astype(bool)
+        obsb = obs.astype(bool)
+    else:
+        predb = pred > contab["thr"]
+        obsb = obs > contab["thr"]
+    
     # calculate hits, misses, false positives, correct rejects
     H_idx = np.logical_and(predb == 1, obsb == 1)
     F_idx = np.logical_and(predb == 1, obsb == 0)
@@ -263,7 +274,7 @@ def det_cat_fct_merge(contab_1, contab_2):
     return contab
 
 
-def det_cat_fct_compute(contab, scores=""):
+def det_cat_fct_compute(contab, scores="", return_table=False):
     """
     Compute simple and skill scores for deterministic categorical
     (dichotomous) forecasts from a contingency table object.
@@ -332,8 +343,14 @@ def det_cat_fct_compute(contab, scores=""):
     M = 1.0 * contab["misses"]  # false negatives
     F = 1.0 * contab["false_alarms"]  # false positives
     R = 1.0 * contab["correct_negatives"]  # true negatives
-
+    
     result = {}
+    if return_table:
+        result["H"] = H
+        result["M"] = M
+        result["F"] = F
+        result["R"] = R
+        
     for score in scores:
         # catch None passed as score
         if score is None:
@@ -401,3 +418,78 @@ def det_cat_fct_compute(contab, scores=""):
             result["F1"] = F1
 
     return result
+
+
+def det_cat_fct_spatial(pred, obs, thr, scales, scores="", axis=None, return_table=False, smooth_thr=0.01):
+    """
+    Perform neighborhood-based categorical verification across thresholds and scales.
+
+    Parameters
+    ----------
+    pred : np.ndarray
+        Forecast array. Shape can be:
+        - (n_members, n_leadtimes, y, x)
+        - (n_leadtimes, y, x)
+        - (n_members, y, x)
+        - (y, x)
+    obs : np.ndarray
+        Observation array. Shape can be:
+        - (n_leadtimes, y, x)
+        - (y, x)
+    thr : float or list of float
+        Threshold(s) for binarization.
+    scales : list of int
+        Smoothing window sizes.
+    axis : int or tuple of int, optional
+        Axes over which to aggregate contingency table.
+    scores : str or list of str, optional
+        Score names to compute. If empty, all supported scores are used.
+    smooth_thr : float
+        Threshold to re-binarize smoothed fields.
+
+    Returns
+    -------
+    results : dict
+        Dictionary of score arrays:
+        results[score_name] = np.ndarray of shape (n_thresholds, n_scales, n_members, n_leadtimes)
+    """
+    thr = np.atleast_1d(thr)
+    scales = np.atleast_1d(scales)
+
+    # Normalize forecast and observation shapes
+    pred, obs = normalize_forecast_obs(pred, obs)
+    n_members, n_leadtimes, y, x = pred.shape
+    n_thresholds = len(thr)
+    n_scales = len(scales)
+
+    results = None  # Delay initialization until first score_dict is available
+
+    # Loop over thresholds, scales, members, and lead times
+    for i, thr_val in enumerate(thr):
+        for s, scale in enumerate(scales):
+            for m in range(n_members):
+                for t in range(n_leadtimes):
+                    fcst_bin = (pred[m, t] > thr_val).astype(float)
+                    obs_bin = (obs[t] > thr_val).astype(float)
+                    
+                    # Smooth and re-binarize
+                    S_f, S_o = smooth_fields(fcst_bin, obs_bin, scale)
+                    S_f_bin = S_f > smooth_thr
+                    S_o_bin = S_o > smooth_thr
+                    
+                    # Compute scores using det_cat_fct
+                    score_dict = det_cat_fct(S_f_bin, S_o_bin, thr_val, scores, axis, return_table)
+                    
+                    # Initialize results dictionary on first pass
+                    if results is None:
+                        results = {
+                            key: np.empty((n_thresholds, n_scales, n_members, n_leadtimes))
+                            for key in score_dict.keys()
+                        }
+
+                    # Store each score
+                    for score_name, value in score_dict.items():
+                        results[score_name][i, s, m, t] = value
+
+    return results
+
