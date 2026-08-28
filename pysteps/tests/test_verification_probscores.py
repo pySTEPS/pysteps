@@ -46,3 +46,14 @@ def test_ROC_curve_area(X_f, X_o, X_min, n_prob_thrs, compute_area, expected):
     assert_array_almost_equal(
         probscores.ROC_curve(P_f, X_o, X_min, n_prob_thrs, compute_area)[2], expected
     )
+
+
+@pytest.mark.parametrize(
+    "X_f, X_o, X_min, n_prob_thrs, compute_area, expected", test_data
+)
+def test_PR_curve_area(X_f, X_o, X_min, n_prob_thrs, compute_area, expected):
+    """Test the PR_curve."""
+    P_f = excprob(X_f, X_min, ignore_nan=False)
+    assert_array_almost_equal(
+        probscores.PR_curve(P_f, X_o, X_min, n_prob_thrs, compute_area)[2], expected
+    )
