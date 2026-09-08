@@ -55,6 +55,7 @@ import time
 from copy import deepcopy
 
 import numpy as np
+import xarray as xr
 from scipy.ndimage import (
     binary_dilation,
     gaussian_filter,
@@ -66,6 +67,7 @@ from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
 from pysteps.utils.check_norain import check_norain
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask
@@ -923,11 +925,8 @@ class ForecastModel:
 class EnKFCombinationNowcaster:
     def __init__(
         self,
-        obs_precip: np.ndarray,
-        obs_timestamps: np.ndarray,
-        nwp_precip: np.ndarray,
-        nwp_timestamps: np.ndarray,
-        obs_velocity: np.ndarray,
+        radar_dataset: xr.Dataset,
+        model_dataset: xr.Dataset,
         fc_period: int,
         fc_init: datetime.datetime,
         enkf_combination_config: EnKFCombinationConfig,
@@ -935,6 +934,23 @@ class EnKFCombinationNowcaster:
         """
         Initialize EnKFCombinationNowcaster with inputs and configurations.
         """
+        # Extract the raw arrays that the rest of this class operates on from
+        # the input datasets.
+        radar_precip_var = radar_dataset.attrs["precip_var"]
+        model_precip_var = model_dataset.attrs["precip_var"]
+
+        obs_precip = radar_dataset[radar_precip_var].values
+        obs_timestamps = np.array(
+            radar_dataset["time"].values.astype("datetime64[us]").tolist()
+        )
+        nwp_precip = model_dataset[model_precip_var].values
+        nwp_timestamps = np.array(
+            model_dataset["time"].values.astype("datetime64[us]").tolist()
+        )
+        obs_velocity = np.array(
+            [radar_dataset["velocity_x"].values, radar_dataset["velocity_y"].values]
+        )
+
         # Store inputs
         self.__obs_precip = obs_precip
         self.__nwp_precip = nwp_precip
@@ -952,47 +968,26 @@ class EnKFCombinationNowcaster:
         self.__obs_timestamps = obs_timestamps
         self.__nwp_timestamps = nwp_timestamps
 
+        # Store the input radar dataset to use its coordinates/metadata when
+        # building the output dataset.
+        self.__input_radar_dataset = radar_dataset
+
     def compute_forecast(self):
         """
         Generate a combined nowcast ensemble by using the reduced-space ensemble Kalman
         filter method.
 
-        Parameters
-        ----------
-        obs_precip: np.ndarray
-            Array of shape (ar_order+1,m,n) containing the observed input precipitation
-            fields ordered by timestamp from oldest to newst. The time steps between
-            the inputs are assumed to be regular.
-        obs_timestamps: np.ndarray
-            Array of shape (ar_order+1) containing the corresponding time stamps of
-            observed input precipitation fields as datetime objects.
-        nwp_precip: np.ndarray
-            Array of shape (n_ens,n_times,m,n) containing the (NWP) ensemble model
-            forecast.
-        nwp_timestamps: np.ndarray
-            Array of shape (n_times) containing the corresponding time stamps of the
-            (NWP) ensemble model forecast as datetime objects.
-        obs_velocity: np.ndarray
-            Array of shape (2,m,n) containing the x- and y-components of the advection
-            field. The velocities are based on the observed input precipitation fields
-            and are assumed to represent one time step between the inputs. All values
-            are required to be finite.
-        fc_period: int
-            Forecast range in minutes.
-        fc_init: datetime object
-            Issuetime of the combined forecast to compute.
-        enkf_combination_config: EnKFCombinationConfig
-            Provides a set of configuration parameters for the nowcast ensemble
-            generation.
+        Uses the ``radar_dataset``, ``model_dataset``, ``fc_period``, ``fc_init``
+        and ``enkf_combination_config`` provided to the constructor.
 
         Returns
         -------
-        out: np.ndarray
-          If return_output is True, a four-dimensional array of shape
-          (n_ens_members,num_timesteps,m,n) containing a time series of forecast
-          precipitation fields for each ensemble member. Otherwise, a None value
-          is returned. The time series starts from t0. The timestep is taken from the
-          input precipitation fields precip.
+        out: xarray.Dataset
+          If return_output is True, a dataset as described in the documentation of
+          :py:mod:`pysteps.io.importers` is returned containing a time series of
+          forecast precipitation fields for each ensemble member. Otherwise, a
+          None value is returned. The time series starts from ``fc_init``, and the
+          timestep is taken from the input radar dataset.
 
         See also
         --------
@@ -1083,15 +1078,21 @@ class EnKFCombinationNowcaster:
                 self.FS.final_combined_forecast
             ).swapaxes(0, 1)
 
+            result_dataset = convert_output_to_xarray_dataset(
+                self.__input_radar_dataset,
+                list(range(len(self.__forecast_leadtimes))),
+                self.FS.final_combined_forecast,
+            )
+
             if self.__config.measure_time:
                 return (
-                    self.FS.final_combined_forecast,
+                    result_dataset,
                     self.__fc_init,
                     self.__mainloop_time,
                 )
             if self.__config.verbose_output:
-                return self.FS.final_combined_forecast, self.FS.background_ensemble
-            return self.FS.final_combined_forecast
+                return result_dataset, self.FS.background_ensemble
+            return result_dataset
 
         # Else, return None
         return None
@@ -1553,11 +1554,8 @@ class EnKFCombinationNowcaster:
 
 
 def forecast(
-    obs_precip,
-    obs_timestamps,
-    nwp_precip,
-    nwp_timestamps,
-    velocity,
+    radar_dataset,
+    model_dataset,
     forecast_horizon,
     issuetime,
     n_ens_members,
@@ -1593,24 +1591,19 @@ def forecast(
 
     Parameters
     ----------
-    obs_precip: np.ndarray
-        Array of shape (ar_order+1,m,n) containing the observed input precipitation
-        fields ordered by timestamp from oldest to newst. The time steps between
-        the inputs are assumed to be regular.
-    obs_timestamps: np.ndarray
-        Array of shape (ar_order+1) containing the corresponding time stamps of
-        observed input precipitation fields as datetime objects.
-    nwp_precip: np.ndarray
-        Array of shape (n_ens,n_times,m,n) containing the (NWP) ensemble model
-        forecast.
-    nwp_timestamps: np.ndarray
-        Array of shape (n_times) containing the corresponding time stamps of the
-        (NWP) ensemble model forecast as datetime objects.
-    velocity: np.ndarray
-        Array of shape (2,m,n) containing the x- and y-components of the advection
-        field. The velocities are based on the observed input precipitation fields
-        and are assumed to represent one time step between the inputs. All values
-        are required to be finite.
+    radar_dataset: xarray.Dataset
+        Dataset containing the observed input precipitation fields as described
+        in the documentation of :py:mod:`pysteps.io.importers`. It has to contain
+        the ``velocity_x`` and ``velocity_y`` data variables (computed from the
+        observed precipitation fields, representing one time step between the
+        inputs), as well as any precipitation data variable. The time dimension
+        of the dataset has to be size ``ar_order + 1``, ordered by timestamp from
+        oldest to newest, and evenly spaced. All velocity values are required to
+        be finite.
+    model_dataset: xarray.Dataset
+        Dataset containing the (NWP) ensemble model forecast, as described in the
+        documentation of :py:mod:`pysteps.io.importers`. It has to contain an
+        ``ens_number`` dimension in addition to ``time``, ``y`` and ``x``.
     forecast_horizon: int
         The length of the forecast horizon (the length of the forecast) in minutes.
     issuetime: datetime object
@@ -1721,12 +1714,13 @@ def forecast(
 
     Returns
     -------
-    out: np.ndarray
-        If return_output is True, a four-dimensional array of shape
-        (n_ens_members,num_timesteps,m,n) containing a time series of forecast
-        precipitation fields for each ensemble member. Otherwise, a None value
-        is returned. The time series starts from t0. The timestep is taken from the
-        input precipitation fields precip.
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of
+        forecast precipitation fields for each ensemble member. Otherwise, a None
+        value is returned. The time series starts from ``issuetime``, and the
+        timestep is taken from the metadata of the ``radar_dataset`` time
+        coordinate.
 
     See also
     --------
@@ -1775,11 +1769,8 @@ def forecast(
     )
 
     combination_nowcaster = EnKFCombinationNowcaster(
-        obs_precip=obs_precip,
-        obs_timestamps=obs_timestamps,
-        nwp_precip=nwp_precip,
-        nwp_timestamps=nwp_timestamps,
-        obs_velocity=velocity,
+        radar_dataset=radar_dataset,
+        model_dataset=model_dataset,
         fc_period=forecast_horizon,
         fc_init=issuetime,
         enkf_combination_config=combination_config,

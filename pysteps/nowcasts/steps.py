@@ -366,17 +366,17 @@ class StepsNowcaster:
         ].copy()
         self.__initialize_nowcast_components()
         if check_norain(
-            self.__precip[-1],
+            self.__state.precip[-1],
             self.__config.precip_threshold,
             self.__config.norain_threshold,
             self.__params.noise_kwargs["win_fun"],
         ):
             # Set all to inputs to 0 (also previous times) as we just check latest input in check_norain
-            self.__precip = self.__precip.copy()
-            self.__precip = np.where(
-                np.isfinite(self.__precip),
-                np.ones(self.__precip.shape) * np.nanmin(self.__precip),
-                self.__precip,
+            self.__state.precip = self.__state.precip.copy()
+            self.__state.precip = np.where(
+                np.isfinite(self.__state.precip),
+                np.ones(self.__state.precip.shape) * np.nanmin(self.__state.precip),
+                self.__state.precip,
             )
 
             return zero_precipitation_forecast(
@@ -1522,6 +1522,8 @@ def forecast(
     # Check the input precip and ar_order to be consistent
     # zero-precip/constant field in previous time steps has to be removed
     # (constant field causes autoregression to fail)
+    precip_var = dataset.attrs["precip_var"]
+    precip = dataset[precip_var].values
     precip, ar_order = check_previous_radar_obs(
         precip,
         ar_order,
@@ -1532,6 +1534,8 @@ def forecast(
             "win_fun": "tukey" if noise_kwargs is None else noise_kwargs["win_fun"],
         },
     )
+    dataset = dataset.isel(time=slice(-precip.shape[0], None)).copy(deep=True)
+    dataset[precip_var].values = precip
 
     nowcaster_config = StepsNowcasterConfig(
         n_ens_members=n_ens_members,
