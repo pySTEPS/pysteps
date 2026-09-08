@@ -13,6 +13,7 @@ The Spatial-Amplitude-Location (SAL) score by :cite:`WPHF2008`.
     sal_amplitude
     sal_location
 """
+
 from math import sqrt, hypot
 
 import numpy as np

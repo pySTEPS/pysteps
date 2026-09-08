@@ -135,12 +135,12 @@
         "dwd_nwp": {
             "root_path": "./nwp/dwd",
             "path_fmt": "%Y/%m/%d",
-            "fn_ext": ".grib2",
+            "fn_ext": "grib2",
             "fn_pattern": "%Y%m%d_%H%M_PR_GSP_060_120",
             "importer": "dwd_nwp",
             "timestep": 5,
             "importer_kwargs": {
-                "varname": "PR_GSP",
+                "varname": "lsprate",
                 "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
             }
             

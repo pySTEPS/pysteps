@@ -92,6 +92,7 @@ Generic functions
 
 import os
 from datetime import datetime
+from importlib.metadata import version as get_version
 
 import numpy as np
 
@@ -100,6 +101,10 @@ from pysteps.exceptions import MissingOptionalDependency
 try:
     from osgeo import gdal, osr
 
+    # Preserve current behavior explicitly (no GDAL exceptions) and avoid the
+    # GDAL 4.0 future-warning emitted when neither mode is selected.
+    if hasattr(gdal, "DontUseExceptions"):
+        gdal.DontUseExceptions()
     GDAL_IMPORTED = True
 except ImportError:
     GDAL_IMPORTED = False
@@ -376,6 +381,7 @@ def initialize_forecast_exporter_netcdf(
     fill_value=None,
     scale_factor=None,
     offset=None,
+    complevel=9,
     **kwargs,
 ):
     """
@@ -424,6 +430,10 @@ def initialize_forecast_exporter_netcdf(
     offset: float, optional
         The offset to offset the data as: store_value = scale_factor *
         precipitation_value + offset. Defaults to None.
+    complevel: int, optional
+        Compression level for zlib compression, ranging from 0 (no
+        compression) to 9 (slowest, most compression). Higher values
+        reduce file size but increase write time. Defaults to 9.
 
     Other Parameters
     ----------------
@@ -497,7 +507,7 @@ def initialize_forecast_exporter_netcdf(
     ncf.Conventions = "CF-1.7"
     ncf.title = "pysteps-generated nowcast"
     ncf.institution = institution
-    ncf.source = "pysteps"  # TODO(exporters): Add pySTEPS version here
+    ncf.source = "pysteps v" + get_version("pysteps")
     ncf.history = ""
     ncf.references = references
     ncf.comment = comment
@@ -607,7 +617,7 @@ def initialize_forecast_exporter_netcdf(
             dimensions=("ens_number", "time", "y", "x"),
             compression="zlib",
             zlib=True,
-            complevel=9,
+            complevel=complevel,
             fill_value=fill_value,
         )
     else:
@@ -617,7 +627,7 @@ def initialize_forecast_exporter_netcdf(
             dimensions=("time", "y", "x"),
             compression="zlib",
             zlib=True,
-            complevel=9,
+            complevel=complevel,
             fill_value=fill_value,
         )
 

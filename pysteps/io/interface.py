@@ -12,6 +12,7 @@ Interface for the io module.
 
     get_method
 """
+
 from importlib.metadata import entry_points
 
 from pysteps.io import importers, exporters, interface
@@ -145,6 +146,8 @@ def get_method(name, method_type):
         | bom_rf3      | NefCDF files used in the Boreau of Meterorology      |
         |              | archive containing precipitation intensity           |
         |              | composites.                                          |
+        +--------------+------------------------------------------------------+
+        | dwd_hdf5     | HDF5 file format used by DWD.                        |
         +--------------+------------------------------------------------------+
         | fmi_geotiff  | GeoTIFF files used in the Finnish Meteorological     |
         |              | Institute (FMI) archive, containing reflectivity     |

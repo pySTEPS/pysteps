@@ -21,6 +21,7 @@ from . import (
     fft,
     images,
     interpolate,
+    pca,
     reprojection,
     spectral,
     tapering,
@@ -113,6 +114,18 @@ def get_method(name, **kwargs):
     Additional keyword arguments are passed to the initializer of the FFT
     methods, see utils.fft.
 
+    Principal component analysis methods:
+
+    +-------------------+-----------------------------------------------------+
+    |     Name          |              Description                            |
+    +===================+=====================================================+
+    | pca_transform     |  Transform a two-dimensional array into principal   |
+    |                   |  component analysis                                 |
+    +-------------------+-----------------------------------------------------+
+    | pca_backtransform |  Transform a given principal component trans-       |
+    |                   |  formation back into physical space                 |
+    +-------------------+-----------------------------------------------------+    
+
     Reprojection methods:
 
     +-------------------+-----------------------------------------------------+
@@ -200,6 +213,10 @@ def get_method(name, **kwargs):
     # interpolation methods
     methods_objects["rbfinterp2d"] = interpolate.rbfinterp2d
     methods_objects["idwinterp2d"] = interpolate.idwinterp2d
+
+    # pca methods
+    methods_objects["pca_transform"] = pca.pca_transform
+    methods_objects["pca_backtransform"] = pca.pca_backtransform
 
     # reprojection methods
     methods_objects["reproject_grids"] = reprojection.reproject_grids

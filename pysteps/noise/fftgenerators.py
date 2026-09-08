@@ -499,7 +499,7 @@ def initialize_nonparam_2d_ssft_filter(field, **kwargs):
     win_fun = kwargs.get("win_fun", "tukey")
     overlap = kwargs.get("overlap", 0.3)
     war_thr = kwargs.get("war_thr", 0.1)
-    rm_rdisc = kwargs.get("rm_disc", True)
+    rm_rdisc = kwargs.get("rm_rdisc", True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
         fft_shape = field.shape if len(field.shape) == 2 else field.shape[1:]
@@ -601,7 +601,7 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
         Threshold for the minimum fraction of rain needed for computing the FFT
         (default 0.1).
     rm_rdisc: bool
-        Whether or not to remove the rain/no-rain disconituity. It assumes no-rain
+        Whether or not to remove the rain/no-rain discontinuity. It assumes no-rain
         pixels are assigned with lowest value.
     fft_method: str or tuple
         A string or a (function,kwargs) tuple defining the FFT method to use
@@ -626,7 +626,7 @@ def initialize_nonparam_2d_nested_filter(field, gridres=1.0, **kwargs):
     max_level = kwargs.get("max_level", 3)
     win_fun = kwargs.get("win_fun", "tukey")
     war_thr = kwargs.get("war_thr", 0.1)
-    rm_rdisc = kwargs.get("rm_disc", True)
+    rm_rdisc = kwargs.get("rm_rdisc", True)
     fft = kwargs.get("fft_method", "numpy")
     if type(fft) == str:
         fft_shape = field.shape if len(field.shape) == 2 else field.shape[1:]

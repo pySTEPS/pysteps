@@ -1,0 +1,3 @@
+# skip check for assert usage in the tests
+assert_used:
+  skips: ['*test_*.py']

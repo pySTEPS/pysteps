@@ -39,6 +39,7 @@ Other optional dependencies include:
 * `pandas <https://pandas.pydata.org/>`_ and
   `scikit-image >=0.19 <https://scikit-image.org/>`_ (for advanced feature detection methods)
 * `rasterio <https://rasterio.readthedocs.io/en/latest/>`_ (for the reprojection module)
+* `scikit-learn >=1.7 <https://scikit-learn.org/>`_ (for PCA-based blending methods)
 
 
 **Important**: If you only want to use pysteps, you can continue reading below.

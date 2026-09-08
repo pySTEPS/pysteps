@@ -87,6 +87,17 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
     for i, ifn in enumerate(inputfns[0]):
         if ifn is not None:
             dataset_ = importer(ifn, **kwargs)
+            precip_var = dataset_.attrs["precip_var"]
+            precip_var_ref = dataset_ref.attrs["precip_var"]
+
+            # The initial metadata setting reads the oldest time step only (see previous importer call).
+            # In case this has rain over the entire domain, the no precip threshold
+            # might be higher than the actual zero value.
+            # Here we check all time steps and use the lowest value overall.
+            dataset_ref[precip_var_ref].attrs["threshold"] = min(
+                dataset_ref[precip_var_ref].attrs["threshold"],
+                dataset_[precip_var].attrs["threshold"],
+            )
         else:
             dataset_ = dataset_ref * np.nan
         dataset_ = dataset_.expand_dims(dim="time", axis=0)

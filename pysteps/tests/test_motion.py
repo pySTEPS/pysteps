@@ -16,6 +16,7 @@ This tests check that the retrieved motion fields are within reasonable values.
 Also, they will fail if any modification on the code decrease the quality of
 the retrieval.
 """
+
 from contextlib import contextmanager
 from functools import partial
 
@@ -151,7 +152,7 @@ def _create_observations(input_precip, motion_type, num_times=9):
 
 
 convergence_arg_names = (
-    "input_precip, optflow_method_name, motion_type, " "num_times, max_rel_rmse"
+    "input_precip, optflow_method_name, motion_type, num_times, max_rel_rmse"
 )
 
 convergence_arg_values = [
@@ -167,6 +168,8 @@ convergence_arg_values = [
     (reference_field, "proesmans", "linear_y", 2, 0.45),
     (reference_field, "darts", "linear_x", 9, 20),
     (reference_field, "darts", "linear_y", 9, 20),
+    (reference_field, "farneback", "linear_x", 2, 28),
+    (reference_field, "farneback", "linear_y", 2, 28),
 ]
 
 
@@ -275,6 +278,7 @@ no_precip_args_values = [
     ("vet", 3),
     ("darts", 9),
     ("proesmans", 2),
+    ("farneback", 2),
 ]
 
 
@@ -320,6 +324,7 @@ input_tests_args_values = [
     ("vet", 2, 3),
     ("darts", 9, 9),
     ("proesmans", 2, 2),
+    ("farneback", 2, np.inf),
 ]
 
 
@@ -327,7 +332,7 @@ input_tests_args_values = [
 def test_input_shape_checks(
     optflow_method_name, minimum_input_frames, maximum_input_frames
 ):
-    if optflow_method_name == "lk":
+    if optflow_method_name in ("lk", "farneback"):
         pytest.importorskip("cv2")
     image_size = 100
     motion_method = motion.get_method(optflow_method_name)
@@ -481,16 +486,24 @@ def test_vet_cost_function():
     assert (returned_values[0] - 1548250.87627097) < 0.001
 
 
-def test_lk_masked_array():
+@pytest.mark.parametrize(
+    "method,kwargs",
+    [
+        ("LK", {"fd_kwargs": {"buffer_mask": 20}, "verbose": False}),
+        ("farneback", {"verbose": False}),
+    ],
+)
+def test_motion_masked_array(method, kwargs):
     """
     Passing a ndarray with NaNs or a masked array should produce the same results.
+    Tests for both LK and Farneback motion estimation methods.
     """
     pytest.importorskip("cv2")
 
     __, precip_obs = _create_observations(
         reference_field.copy(), "linear_y", num_times=2
     )
-    motion_method = motion.get_method("LK")
+    motion_method = motion.get_method(method)
 
     # ndarray with nans
     np.ma.set_fill_value(precip_obs, -15)
@@ -501,7 +514,7 @@ def test_lk_masked_array():
         coords={**dict(reference_dataset.coords), "time": [0, 1]},
         attrs=reference_dataset.attrs,
     )
-    uv_ndarray = motion_method(dataset, fd_kwargs={"buffer_mask": 20}, verbose=False)
+    uv_ndarray = motion_method(dataset, **kwargs)
 
     # masked array
     mdarray = np.ma.masked_invalid(ndarray)
@@ -511,6 +524,6 @@ def test_lk_masked_array():
         coords={**dict(reference_dataset.coords), "time": [0, 1]},
         attrs=reference_dataset.attrs,
     )
-    uv_mdarray = motion_method(dataset, fd_kwargs={"buffer_mask": 20}, verbose=False)
+    uv_mdarray = motion_method(dataset, **kwargs)
 
     assert np.abs(uv_mdarray - uv_ndarray).max() < 0.01

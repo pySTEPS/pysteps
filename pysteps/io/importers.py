@@ -221,6 +221,10 @@ from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 try:
     from osgeo import gdal, gdalconst, osr
 
+    # Preserve current behavior explicitly (no GDAL exceptions) and avoid the
+    # GDAL 4.0 future-warning emitted when neither mode is selected.
+    if hasattr(gdal, "DontUseExceptions"):
+        gdal.DontUseExceptions()
     GDAL_IMPORTED = True
 except ImportError:
     GDAL_IMPORTED = False
@@ -906,7 +910,7 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
 
 
 def import_knmi_hdf5(
-    filename, qty="ACRR", accutime=5.0, pixelsize=1000.0, fillna=np.nan, dtype="double"
+    filename, qty="ACRR", accutime=5.0, fillna=np.nan, dtype="double", **kwargs
 ):
     """
     Import a precipitation or reflectivity field (and optionally the quality
@@ -924,16 +928,14 @@ def import_knmi_hdf5(
         The accumulation time of the dataset in minutes. A 5 min accumulation
         is used as default, but hourly, daily and monthly accumulations
         are also available.
-    pixelsize: float
-        The pixel size of a raster cell in meters. The default value for the
-        KNMI datasets is a 1000 m grid cell size, but datasets with 2400 m pixel
-        size are also available.
     dtype: str, optional
         Data-type to which the array is cast.
         Valid values:  "float32", "float64", "single", and "double".
     fillna: float or np.nan, optional
         Value used to represent the missing data ("No Coverage").
         By default, np.nan is used.
+
+    {extra_kwargs_doc}
 
     Returns
     -------
@@ -1012,39 +1014,61 @@ def import_knmi_hdf5(
     # The 'where' group of mch- and Opera-data, is called 'geographic' in the
     # KNMI data.
     geographic = f["geographic"]
-    proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
-    pr = pyproj.Proj(proj4str)
+    proj4str = geographic["map_projection"].attrs["projection_proj4_params"].decode()
+
+    # There are a bunch of knmi hdf5 files out there with incorrect projection string, fix those
+    fix_metadata = False
+    if (
+        proj4str
+        == "+proj=stere +lat_0=90 +lon_0=0 +lat_ts=60 +a=6378.14 +b=6356.75 +x_0=0 y_0=0"
+    ):
+        fix_metadata = True
+        proj4str = "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378137 +b=6356752 +x_0=0 +y_0=0"
     metadata["projection"] = proj4str
 
-    # Get coordinates
-    latlon_corners = geographic.attrs["geo_product_corners"]
-    ll_lat = latlon_corners[1]
-    ll_lon = latlon_corners[0]
-    ur_lat = latlon_corners[5]
-    ur_lon = latlon_corners[4]
-    lr_lat = latlon_corners[7]
-    lr_lon = latlon_corners[6]
-    ul_lat = latlon_corners[3]
-    ul_lon = latlon_corners[2]
-
-    ll_x, ll_y = pr(ll_lon, ll_lat)
-    ur_x, ur_y = pr(ur_lon, ur_lat)
-    lr_x, lr_y = pr(lr_lon, lr_lat)
-    ul_x, ul_y = pr(ul_lon, ul_lat)
-    x1 = min(ll_x, ul_x)
-    y1 = min(ll_y, lr_y)
-    x2 = max(lr_x, ur_x)
-    y2 = max(ul_y, ur_y)
+    x1 = float(geographic.attrs["geo_column_offset"][0]) * float(
+        geographic.attrs["geo_pixel_size_x"][0]
+    )
+    y1 = float(geographic.attrs["geo_row_offset"][0]) * float(
+        geographic.attrs["geo_pixel_size_y"][0]
+    )
+    x2 = (
+        float(geographic.attrs["geo_column_offset"][0])
+        + float(geographic.attrs["geo_number_columns"][0])
+    ) * float(geographic.attrs["geo_pixel_size_x"][0])
+    y2 = (
+        float(geographic.attrs["geo_row_offset"][0])
+        + float(geographic.attrs["geo_number_rows"][0])
+    ) * float(geographic.attrs["geo_pixel_size_y"][0])
+    ypixelsize = (
+        -1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_y"][0])
+    )
+    if ypixelsize < 0:
+        y_temp = y1
+        y1 = y2
+        y2 = y_temp
 
     # Fill in the metadata
-    metadata["x1"] = x1
-    metadata["y1"] = y1
-    metadata["x2"] = x2
-    metadata["y2"] = y2
-    metadata["xpixelsize"] = pixelsize
-    metadata["ypixelsize"] = pixelsize
-    metadata["cartesian_unit"] = "m"
-    metadata["yorigin"] = "upper"
+    metadata["x1"] = 0.0 if fix_metadata else x1
+    metadata["y1"] = -4415000.0 if fix_metadata else y1
+    metadata["x2"] = 700000.0 if fix_metadata else x2
+    metadata["y2"] = -3650000.0 if fix_metadata else y2
+    metadata["xpixelsize"] = (
+        1000.0 if fix_metadata else float(geographic.attrs["geo_pixel_size_x"][0])
+    )
+    metadata["ypixelsize"] = abs(ypixelsize)
+    dim_pixel = geographic.attrs["geo_dim_pixel"].decode().split(",")[0]
+    if fix_metadata:
+        metadata["cartesian_unit"] = "m"
+    elif dim_pixel == "KM":
+        metadata["cartesian_unit"] = "km"
+    elif dim_pixel == "M":
+        metadata["cartesian_unit"] = "m"
+    elif dim_pixel == "DEG":
+        metadata["cartesian_unit"] = "degrees"
+    else:
+        metadata["cartesian_unit"] = "km"
+    metadata["yorigin"] = "upper" if ypixelsize < 0 else "lower"
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
@@ -1788,11 +1812,11 @@ def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
     ds_rainfall = netCDF4.Dataset(filename)
     if "crr_intensity" in ds_rainfall.variables.keys():
         if idx_x is not None:
-            data = np.array(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
-            quality = np.array(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
+            data = np.asarray(ds_rainfall.variables["crr_intensity"][idx_y, idx_x])
+            quality = np.asarray(ds_rainfall.variables["crr_quality"][idx_y, idx_x])
         else:
-            data = np.array(ds_rainfall.variables["crr_intensity"])
-            quality = np.array(ds_rainfall.variables["crr_quality"])
+            data = np.asarray(ds_rainfall.variables["crr_intensity"][:])
+            quality = np.asarray(ds_rainfall.variables["crr_quality"][:])
         precipitation = np.where(data == 65535, np.nan, data)
     else:
         precipitation = None
@@ -1844,48 +1868,75 @@ def _import_saf_crri_geodata(filename):
 
 def import_dwd_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwargs):
     """
-    Import a DWD precipitation product field (and optionally the quality
-    field) from a HDF5 file conforming to the ODIM specification
+        Import a DWD precipitation product field (and optionally the quality
+        field) from an HDF5 file conforming to the ODIM specification.
 
-    Parameters
-    ----------
-    filename: str
-        Name of the file to import.
-    qty: {'RATE', 'ACRR', 'DBZH'}
-        The quantity to read from the file. The currently supported identitiers
-        are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
-        accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
-        is 'RATE'.
-    dtype: str, optional
-        Data-type to which the array is cast.
-        Valid values:  "float32", "float64", "single", and "double".
-    fillna: float or np.nan, optional
-        Value used to represent the missing data ("No Coverage").
-        By default, np.nan is used.
+        Parameters
+        ----------
+        filename : str
+            Name of the file to import.
+    <<<<<<< HEAD
+        qty: {'RATE', 'ACRR', 'DBZH'}
+            The quantity to read from the file. The currently supported identitiers
+            are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
+            accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
+            is 'RATE'.
+        dtype: str, optional
+            Data-type to which the array is cast.
+            Valid values:  "float32", "float64", "single", and "double".
+        fillna: float or np.nan, optional
+            Value used to represent the missing data ("No Coverage").
+            By default, np.nan is used.
+    =======
+        qty : {'RATE', 'ACRR', 'DBZH'}, optional
+            Quantity to read from the file. The currently supported identifiers are:
 
-    Returns
-    -------
-    tuple
-        A tuple containing:
-        - data : np.ndarray
-            The requested precipitation product imported from a HDF5 file
-        - quality : None
-        - metadata : dict
-            Dictionary containing geospatial metadata such as:
-            - 'projection': PROJ.4 string defining the stereographic projection.
-            - 'll_lon', 'll_lat': Coordinates of the lower-left corner.
-            - 'ur_lon', 'ur_lat': Coordinates of the upper-right corner.
-            - 'x1', 'y1': Carthesian coordinates of the lower-left corner.
-            - 'x2', 'y2': Carthesian coordinates of the upper-right corner.
-            - 'xpixelsize', 'ypixelsize': Pixel size in meters.
-            - 'cartesian_unit': Unit of the coordinate system (meters).
-            - 'yorigin': Origin of the y-axis ('lower').
-            - 'institution': Originating institution ('DWD' or 'DWD Radolan')
-            - 'accutime': Accumulation period of the requested precipitation product
-            - 'unit': Unit.
-            - 'transform': Logarithmic transformation.
-            - 'zerovalue': No echo value.
-            - 'threshold': Precipitation threshold.
+            - 'RATE': instantaneous rain rate (mm/h)
+            - 'ACRR': hourly rainfall accumulation (mm)
+            - 'DBZH': maximum reflectivity (dBZ)
+
+            The default is 'RATE'.
+
+        {extra_kwargs_doc}
+    >>>>>>> origin/master
+
+        Returns
+        -------
+        data : np.ndarray
+            The requested precipitation product imported from the HDF5 file.
+        quality : None
+            Placeholder for quality field (not yet implemented).
+        metadata : dict
+            Dictionary containing geospatial metadata with the following keys:
+
+            projection : str
+                PROJ.4 string defining the stereographic projection.
+            ll_lon, ll_lat : float
+                Coordinates of the lower-left corner.
+            ur_lon, ur_lat : float
+                Coordinates of the upper-right corner.
+            x1, y1 : float
+                Cartesian coordinates of the lower-left corner.
+            x2, y2 : float
+                Cartesian coordinates of the upper-right corner.
+            xpixelsize, ypixelsize : float
+                Pixel size in meters.
+            cartesian_unit : str
+                Unit of the coordinate system (meters).
+            yorigin : {'lower'}
+                Origin of the y-axis.
+            institution : {'DWD', 'DWD Radolan'}
+                Originating institution.
+            accutime : int
+                Accumulation period of the requested precipitation product.
+            unit : str
+                Unit of the data.
+            transform : str
+                Logarithmic transformation applied.
+            zerovalue : float
+                Value representing no echo.
+            threshold : float
+                Precipitation threshold.
     """
     if not H5PY_IMPORTED:
         raise MissingOptionalDependency(

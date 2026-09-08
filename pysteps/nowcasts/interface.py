@@ -1,4 +1,4 @@
-"""
+r"""
 pysteps.nowcasts.interface
 ==========================
 
@@ -57,7 +57,7 @@ _nowcast_methods["steps"] = steps.forecast
 
 
 def get_method(name):
-    """
+    r"""
     Return a callable function for computing nowcasts.
 
     Description:

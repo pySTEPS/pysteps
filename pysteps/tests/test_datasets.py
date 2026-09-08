@@ -13,7 +13,6 @@ from pysteps.datasets import (
 )
 from pysteps.exceptions import DirectoryNotEmpty
 
-
 _datasets_opt_deps = dict(
     fmi=["pyproj"],
     mch=["PIL"],

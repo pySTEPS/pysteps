@@ -22,10 +22,10 @@ Implementation of the linear blending and saliency-based blending between nowcas
 
 import numpy as np
 import xarray as xr
-from pysteps import nowcasts
-from pysteps.utils import conversion
 from scipy.stats import rankdata
 
+from pysteps import nowcasts
+from pysteps.utils import conversion
 from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 
@@ -109,6 +109,7 @@ def forecast(
     # First calculate the number of needed timesteps (up to end_blending) for the nowcast
     # to ensure that the nowcast calculation time is limited.
     timesteps_nowcast = int(end_blending / timestep)
+    timesteps_nowcast = min(timesteps, timesteps_nowcast)
 
     nowcast_method_func = nowcasts.get_method(nowcast_method)
 
@@ -181,10 +182,10 @@ def forecast(
                     precip_nowcast = np.repeat(precip_nowcast, repeats, axis=0)
 
         # Check if dimensions are correct
-        assert (
-            precip_nwp.shape[-2:] == precip_nowcast.shape[-2:]
-        ), "The x and y dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
-            precip_nwp.shape[-2:], precip_nowcast.shape[-2:]
+        assert precip_nwp.shape[-2:] == precip_nowcast.shape[-2:], (
+            "The x and y dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
+                precip_nwp.shape[-2:], precip_nowcast.shape[-2:]
+            )
         )
 
         # Ensure we are not working with nans in the bleding.

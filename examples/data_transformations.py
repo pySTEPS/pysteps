@@ -79,7 +79,8 @@ def plot_distribution(data, labels, skw):
     ax2 = ax1.twinx()
 
     ax2.plot(np.arange(N + 2), np.zeros(N + 2), ":r")
-    ax1.boxplot(data, labels=labels, sym="", medianprops={"color": "k"})
+    ax1.boxplot(data, sym="", medianprops={"color": "k"})
+    ax1.set_xticks(np.arange(1, N + 1), labels=labels)
 
     ymax = []
     for i in range(N):

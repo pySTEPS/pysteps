@@ -11,7 +11,6 @@ from pysteps.blending.skill_scores import (
     clim_regr_values,
 )
 
-
 # Set the climatological correlations values
 clim_cor_values_8lev = np.array(
     [0.848, 0.537, 0.237, 0.065, 0.020, 0.0044, 0.0052, 0.0040]

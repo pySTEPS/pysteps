@@ -22,15 +22,15 @@ from scipy.ndimage import generate_binary_structure, iterate_structure
 
 from pysteps import cascade, extrapolation, noise, utils
 from pysteps.nowcasts import utils as nowcast_utils
-from pysteps.postprocessing import probmatching
-from pysteps.timeseries import autoregression, correlation
-from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 from pysteps.nowcasts.utils import (
     compute_percentile_mask,
     nowcast_main_loop,
     zero_precipitation_forecast,
 )
-from pysteps.utils.check_norain import check_norain
+from pysteps.postprocessing import probmatching
+from pysteps.timeseries import autoregression, correlation
+from pysteps.utils.check_norain import check_norain, check_previous_radar_obs
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask
@@ -366,11 +366,19 @@ class StepsNowcaster:
         ].copy()
         self.__initialize_nowcast_components()
         if check_norain(
-            self.__state.precip,
+            self.__precip[-1],
             self.__config.precip_threshold,
             self.__config.norain_threshold,
             self.__params.noise_kwargs["win_fun"],
         ):
+            # Set all to inputs to 0 (also previous times) as we just check latest input in check_norain
+            self.__precip = self.__precip.copy()
+            self.__precip = np.where(
+                np.isfinite(self.__precip),
+                np.ones(self.__precip.shape) * np.nanmin(self.__precip),
+                self.__precip,
+            )
+
             return zero_precipitation_forecast(
                 self.__config.n_ens_members,
                 self.__time_steps,
@@ -1510,6 +1518,20 @@ def forecast(
     ----------
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
     """
+
+    # Check the input precip and ar_order to be consistent
+    # zero-precip/constant field in previous time steps has to be removed
+    # (constant field causes autoregression to fail)
+    precip, ar_order = check_previous_radar_obs(
+        precip,
+        ar_order,
+        {
+            "precip_thr": precip_thr,
+            "norain_thr": norain_thr,
+            # Set default window function to "tukey" to match the default in check_inputs() below
+            "win_fun": "tukey" if noise_kwargs is None else noise_kwargs["win_fun"],
+        },
+    )
 
     nowcaster_config = StepsNowcasterConfig(
         n_ens_members=n_ens_members,

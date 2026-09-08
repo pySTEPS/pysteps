@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import os
-
-import xarray as xr
-import pytest
+from datetime import datetime
 from unittest.mock import patch
+
+import pytest
+import xarray as xr
+
 from pysteps.tests.helpers import get_precipitation_fields
 from pysteps.visualization.animations import animate
-from datetime import datetime
-
 
 precip_dataset: xr.Dataset = get_precipitation_fields(
     num_prev_files=2,

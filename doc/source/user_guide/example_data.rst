@@ -76,6 +76,7 @@ directory structure looks like this::
           ├── KNMI
           ├── OPERA
           ├── bom
+          ├── dwd
           ├── fmi
           ├── mch
 
