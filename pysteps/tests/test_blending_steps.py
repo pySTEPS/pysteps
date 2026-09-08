@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -85,35 +85,40 @@ steps_arg_values = [
 
 
 def run_and_assert_forecast(
-    precip, forecast_kwargs, expected_n_ens_members, n_timesteps, converter, metadata
+    radar_dataset,
+    forecast_kwargs,
+    expected_n_ens_members,
+    n_timesteps,
+    converter,
+    metadata,
 ):
     """Run a blended nowcast and assert the output has the expected shape."""
-    precip_forecast_dataset = blending.steps.forecast(precip=precip, **forecast_kwargs)
+    precip_forecast_dataset = blending.steps.forecast(radar_dataset, **forecast_kwargs)
     precip_var_forecast = precip_forecast_dataset.attrs["precip_var"]
     precip_forecast = precip_forecast_dataset[precip_var_forecast].values
 
     assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
-    assert precip_forecast.shape[0] == expected_n_ens_members, (
-        "Wrong amount of output ensemble members in forecast output"
-    )
-    assert precip_forecast.shape[1] == n_timesteps, (
-        "Wrong amount of output time steps in forecast output"
-    )
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in forecast output"
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in forecast output"
 
     # Transform the data back into mm/h
     precip_forecast_dataset = converter(precip_forecast_dataset)
     precip_var_forecast = precip_forecast_dataset.attrs["precip_var"]
     precip_forecast = precip_forecast_dataset[precip_var_forecast].values
 
-    assert precip_forecast.ndim == 4, (
-        "Wrong amount of dimensions in converted forecast output"
-    )
-    assert precip_forecast.shape[0] == expected_n_ens_members, (
-        "Wrong amount of output ensemble members in converted forecast output"
-    )
-    assert precip_forecast.shape[1] == n_timesteps, (
-        "Wrong amount of output time steps in converted forecast output"
-    )
+    assert (
+        precip_forecast.ndim == 4
+    ), "Wrong amount of dimensions in converted forecast output"
+    assert (
+        precip_forecast.shape[0] == expected_n_ens_members
+    ), "Wrong amount of output ensemble members in converted forecast output"
+    assert (
+        precip_forecast.shape[1] == n_timesteps
+    ), "Wrong amount of output time steps in converted forecast output"
 
 
 steps_arg_names = (
@@ -353,12 +358,12 @@ def test_steps_blending(
         ~np.isfinite(model_dataset[model_precip_var].values)
     ] = model_dataset[model_precip_var].attrs["zerovalue"]
 
-    assert np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False, (
-        "There are still infinite values in the input radar data"
-    )
-    assert np.any(~np.isfinite(model_dataset[radar_precip_var].values)) == False, (
-        "There are still infinite values in the NWP data"
-    )
+    assert (
+        np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False
+    ), "There are still infinite values in the input radar data"
+    assert (
+        np.any(~np.isfinite(model_dataset[radar_precip_var].values)) == False
+    ), "There are still infinite values in the NWP data"
 
     ###
     # Decompose the R_NWP data
@@ -385,8 +390,6 @@ def test_steps_blending(
     # Shared forecast kwargs
     ###
     forecast_kwargs = dict(
-        precip_models=nwp_precip_decomp,
-        velocity=radar_velocity,
         model_dataset=nwp_preproc_dataset,
         timesteps=timesteps,
         timestep=5.0,
@@ -444,8 +447,8 @@ def _make_external_nowcast_weight_inputs():
     """Build small dummy radar, NWP and external-nowcast fields plus the shared
     forecast kwargs used by the external-nowcast weight regression tests.
 
-    Returns ``(radar_precip, precip_nowcast, common_kwargs)`` where
-    ``common_kwargs`` omits ``precip``, ``precip_nowcast``, ``nowcasting_method``
+    Returns ``(radar_dataset_w_velocity, precip_nowcast, common_kwargs)`` where
+    ``common_kwargs`` omits ``model_dataset``, ``precip_nowcast``, ``nowcasting_method``
     and ``noise_method`` so each test can set those per run.
     """
     n_cascade_levels = 6
@@ -491,48 +494,82 @@ def _make_external_nowcast_weight_inputs():
 
     metadata = dict(
         unit="mm",
-        transformation="dB",
+        cartesian_unit="km",
         accutime=5.0,
-        transform="dB",
         zerovalue=0.0,
         threshold=0.01,
         zr_a=200.0,
         zr_b=1.6,
+        x1=0.0,
+        x2=200.0,
+        y1=0.0,
+        y2=200.0,
+        yorigin="lower",
+        institution="test",
+        projection=(
+            "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 "
+            "+lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+        ),
     )
 
     radar_precip[radar_precip < metadata["threshold"]] = 0.0
     nwp_precip[nwp_precip < metadata["threshold"]] = 0.0
     precip_nowcast[precip_nowcast < metadata["threshold"]] = 0.0
 
+    issuetime = datetime.strptime("202112012355", "%Y%m%d%H%M")
+
+    radar_dataset = convert_input_to_xarray_dataset(
+        radar_precip, None, metadata, issuetime - timedelta(minutes=10), 300
+    )
+    model_dataset = convert_input_to_xarray_dataset(
+        nwp_precip, None, metadata, issuetime, 300
+    )
+    nowcast_dataset = convert_input_to_xarray_dataset(
+        precip_nowcast, None, metadata, issuetime, 300
+    )
+
     converter = pysteps.utils.get_method("mm/h")
-    radar_precip, _ = converter(radar_precip, metadata)
-    nwp_precip, _ = converter(nwp_precip, metadata)
-    precip_nowcast, metadata = converter(precip_nowcast, metadata)
+    radar_dataset = converter(radar_dataset)
+    model_dataset = converter(model_dataset)
+    nowcast_dataset = converter(nowcast_dataset)
 
-    transformer = pysteps.utils.get_method(metadata["transformation"])
-    radar_precip, _ = transformer(radar_precip, metadata)
-    nwp_precip, _ = transformer(nwp_precip, metadata)
-    precip_nowcast, metadata = transformer(precip_nowcast, metadata)
+    transformer = pysteps.utils.get_method("dB")
+    radar_dataset = transformer(radar_dataset)
+    model_dataset = transformer(model_dataset)
+    nowcast_dataset = transformer(nowcast_dataset)
 
-    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
-    nwp_precip[~np.isfinite(nwp_precip)] = metadata["zerovalue"]
-    precip_nowcast[~np.isfinite(precip_nowcast)] = metadata["zerovalue"]
+    radar_precip_var = radar_dataset.attrs["precip_var"]
+    model_precip_var = model_dataset.attrs["precip_var"]
+    nowcast_precip_var = nowcast_dataset.attrs["precip_var"]
+
+    radar_dataset[radar_precip_var].data[
+        ~np.isfinite(radar_dataset[radar_precip_var].values)
+    ] = radar_dataset[radar_precip_var].attrs["zerovalue"]
+    model_dataset[model_precip_var].data[
+        ~np.isfinite(model_dataset[model_precip_var].values)
+    ] = model_dataset[model_precip_var].attrs["zerovalue"]
+    nowcast_dataset[nowcast_precip_var].data[
+        ~np.isfinite(nowcast_dataset[nowcast_precip_var].values)
+    ] = nowcast_dataset[nowcast_precip_var].attrs["zerovalue"]
+
+    precip_nowcast = nowcast_dataset[nowcast_precip_var].values
 
     oflow_method = pysteps.motion.get_method("lucaskanade")
-    radar_velocity = oflow_method(radar_precip)
-    _v_nwp = [
-        oflow_method(nwp_precip[0, t - 1 : t + 1, :])
-        for t in range(1, nwp_precip.shape[1])
-    ]
-    nwp_velocity = np.stack([np.insert(_v_nwp, 0, _v_nwp[0], axis=0)])
+    nwp_preproc_dataset = preprocess_nwp_data(
+        model_dataset,
+        oflow_method,
+        "test",
+        None,
+        False,
+        {"num_cascade_levels": n_cascade_levels},
+    )
+    radar_dataset_w_velocity = oflow_method(radar_dataset)
 
     common_kwargs = dict(
-        precip_models=nwp_precip,
-        velocity=radar_velocity,
-        velocity_models=nwp_velocity,
+        model_dataset=nwp_preproc_dataset,
         timesteps=timesteps,
         timestep=5.0,
-        issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
+        issuetime=issuetime,
         n_ens_members=1,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=False,
@@ -561,7 +598,7 @@ def _make_external_nowcast_weight_inputs():
         measure_time=False,
     )
 
-    return radar_precip, precip_nowcast, common_kwargs
+    return radar_dataset_w_velocity, precip_nowcast, common_kwargs
 
 
 def _capture_full_blend_weights(forecast_kwargs):
@@ -606,8 +643,11 @@ def test_steps_blending_external_nowcast_weight_distribution():
     share and collapsed the forecast onto the NWP far too quickly.
     """
     pytest.importorskip("cv2")
+    pytest.importorskip("netCDF4")
 
-    radar_precip, precip_nowcast, common_kwargs = _make_external_nowcast_weight_inputs()
+    radar_dataset_w_velocity, precip_nowcast, common_kwargs = (
+        _make_external_nowcast_weight_inputs()
+    )
 
     def variance_shares(weights_list, has_noise):
         radar_side, nwp_side = [], []
@@ -625,7 +665,7 @@ def test_steps_blending_external_nowcast_weight_distribution():
     # Standard STEPS path: separate extrapolation + noise cascades.
     normal_weights = _capture_full_blend_weights(
         dict(
-            precip=radar_precip.copy(),
+            radar_dataset=radar_dataset_w_velocity.copy(deep=True),
             nowcasting_method="steps",
             noise_method="nonparametric",
             **common_kwargs,
@@ -636,7 +676,7 @@ def test_steps_blending_external_nowcast_weight_distribution():
     # External-nowcast path with noise disabled.
     external_weights = _capture_full_blend_weights(
         dict(
-            precip=radar_precip.copy(),
+            radar_dataset=radar_dataset_w_velocity.copy(deep=True),
             precip_nowcast=precip_nowcast,
             nowcasting_method="external_nowcast",
             noise_method=None,
@@ -646,9 +686,9 @@ def test_steps_blending_external_nowcast_weight_distribution():
     external_radar, external_nwp = variance_shares(external_weights, has_noise=False)
 
     assert normal_nwp.size > 0, "No full-blend weights were captured"
-    assert normal_nwp.shape == external_nwp.shape, (
-        "The two paths produced a different number/shape of blend weights"
-    )
+    assert (
+        normal_nwp.shape == external_nwp.shape
+    ), "The two paths produced a different number/shape of blend weights"
 
     # The NWP (and thus radar-side) variance share must be identical between
     # the standard and external-nowcast paths at every blend call and scale.
@@ -669,13 +709,16 @@ def test_steps_blending_external_nowcast_with_noise_weight_distribution():
     path, component-for-component.
     """
     pytest.importorskip("cv2")
+    pytest.importorskip("netCDF4")
 
-    radar_precip, precip_nowcast, common_kwargs = _make_external_nowcast_weight_inputs()
+    radar_dataset_w_velocity, precip_nowcast, common_kwargs = (
+        _make_external_nowcast_weight_inputs()
+    )
 
     # Standard STEPS path.
     normal_weights = _capture_full_blend_weights(
         dict(
-            precip=radar_precip.copy(),
+            radar_dataset=radar_dataset_w_velocity.copy(deep=True),
             nowcasting_method="steps",
             noise_method="nonparametric",
             **common_kwargs,
@@ -685,7 +728,7 @@ def test_steps_blending_external_nowcast_with_noise_weight_distribution():
     # External deterministic nowcast, but with the noise cascade left enabled.
     external_weights = _capture_full_blend_weights(
         dict(
-            precip=radar_precip.copy(),
+            radar_dataset=radar_dataset_w_velocity.copy(deep=True),
             precip_nowcast=precip_nowcast,
             nowcasting_method="external_nowcast",
             noise_method="nonparametric",
@@ -694,9 +737,9 @@ def test_steps_blending_external_nowcast_with_noise_weight_distribution():
     )
 
     assert len(normal_weights) > 0, "No full-blend weights were captured"
-    assert len(normal_weights) == len(external_weights), (
-        "The two paths produced a different number of blend weights"
-    )
+    assert len(normal_weights) == len(
+        external_weights
+    ), "The two paths produced a different number of blend weights"
 
     # Both paths use the full three-component weights, so they must match
     # exactly (extrapolation, NWP and noise weights alike).
@@ -712,17 +755,27 @@ def test_steps_blending_partial_zero_radar(ar_order):
     precipitation (initiating cell corner case that produces NaN autocorrelations
     for the earlier, all-zero cascade levels)."""
     pytest.importorskip("cv2")
+    pytest.importorskip("netCDF4")
 
     n_timesteps = 3
     metadata = dict(
         unit="mm",
-        transformation="dB",
+        cartesian_unit="km",
         accutime=5.0,
-        transform="dB",
         zerovalue=0.0,
         threshold=0.01,
         zr_a=200.0,
         zr_b=1.6,
+        x1=0.0,
+        x2=200.0,
+        y1=0.0,
+        y2=200.0,
+        yorigin="lower",
+        institution="test",
+        projection=(
+            "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 "
+            "+lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+        ),
     )
 
     # Build minimal NWP data (1 model, 4 time steps)
@@ -744,40 +797,60 @@ def test_steps_blending_partial_zero_radar(ar_order):
     radar_precip[-1, 30:155, 34] = 5.0
     radar_precip[-1, 30:155, 35] = 4.5
 
-    # Threshold, convert and transform
+    # Threshold the data
     radar_precip[radar_precip < metadata["threshold"]] = 0.0
     nwp_precip[nwp_precip < metadata["threshold"]] = 0.0
+
+    issuetime = datetime.strptime("202112012355", "%Y%m%d%H%M")
+
+    radar_dataset = convert_input_to_xarray_dataset(
+        radar_precip, None, metadata, issuetime - timedelta(minutes=10), 300
+    )
+    model_dataset = convert_input_to_xarray_dataset(
+        nwp_precip, None, metadata, issuetime, 300
+    )
+
+    # convert the data
     converter = pysteps.utils.get_method("mm/h")
-    radar_precip, _ = converter(radar_precip, metadata)
-    nwp_precip, metadata = converter(nwp_precip, metadata)
-    transformer = pysteps.utils.get_method(metadata["transformation"])
-    radar_precip, _ = transformer(radar_precip, metadata)
-    nwp_precip, metadata = transformer(nwp_precip, metadata)
-    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
-    nwp_precip[~np.isfinite(nwp_precip)] = metadata["zerovalue"]
+    radar_dataset = converter(radar_dataset)
+    model_dataset = converter(model_dataset)
 
-    # Decompose NWP
+    # transform the data
+    transformer = pysteps.utils.get_method("dB")
+    radar_dataset = transformer(radar_dataset)
+    model_dataset = transformer(model_dataset)
+
+    radar_precip_var = radar_dataset.attrs["precip_var"]
+    model_precip_var = model_dataset.attrs["precip_var"]
+
+    # set NaN equal to zero
+    radar_dataset[radar_precip_var].data[
+        ~np.isfinite(radar_dataset[radar_precip_var].values)
+    ] = radar_dataset[radar_precip_var].attrs["zerovalue"]
+    model_dataset[model_precip_var].data[
+        ~np.isfinite(model_dataset[model_precip_var].values)
+    ] = model_dataset[model_precip_var].attrs["zerovalue"]
+
     n_cascade_levels = 6
-    nwp_precip_decomp = nwp_precip.copy()
 
-    # Velocity fields
     oflow_method = pysteps.motion.get_method("lucaskanade")
-    radar_velocity = oflow_method(radar_precip)
-    _V_NWP = [
-        oflow_method(nwp_precip[0, t - 1 : t + 1, :])
-        for t in range(1, nwp_precip.shape[1])
-    ]
-    nwp_velocity = np.stack([np.insert(_V_NWP, 0, _V_NWP[0], axis=0)])
+    nwp_preproc_dataset = preprocess_nwp_data(
+        model_dataset,
+        oflow_method,
+        "test",
+        None,
+        False,
+        {"num_cascade_levels": n_cascade_levels},
+    )
+    radar_dataset_w_velocity = oflow_method(radar_dataset)
 
     run_and_assert_forecast(
-        radar_precip,
+        radar_dataset_w_velocity,
         dict(
-            precip_models=nwp_precip_decomp,
-            velocity=radar_velocity,
-            velocity_models=nwp_velocity,
+            model_dataset=nwp_preproc_dataset,
             timesteps=n_timesteps,
             timestep=5.0,
-            issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
+            issuetime=issuetime,
             n_ens_members=1,
             n_cascade_levels=n_cascade_levels,
             blend_nwp_members=False,

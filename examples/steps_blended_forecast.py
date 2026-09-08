@@ -169,6 +169,7 @@ precip_forecast = blending.steps.forecast(
     kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
     noise_stddev_adj="auto",
     vel_pert_method=None,
+    seed=42,  # Fixed seed for reproducible ensemble members
 )
 
 # Transform the data back into mm/h
@@ -375,6 +376,7 @@ precip_forecast = blending.steps.forecast(
     probmatching_method="cdf",
     mask_method="incremental",
     weights_method="bps",
+    seed=42,  # Fixed seed for reproducible ensemble members
 )
 
 # Transform the data back into mm/h

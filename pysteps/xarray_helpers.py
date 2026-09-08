@@ -206,18 +206,15 @@ def convert_input_to_xarray_dataset(
         grid_mapping_params,
     ) = _convert_proj4_to_grid_mapping(metadata["projection"])
 
-    data_vars = {
-        var_name: (
-            dims,
-            precip,
-            {
-                "units": attrs["units"],
-                "standard_name": attrs["standard_name"],
-                "long_name": attrs["long_name"],
-                "grid_mapping": grid_mapping_name,
-            },
-        )
+    precip_attrs = {
+        "units": attrs["units"],
+        "standard_name": attrs["standard_name"],
+        "long_name": attrs["long_name"],
     }
+    if grid_mapping_name is not None:
+        precip_attrs["grid_mapping"] = grid_mapping_name
+
+    data_vars = {var_name: (dims, precip, precip_attrs)}
 
     # XR: accutime vs timestep, what should be optional and what required?
     optional_metadata_keys = ["transform", "accutime", "zr_a", "zr_b"]
@@ -232,15 +229,13 @@ def convert_input_to_xarray_dataset(
         data_vars[var_name][2][metadata_field] = metadata[metadata_field]
 
     if quality is not None:
-        data_vars["quality"] = (
-            dims,
-            quality,
-            {
-                "units": "1",
-                "standard_name": "quality_flag",
-                "grid_mapping": grid_mapping_name,
-            },
-        )
+        quality_attrs = {
+            "units": "1",
+            "standard_name": "quality_flag",
+        }
+        if grid_mapping_name is not None:
+            quality_attrs["grid_mapping"] = grid_mapping_name
+        data_vars["quality"] = (dims, quality, quality_attrs)
     coords = {
         "y": (
             ["y"],

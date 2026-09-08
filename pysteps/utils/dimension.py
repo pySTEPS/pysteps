@@ -14,6 +14,7 @@ Functions to manipulate array dimensions.
     clip_domain
     square_domain
 """
+
 from typing import Any, Callable
 
 import numpy as np
@@ -174,7 +175,7 @@ def aggregate_fields_space(
     if ignore_nan:
         method = "".join(("nan", method))
 
-    window_size = (int(space_window[0] / xdelta), int(abs(space_window[1] / ydelta)))
+    window_size = (int(abs(space_window[0] / ydelta)), int(space_window[1] / xdelta))
 
     return aggregate_fields(dataset, window_size, ["y", "x"], method, "mean")
 
