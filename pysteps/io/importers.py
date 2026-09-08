@@ -65,6 +65,123 @@ The metadata dictionary contains the following recommended key-value pairs:
 |   zr_b           | the Z-R exponent b in Z = a*R**b                         |
 +------------------+----------------------------------------------------------+
 
+# XR: Move this to appropriate place
+# XR: Add means, stds cascade level and decomposition attributes
+The data and metadata is then postprocessed into an xarray dataset. This dataset will
+always contain an x and y dimension, but can be extended with a time dimension and/or
+an ensemble member dimension over the course of the process.
+
+The dataset can contain the following coordinate variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++--------------------+-------------------------------------------------------------------------------------------+
+|  Coordinate        |                Description                                                                |
++====================+===========================================================================================+
+|   y                | y-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++--------------------+-------------------------------------------------------------------------------------------+
+|   x                | x-coordinate in Cartesian system, with units determined by ``metadata["cartesian_unit"]`` |
++--------------------+-------------------------------------------------------------------------------------------+
+|   lat              | latitude coordinate in degrees                                                            |
++--------------------+-------------------------------------------------------------------------------------------+
+|   lon              | longitude coordinate in degrees                                                           |
++--------------------+-------------------------------------------------------------------------------------------+
+|   time             | forecast time in seconds since forecast start time                                        |
++--------------------+-------------------------------------------------------------------------------------------+
+|   ens_number       | ensemble member number (integer)                                                          |
++--------------------+-------------------------------------------------------------------------------------------+
+|   direction        | used by proesmans to return the forward and backward advection and consistency fields     |
++--------------------+-------------------------------------------------------------------------------------------+
+
+The time, x and y dimensions all MUST be regularly spaced, with the stepsize included
+in a ``stepsize`` attribute. The stepsize is given in the unit of the dimension (this
+is alwyas seconds for the time dimension).
+
+The dataset can contain the following data variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++-------------------+-----------------------------------------------------------------------------------------------------------+
+|    Variable       |                Description                                                                                |
++===================+===========================================================================================================+
+| precip_intensity, | precipitation data, based on the unit the data has it is stored in one of these 3 possible variables      |
+| precip_accum      | precip_intensity if unit is ``mm/h``, precip_accum if unit is ``mm`` and reflectivity if unit is ``dBZ``, |
+| or reflectivity   | the attributes of this variable contain metadata relevant to this attribute (see below)                   |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_x        | x-component of the advection field in cartesian_unit per timestep                                         |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_y        | y-component of the advection field in cartesian_unit per timestep                                         |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| quality           | value between 0 and 1 denoting the quality of the precipitation data, currently not used for anything     |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+| velocity_quality  | value between 0 and 1 denoting the quality of the velocity data, currently only returned by proesmans     |
++-------------------+-----------------------------------------------------------------------------------------------------------+
+
+Some of the metadata in the metadata dictionary is not explicitely stored in the dataset,
+but is still implicitly present. For example ``x1`` can easily be found by taking the first
+value from the x coordinate variable. Metadata that is not implicitly present is explicitly
+stored either in the datasets global attributes or as attributes of the precipitation variable.
+Data that relates to the entire dataset is stored in the global attributes. The following data
+is stored in the global attributes:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   projection     | PROJ.4-compatible projection definition                  |
++------------------+----------------------------------------------------------+
+|   institution    | name of the institution who provides the data            |
++------------------+----------------------------------------------------------+
+|   precip_var     | the name of the precipitation variable in this dataset   |
++------------------+----------------------------------------------------------+
+
+The following data is stored as attributes of the precipitation variable:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   units          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
++------------------+----------------------------------------------------------+
+|   threshold      | the rain/no rain threshold with the same unit,           |
+|                  | transformation and accutime of the data.                 |
++------------------+----------------------------------------------------------+
+|   zerovalue      | the value assigned to the no rain pixels with the same   |
+|                  | unit, transformation and accutime of the data.           |
++------------------+----------------------------------------------------------+
+|   transform      | the transformation of the data: None, 'dB', 'Box-Cox' or |
+|   (optional)     | others                                                   |
++------------------+----------------------------------------------------------+
+|   accutime       | the accumulation time in minutes of the data, float      |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+|   zr_a           | the Z-R constant a in Z = a*R**b                         |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+|   zr_b           | the Z-R exponent b in Z = a*R**b                         |
+|   (optional)     |                                                          |
++------------------+----------------------------------------------------------+
+
+The following data is stored as attributes of the coordinate variables:
+
+.. tabularcolumns:: |p{2cm}|L|
+
++------------------+----------------------------------------------------------+
+|       Key        |                Value                                     |
++==================+==========================================================+
+|   units          | the unit  e.g. 'm' or 'km' for the cartesian coordinates |
++------------------+----------------------------------------------------------+
+|   stepsize       | the stepsize of the data (in minutes in case of the time |
+|                  | coordinate), this stepsize should be exactly the         |
+|                  | difference between every value of this coordinate and    |
+|                  | the next                                                 |
++------------------+----------------------------------------------------------+
+
+Furthermore the dataset can contain some additional metadata to make the dataset
+CF-compliant.
+
 Available Importers
 -------------------
 
@@ -91,13 +208,15 @@ import datetime
 import gzip
 import os
 from functools import partial
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 from matplotlib.pyplot import imread
 
-from pysteps.decorators import postprocess_import
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 try:
     from osgeo import gdal, gdalconst, osr
@@ -151,6 +270,26 @@ try:
     PYGRIB_IMPORTED = True
 except ImportError:
     PYGRIB_IMPORTED = False
+
+
+def _postprocess_precip(precip, fillna=np.nan, dtype="double") -> npt.NDArray[Any]:
+    accepted_precisions = ["float32", "float64", "single", "double"]
+    if dtype not in accepted_precisions:
+        raise ValueError(
+            "The selected precision does not correspond to a valid value."
+            "The accepted values are: " + str(accepted_precisions)
+        )
+
+    if isinstance(precip, np.ma.MaskedArray):
+        invalid_mask = np.ma.getmaskarray(precip)
+        precip.data[invalid_mask] = fillna
+    else:
+        # If plain numpy arrays are used, the importers should indicate
+        # the invalid values with np.nan.
+        if fillna is not np.nan:
+            mask = ~np.isfinite(precip)
+            precip[mask] = fillna
+    return precip.astype(dtype)
 
 
 def _check_coords_range(selected_range, coordinate, full_range):
@@ -240,8 +379,9 @@ def _get_threshold_value(precip):
         return np.nan
 
 
-@postprocess_import(dtype="float32")
-def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
+def import_mrms_grib(
+    filename, extent=None, window_size=4, fillna=np.nan, dtype="float32"
+):
     """
     Importer for NSSL's Multi-Radar/Multi-Sensor System
     ([MRMS](https://www.nssl.noaa.gov/projects/mrms/)) rainrate product
@@ -294,8 +434,12 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         If an integer value is given, the same block shape is used for all the
         image dimensions.
         Default: window_size=4.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -308,8 +452,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     metadata: dict
         Associated metadata (pixel sizes, map projections, etc.).
     """
-
-    del kwargs
 
     if not PYGRIB_IMPORTED:
         raise MissingOptionalDependency(
@@ -354,32 +496,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
     precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
 
-    # Create a function with default arguments for aggregate_fields
-    block_reduce = partial(aggregate_fields, method="mean", trim=True)
-
-    if window_size != (1, 1):
-        # Downscale data
-        lats = block_reduce(lats, window_size[0])
-        lons = block_reduce(lons, window_size[1])
-
-        # Update the limits
-        ul_lat, lr_lat = (
-            lats[0],
-            lats[-1],
-        )  # Lat from North to south!
-        ul_lon, lr_lon = lons[0], lons[-1]
-
-        precip[no_data_mask] = 0  # block_reduce does not handle nan values
-        precip = block_reduce(precip, window_size, axis=(0, 1))
-
-        # Consider that if a single invalid observation is located in the block,
-        # then mark that value as invalid.
-        no_data_mask = block_reduce(
-            no_data_mask.astype("int"),
-            window_size,
-            axis=(0, 1),
-        ).astype(bool)
-
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan
 
@@ -421,7 +537,6 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         ypixelsize=ysize,
         unit="mm/h",
         accutime=2.0,
-        transform=None,
         zerovalue=0,
         projection=proj_def.strip(),
         yorigin="upper",
@@ -432,12 +547,31 @@ def import_mrms_grib(filename, extent=None, window_size=4, **kwargs):
         y2=y2 + ysize / 2,
         cartesian_unit="degrees",
     )
+    precip = _postprocess_precip(precip, fillna, dtype)
 
-    return precip, None, metadata
+    precip_dataset = convert_input_to_xarray_dataset(precip, None, metadata)
+
+    if window_size != (1, 1):
+        # Create a function with default arguments for aggregate_fields
+        block_reduce = partial(aggregate_fields, method="mean", trim=True)
+        # Downscale data
+        precip_var = precip_dataset.attrs["precip_var"]
+        # block_reduce does not handle nan values
+        no_data_mask = np.isnan(precip_dataset[precip_var].values)
+        precip_dataset[precip_var].data[no_data_mask] = 0
+        precip_dataset["no_data_mask"] = (("y", "x"), no_data_mask)
+        precip_dataset = block_reduce(precip_dataset, window_size, dim=("y", "x"))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = precip_dataset.no_data_mask.values == 1.0
+        precip_dataset = precip_dataset.drop_vars("no_data_mask")
+        precip_dataset[precip_var].data[no_data_mask] = fillna
+
+    return precip_dataset
 
 
-@postprocess_import()
-def import_bom_rf3(filename, **kwargs):
+def import_bom_rf3(filename, gzipped=False, fillna=np.nan, dtype="double"):
     """
     Import a NetCDF radar rainfall product from the BoM Rainfields3.
 
@@ -445,8 +579,12 @@ def import_bom_rf3(filename, **kwargs):
     ----------
     filename: str
         Name of the file to import.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -464,11 +602,12 @@ def import_bom_rf3(filename, **kwargs):
     precip, geodata = _import_bom_rf3_data(filename)
     metadata = geodata
 
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_bom_rf3_data(filename):
@@ -565,8 +704,7 @@ def _import_bom_rf3_geodata(ds_rainfall):
     return geodata
 
 
-@postprocess_import()
-def import_fmi_geotiff(filename, **kwargs):
+def import_fmi_geotiff(filename, fillna=np.nan, dtype="double"):
     """
     Import a reflectivity field (dBZ) from an FMI GeoTIFF file.
 
@@ -574,8 +712,12 @@ def import_fmi_geotiff(filename, **kwargs):
     ----------
     filename: str
         Name of the file to import.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -630,11 +772,12 @@ def import_fmi_geotiff(filename, **kwargs):
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-@postprocess_import()
-def import_fmi_pgm(filename, gzipped=False, **kwargs):
+def import_fmi_pgm(filename, gzipped=False, fillna=np.nan, dtype="double"):
     """
     Import a 8-bit PGM radar reflectivity composite from the FMI archive.
 
@@ -644,8 +787,12 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
         Name of the file to import.
     gzipped: bool
         If True, the input file is treated as a compressed gzip file.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -689,7 +836,9 @@ def import_fmi_pgm(filename, gzipped=False, **kwargs):
     metadata["zr_a"] = 223.0
     metadata["zr_b"] = 1.53
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_fmi_pgm_geodata(metadata):
@@ -760,12 +909,8 @@ def _import_fmi_pgm_metadata(filename, gzipped=False):
     return metadata
 
 
-@postprocess_import()
 def import_knmi_hdf5(
-    filename,
-    qty="ACRR",
-    accutime=5.0,
-    **kwargs,
+    filename, qty="ACRR", accutime=5.0, fillna=np.nan, dtype="double", **kwargs
 ):
     """
     Import a precipitation or reflectivity field (and optionally the quality
@@ -783,6 +928,12 @@ def import_knmi_hdf5(
         The accumulation time of the dataset in minutes. A 5 min accumulation
         is used as default, but hourly, daily and monthly accumulations
         are also available.
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     {extra_kwargs_doc}
 
@@ -921,7 +1072,8 @@ def import_knmi_hdf5(
     metadata["institution"] = "KNMI - Royal Netherlands Meteorological Institute"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
-    metadata["transform"] = transform
+    if transform is not None:
+        metadata["transform"] = transform
     metadata["zerovalue"] = 0.0
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 200.0
@@ -929,11 +1081,12 @@ def import_knmi_hdf5(
 
     f.close()
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-@postprocess_import()
-def import_mch_gif(filename, product, unit, accutime, **kwargs):
+def import_mch_gif(filename, product, unit, accutime, fillna=np.nan, dtype="double"):
     """
     Import a 8-bit gif radar reflectivity composite from the MeteoSwiss
     archive.
@@ -962,8 +1115,12 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
         the physical unit of the data
     accutime: float
         the accumulation time in minutes of the data
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1052,7 +1209,6 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
 
     metadata["accutime"] = accutime
     metadata["unit"] = unit
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["institution"] = "MeteoSwiss"
@@ -1060,11 +1216,12 @@ def import_mch_gif(filename, product, unit, accutime, **kwargs):
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-@postprocess_import()
-def import_mch_hdf5(filename, qty="RATE", **kwargs):
+def import_mch_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double"):
     """
     Import a precipitation field (and optionally the quality field) from a
     MeteoSwiss HDF5 file conforming to the ODIM specification.
@@ -1078,8 +1235,12 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1185,17 +1346,19 @@ def import_mch_hdf5(filename, qty="RATE", **kwargs):
             "institution": "MeteoSwiss",
             "accutime": 5.0,
             "unit": unit,
-            "transform": transform,
             "zerovalue": np.nanmin(precip),
             "threshold": thr,
             "zr_a": 316.0,
             "zr_b": 1.5,
+            **({"transform": transform} if transform is not None else {}),
         }
     )
 
     f.close()
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _read_mch_hdf5_what_group(whatgrp):
@@ -1208,7 +1371,6 @@ def _read_mch_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-@postprocess_import()
 def import_mch_metranet(filename, product, unit, accutime):
     """
     Import a 8-bit bin radar reflectivity composite from the MeteoSwiss
@@ -1238,8 +1400,12 @@ def import_mch_metranet(filename, product, unit, accutime):
         the physical unit of the data
     accutime: float
         the accumulation time in minutes of the data
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1265,13 +1431,14 @@ def import_mch_metranet(filename, product, unit, accutime):
     metadata["institution"] = "MeteoSwiss"
     metadata["accutime"] = accutime
     metadata["unit"] = unit
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
     metadata["zr_a"] = 316.0
     metadata["zr_b"] = 1.5
 
-    return precip, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_mch_geodata():
@@ -1309,8 +1476,7 @@ def _import_mch_geodata():
     return geodata
 
 
-@postprocess_import()
-def import_odim_hdf5(filename, qty="RATE", **kwargs):
+def import_odim_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwargs):
     """
     Import a precipitation field (and optionally the quality field) from a
     HDF5 file conforming to the ODIM specification.
@@ -1327,8 +1493,12 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
         accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
         is 'RATE'.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1521,26 +1691,28 @@ def import_odim_hdf5(filename, qty="RATE", **kwargs):
         "institution": "Odyssey datacentre",
         "accutime": 15.0,
         "unit": unit,
-        "transform": transform,
         "zerovalue": np.nanmin(precip),
         "threshold": _get_threshold_value(precip),
+        **({"transform": transform} if transform is not None else {}),
     }
 
     metadata.update(kwargs)
 
     f.close()
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
-def import_opera_hdf5(filename, qty="RATE", **kwargs):
+def import_opera_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double"):
     """
     Wrapper to :py:func:`pysteps.io.importers.import_odim_hdf5`
     to maintain backward compatibility with previous pysteps versions.
 
     **Important:** Use :py:func:`~pysteps.io.importers.import_odim_hdf5` instead.
     """
-    return import_odim_hdf5(filename, qty=qty, **kwargs)
+    return import_odim_hdf5(filename, qty, fillna, dtype)
 
 
 def _read_opera_hdf5_what_group(whatgrp):
@@ -1553,8 +1725,9 @@ def _read_opera_hdf5_what_group(whatgrp):
     return qty, gain, offset, nodata, undetect
 
 
-@postprocess_import()
-def import_saf_crri(filename, extent=None, **kwargs):
+def import_saf_crri(
+    filename, extent=None, gzipped=False, fillna=np.nan, dtype="double"
+):
     """
     Import a NetCDF radar rainfall product from the Convective Rainfall Rate
     Intensity (CRRI) product from the Satellite Application Facilities (SAF).
@@ -1569,8 +1742,12 @@ def import_saf_crri(filename, extent=None, **kwargs):
     extent: scalars (left, right, bottom, top), optional
         The spatial extent specified in data coordinates.
         If None, the full extent is imported.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -1623,11 +1800,12 @@ def import_saf_crri(filename, extent=None, **kwargs):
 
     precip, quality = _import_saf_crri_data(filename, idx_x, idx_y)
 
-    metadata["transform"] = None
     metadata["zerovalue"] = np.nanmin(precip)
     metadata["threshold"] = _get_threshold_value(precip)
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _import_saf_crri_data(filename, idx_x=None, idx_y=None):
@@ -1688,64 +1866,77 @@ def _import_saf_crri_geodata(filename):
     return geodata
 
 
-@postprocess_import()
-def import_dwd_hdf5(filename, qty="RATE", **kwargs):
+def import_dwd_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwargs):
     """
-    Import a DWD precipitation product field (and optionally the quality
-    field) from an HDF5 file conforming to the ODIM specification.
+        Import a DWD precipitation product field (and optionally the quality
+        field) from an HDF5 file conforming to the ODIM specification.
 
-    Parameters
-    ----------
-    filename : str
-        Name of the file to import.
-    qty : {'RATE', 'ACRR', 'DBZH'}, optional
-        Quantity to read from the file. The currently supported identifiers are:
+        Parameters
+        ----------
+        filename : str
+            Name of the file to import.
+    <<<<<<< HEAD
+        qty: {'RATE', 'ACRR', 'DBZH'}
+            The quantity to read from the file. The currently supported identitiers
+            are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
+            accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
+            is 'RATE'.
+        dtype: str, optional
+            Data-type to which the array is cast.
+            Valid values:  "float32", "float64", "single", and "double".
+        fillna: float or np.nan, optional
+            Value used to represent the missing data ("No Coverage").
+            By default, np.nan is used.
+    =======
+        qty : {'RATE', 'ACRR', 'DBZH'}, optional
+            Quantity to read from the file. The currently supported identifiers are:
 
-        - 'RATE': instantaneous rain rate (mm/h)
-        - 'ACRR': hourly rainfall accumulation (mm)
-        - 'DBZH': maximum reflectivity (dBZ)
+            - 'RATE': instantaneous rain rate (mm/h)
+            - 'ACRR': hourly rainfall accumulation (mm)
+            - 'DBZH': maximum reflectivity (dBZ)
 
-        The default is 'RATE'.
+            The default is 'RATE'.
 
-    {extra_kwargs_doc}
+        {extra_kwargs_doc}
+    >>>>>>> origin/master
 
-    Returns
-    -------
-    data : np.ndarray
-        The requested precipitation product imported from the HDF5 file.
-    quality : None
-        Placeholder for quality field (not yet implemented).
-    metadata : dict
-        Dictionary containing geospatial metadata with the following keys:
+        Returns
+        -------
+        data : np.ndarray
+            The requested precipitation product imported from the HDF5 file.
+        quality : None
+            Placeholder for quality field (not yet implemented).
+        metadata : dict
+            Dictionary containing geospatial metadata with the following keys:
 
-        projection : str
-            PROJ.4 string defining the stereographic projection.
-        ll_lon, ll_lat : float
-            Coordinates of the lower-left corner.
-        ur_lon, ur_lat : float
-            Coordinates of the upper-right corner.
-        x1, y1 : float
-            Cartesian coordinates of the lower-left corner.
-        x2, y2 : float
-            Cartesian coordinates of the upper-right corner.
-        xpixelsize, ypixelsize : float
-            Pixel size in meters.
-        cartesian_unit : str
-            Unit of the coordinate system (meters).
-        yorigin : {'lower'}
-            Origin of the y-axis.
-        institution : {'DWD', 'DWD Radolan'}
-            Originating institution.
-        accutime : int
-            Accumulation period of the requested precipitation product.
-        unit : str
-            Unit of the data.
-        transform : str
-            Logarithmic transformation applied.
-        zerovalue : float
-            Value representing no echo.
-        threshold : float
-            Precipitation threshold.
+            projection : str
+                PROJ.4 string defining the stereographic projection.
+            ll_lon, ll_lat : float
+                Coordinates of the lower-left corner.
+            ur_lon, ur_lat : float
+                Coordinates of the upper-right corner.
+            x1, y1 : float
+                Cartesian coordinates of the lower-left corner.
+            x2, y2 : float
+                Cartesian coordinates of the upper-right corner.
+            xpixelsize, ypixelsize : float
+                Pixel size in meters.
+            cartesian_unit : str
+                Unit of the coordinate system (meters).
+            yorigin : {'lower'}
+                Origin of the y-axis.
+            institution : {'DWD', 'DWD Radolan'}
+                Originating institution.
+            accutime : int
+                Accumulation period of the requested precipitation product.
+            unit : str
+                Unit of the data.
+            transform : str
+                Logarithmic transformation applied.
+            zerovalue : float
+                Value representing no echo.
+            threshold : float
+                Precipitation threshold.
     """
     if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
@@ -1903,7 +2094,9 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
 
     f.close()
 
-    return precip, quality, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _read_hdf5_cont(f, d):
@@ -1981,8 +2174,7 @@ def _get_whatgrp(d, g):
     return
 
 
-@postprocess_import()
-def import_dwd_radolan(filename, product_name):
+def import_dwd_radolan(filename, product_name, fillna=np.nan, dtype="double"):
     """
     Import a RADOLAN precipitation product from a binary file.
 
@@ -1995,8 +2187,12 @@ def import_dwd_radolan(filename, product_name):
         https://www.dwd.de/DE/leistungen/radolan/radolan_info/
         radolan_radvor_op_komposit_format_pdf.pdf
         for a detailed description.
-
-    {extra_kwargs_doc}
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
 
     Returns
     -------
@@ -2079,7 +2275,9 @@ def import_dwd_radolan(filename, product_name):
     geodata = _import_dwd_geodata(product_name, dims)
     metadata = geodata
 
-    return data, None, metadata
+    precip = _postprocess_precip(precip, fillna, dtype)
+
+    return convert_input_to_xarray_dataset(precip, None, metadata)
 
 
 def _identify_info_bits(data):

@@ -121,9 +121,9 @@ def motion_plot(
     x_grid = x_grid[skip]
     y_grid = y_grid[skip]
 
-    # If we have yorigin"="upper" we flip the y axes for the motion field in the y axis.
+    # If we have yorigin"="upper" we flip the y axes of the plot.
     if geodata is None or geodata["yorigin"] == "upper":
-        dy *= -1
+        y_grid = y_grid[::-1]
 
     if plot_type.lower() == "quiver":
         ax.quiver(x_grid, y_grid, dx, dy, angles="xy", zorder=20, **plot_kwargs)

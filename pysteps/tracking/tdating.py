@@ -26,8 +26,8 @@ References
     match
     couple_track
 """
-
 import numpy as np
+import xarray as xr
 
 import pysteps.feature.tstorm as tstorm_detect
 from pysteps import motion
@@ -50,8 +50,7 @@ except ImportError:
 
 
 def dating(
-    input_video,
-    timelist,
+    dataset: xr.Dataset,
     mintrack=3,
     cell_list=None,
     label_list=None,
@@ -78,13 +77,12 @@ def dating(
 
     Parameters
     ----------
-    input_video: array-like
-        Array of shape (t,m,n) containing input image, with t being the temporal
-        dimension and m,n the spatial dimensions. Thresholds are tuned to maximum
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain a precipitation data variable.
+        The dataset has to have a time dimension. Thresholds are tuned to maximum
         reflectivity in dBZ with a spatial resolution of 1 km and a temporal resolution
         of 5 min. Nan values are ignored.
-    timelist: list
-        List of length t containing string of time and date of each (m,n) field.
     mintrack: int, optional
         minimum duration of cell-track to be counted. The default is 3 time steps.
     cell_list: list or None, optional
@@ -191,8 +189,13 @@ def dating(
     else:
         if not len(cell_list) == len(label_list):
             raise ValueError("len(cell_list) != len(label_list)")
+
+    timelist = dataset.time.values
     if start > len(timelist):
         raise ValueError("start > len(timelist)")
+
+    precip_var = dataset.attrs["precip_var"]
+    input_video = dataset[precip_var].values
 
     oflow_method = motion.get_method("LK")
     if len(label_list) == 0:
@@ -218,7 +221,8 @@ def dating(
             max_ID = np.nanmax([np.nanmax(cid), max_ID]) + 1
             continue
         if t >= 2:
-            flowfield = oflow_method(input_video[t - 2 : t + 1, :, :])
+            dataset = oflow_method(dataset.isel(time=slice(t - 2, t + 1)))
+            flowfield = np.stack([dataset.velocity_x.values, dataset.velocity_y.values])
             cells_id, max_ID, newlabels, splitted_cells = tracking(
                 cells_id,
                 cell_list[-1],

@@ -11,8 +11,10 @@ Implementation of the DARTS algorithm.
     DARTS
 """
 
-import numpy as np
 import time
+
+import numpy as np
+import xarray as xr
 from numpy.linalg import lstsq, svd
 
 from pysteps import utils
@@ -20,16 +22,17 @@ from pysteps.decorators import check_input_frames
 
 
 @check_input_frames(just_ndim=True)
-def DARTS(input_images, **kwargs):
+def DARTS(dataset: xr.Dataset, **kwargs):
     """
     Compute the advection field from a sequence of input images by using the
     DARTS method. :cite:`RCW2011`
 
     Parameters
     ----------
-    input_images: array-like
-      Array of shape (T,m,n) containing a sequence of T two-dimensional input
-      images of shape (m,n).
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain a precipitation data variable.
+        The dataset has to have a time dimension.
 
     Other Parameters
     ----------------
@@ -67,13 +70,15 @@ def DARTS(input_images, **kwargs):
 
     Returns
     -------
-    out: ndarray
-        Three-dimensional array (2,m,n) containing the dense x- and y-components
-        of the motion field in units of pixels / timestep as given by the input
-        array R.
+    out: xarray.Dataset
+        The input dataset with the advection field added in the ``velocity_x``
+        and ``velocity_y`` data variables.
 
     """
 
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    input_images = dataset[precip_var].values
     N_x = kwargs.get("N_x", 50)
     N_y = kwargs.get("N_y", 50)
     N_t = kwargs.get("N_t", 4)
@@ -214,10 +219,14 @@ def DARTS(input_images, **kwargs):
             fft.ifft2(_fill(V, input_images.shape[0], input_images.shape[1], k_x, k_y))
         )
 
+    output = np.stack([U, V])
+    dataset["velocity_x"] = (["y", "x"], output[0])
+    dataset["velocity_y"] = (["y", "x"], output[1])
+
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
 
-    return np.stack([U, V])
+    return dataset
 
 
 def _leastsq(A, B, y):

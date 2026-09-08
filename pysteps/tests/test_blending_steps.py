@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import datetime
+from datetime import datetime
 
 import numpy as np
 import pytest
 
 import pysteps
 from pysteps import blending, cascade
+from pysteps.blending.utils import preprocess_nwp_data
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 # fmt:off
 steps_arg_values = [
@@ -86,28 +88,32 @@ def run_and_assert_forecast(
     precip, forecast_kwargs, expected_n_ens_members, n_timesteps, converter, metadata
 ):
     """Run a blended nowcast and assert the output has the expected shape."""
-    precip_forecast = blending.steps.forecast(precip=precip, **forecast_kwargs)
+    precip_forecast_dataset = blending.steps.forecast(precip=precip, **forecast_kwargs)
+    precip_var_forecast = precip_forecast_dataset.attrs["precip_var"]
+    precip_forecast = precip_forecast_dataset[precip_var_forecast].values
 
     assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in forecast output"
-    assert (
-        precip_forecast.shape[1] == n_timesteps
-    ), "Wrong amount of output time steps in forecast output"
+    assert precip_forecast.shape[0] == expected_n_ens_members, (
+        "Wrong amount of output ensemble members in forecast output"
+    )
+    assert precip_forecast.shape[1] == n_timesteps, (
+        "Wrong amount of output time steps in forecast output"
+    )
 
     # Transform the data back into mm/h
-    precip_forecast, _ = converter(precip_forecast, metadata)
+    precip_forecast_dataset = converter(precip_forecast_dataset)
+    precip_var_forecast = precip_forecast_dataset.attrs["precip_var"]
+    precip_forecast = precip_forecast_dataset[precip_var_forecast].values
 
-    assert (
-        precip_forecast.ndim == 4
-    ), "Wrong amount of dimensions in converted forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in converted forecast output"
-    assert (
-        precip_forecast.shape[1] == n_timesteps
-    ), "Wrong amount of output time steps in converted forecast output"
+    assert precip_forecast.ndim == 4, (
+        "Wrong amount of dimensions in converted forecast output"
+    )
+    assert precip_forecast.shape[0] == expected_n_ens_members, (
+        "Wrong amount of output ensemble members in converted forecast output"
+    )
+    assert precip_forecast.shape[1] == n_timesteps, (
+        "Wrong amount of output time steps in converted forecast output"
+    )
 
 
 steps_arg_names = (
@@ -277,13 +283,21 @@ def test_steps_blending(
 
     metadata = dict()
     metadata["unit"] = "mm"
-    metadata["transformation"] = "dB"
+    metadata["cartesian_unit"] = "km"
     metadata["accutime"] = 5.0
-    metadata["transform"] = "dB"
     metadata["zerovalue"] = 0.0
     metadata["threshold"] = 0.01
     metadata["zr_a"] = 200.0
     metadata["zr_b"] = 1.6
+    metadata["x1"] = 0.0
+    metadata["x2"] = 200.0
+    metadata["y1"] = 0.0
+    metadata["y2"] = 200.0
+    metadata["yorigin"] = "lower"
+    metadata["institution"] = "test"
+    metadata["projection"] = (
+        "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 +lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+    )
 
     # Also set the outdir_path, clim_kwargs and mask_kwargs
     outdir_path_skill = "./tmp/"
@@ -304,90 +318,68 @@ def test_steps_blending(
     radar_precip[radar_precip < metadata["threshold"]] = 0.0
     nwp_precip[nwp_precip < metadata["threshold"]] = 0.0
 
+    radar_dataset = convert_input_to_xarray_dataset(
+        radar_precip,
+        None,
+        metadata,
+        datetime.fromisoformat("2021-07-04T11:50:00.000000000"),
+        300,
+    )
+    model_dataset = convert_input_to_xarray_dataset(
+        nwp_precip,
+        None,
+        metadata,
+        datetime.fromisoformat("2021-07-04T12:00:00.000000000"),
+        300,
+    )
     # convert the data
     converter = pysteps.utils.get_method("mm/h")
-    radar_precip, _ = converter(radar_precip, metadata)
-    nwp_precip, metadata = converter(nwp_precip, metadata)
+    radar_dataset = converter(radar_dataset)
+    model_dataset = converter(model_dataset)
 
     # transform the data
-    transformer = pysteps.utils.get_method(metadata["transformation"])
-    radar_precip, _ = transformer(radar_precip, metadata)
-    nwp_precip, metadata = transformer(nwp_precip, metadata)
+    transformer = pysteps.utils.get_method("dB")
+    radar_dataset = transformer(radar_dataset)
+    model_dataset = transformer(model_dataset)
+
+    radar_precip_var = radar_dataset.attrs["precip_var"]
+    model_precip_var = model_dataset.attrs["precip_var"]
 
     # set NaN equal to zero
-    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
-    nwp_precip[~np.isfinite(nwp_precip)] = metadata["zerovalue"]
+    radar_dataset[radar_precip_var].data[
+        ~np.isfinite(radar_dataset[radar_precip_var].values)
+    ] = radar_dataset[radar_precip_var].attrs["zerovalue"]
+    model_dataset[model_precip_var].data[
+        ~np.isfinite(model_dataset[model_precip_var].values)
+    ] = model_dataset[model_precip_var].attrs["zerovalue"]
 
-    assert (
-        np.any(~np.isfinite(radar_precip)) == False
-    ), "There are still infinite values in the input radar data"
-    assert (
-        np.any(~np.isfinite(nwp_precip)) == False
-    ), "There are still infinite values in the NWP data"
+    assert np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False, (
+        "There are still infinite values in the input radar data"
+    )
+    assert np.any(~np.isfinite(model_dataset[radar_precip_var].values)) == False, (
+        "There are still infinite values in the NWP data"
+    )
 
     ###
     # Decompose the R_NWP data
     ###
 
-    # Initial decomposition settings
-    decomp_method, _ = cascade.get_method("fft")
-    bandpass_filter_method = "gaussian"
-    precip_shape = radar_precip.shape[1:]
-    filter_method = cascade.get_method(bandpass_filter_method)
-    bp_filter = filter_method(precip_shape, n_cascade_levels)
+    radar_precip = radar_dataset[radar_precip_var].values
 
-    # If we only use one model:
-    if nwp_precip.ndim == 3:
-        nwp_precip = nwp_precip[None, :]
-
-    if decomposed_nwp:
-        nwp_precip_decomp = []
-        # Loop through the n_models
-        for i in range(nwp_precip.shape[0]):
-            R_d_models_ = []
-            # Loop through the time steps
-            for j in range(nwp_precip.shape[1]):
-                R_ = decomp_method(
-                    field=nwp_precip[i, j, :, :],
-                    bp_filter=bp_filter,
-                    normalize=True,
-                    compute_stats=True,
-                    compact_output=True,
-                )
-                R_d_models_.append(R_)
-            nwp_precip_decomp.append(R_d_models_)
-
-        nwp_precip_decomp = np.array(nwp_precip_decomp)
-
-        assert nwp_precip_decomp.ndim == 2, "Wrong number of dimensions in R_d_models"
-
-    else:
-        nwp_precip_decomp = nwp_precip.copy()
-
-        assert nwp_precip_decomp.ndim == 4, "Wrong number of dimensions in R_d_models"
+    oflow_method = pysteps.motion.get_method("lucaskanade")
+    nwp_preproc_dataset = preprocess_nwp_data(
+        model_dataset,
+        oflow_method,
+        "test",
+        None,
+        decomposed_nwp,
+        {"num_cascade_levels": n_cascade_levels},
+    )
 
     ###
     # Determine the velocity fields
     ###
-    oflow_method = pysteps.motion.get_method("lucaskanade")
-    radar_velocity = oflow_method(radar_precip)
-    nwp_velocity = []
-    # Loop through the models
-    for n_model in range(nwp_precip.shape[0]):
-        # Loop through the timesteps. We need two images to construct a motion
-        # field, so we can start from timestep 1. Timestep 0 will be the same
-        # as timestep 0.
-        _V_NWP_ = []
-        for t in range(1, nwp_precip.shape[1]):
-            V_NWP_ = oflow_method(nwp_precip[n_model, t - 1 : t + 1, :])
-            _V_NWP_.append(V_NWP_)
-            V_NWP_ = None
-        _V_NWP_ = np.insert(_V_NWP_, 0, _V_NWP_[0], axis=0)
-        nwp_velocity.append(_V_NWP_)
-
-    nwp_velocity = np.stack(nwp_velocity)
-
-    assert nwp_velocity.ndim == 5, "nwp_velocity must be a five-dimensional array"
+    radar_dataset_w_velocity = oflow_method(radar_dataset)
 
     ###
     # Shared forecast kwargs
@@ -395,10 +387,10 @@ def test_steps_blending(
     forecast_kwargs = dict(
         precip_models=nwp_precip_decomp,
         velocity=radar_velocity,
-        velocity_models=nwp_velocity,
+        model_dataset=nwp_preproc_dataset,
         timesteps=timesteps,
         timestep=5.0,
-        issuetime=datetime.datetime.strptime("202112012355", "%Y%m%d%H%M"),
+        issuetime=datetime.fromisoformat("2021-07-04T12:00:00.000000000"),
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         blend_nwp_members=blend_nwp_members,
@@ -439,7 +431,7 @@ def test_steps_blending(
     ###
     # Test with full radar data
     run_and_assert_forecast(
-        radar_precip,
+        radar_dataset_w_velocity,
         forecast_kwargs,
         expected_n_ens_members,
         n_timesteps,
@@ -654,9 +646,9 @@ def test_steps_blending_external_nowcast_weight_distribution():
     external_radar, external_nwp = variance_shares(external_weights, has_noise=False)
 
     assert normal_nwp.size > 0, "No full-blend weights were captured"
-    assert (
-        normal_nwp.shape == external_nwp.shape
-    ), "The two paths produced a different number/shape of blend weights"
+    assert normal_nwp.shape == external_nwp.shape, (
+        "The two paths produced a different number/shape of blend weights"
+    )
 
     # The NWP (and thus radar-side) variance share must be identical between
     # the standard and external-nowcast paths at every blend call and scale.
@@ -702,9 +694,9 @@ def test_steps_blending_external_nowcast_with_noise_weight_distribution():
     )
 
     assert len(normal_weights) > 0, "No full-blend weights were captured"
-    assert len(normal_weights) == len(
-        external_weights
-    ), "The two paths produced a different number of blend weights"
+    assert len(normal_weights) == len(external_weights), (
+        "The two paths produced a different number of blend weights"
+    )
 
     # Both paths use the full three-component weights, so they must match
     # exactly (extrapolation, NWP and noise weights alike).

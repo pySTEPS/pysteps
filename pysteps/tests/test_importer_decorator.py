@@ -21,7 +21,9 @@ def test_postprocess_import_decorator(source, default_dtype):
     """Test the postprocessing decorator for the importers."""
     import_data = partial(get_precipitation_fields, return_raw=True, source=source)
 
-    precip = import_data()
+    precip_dataset = import_data()
+    precip_var = precip_dataset.attrs["precip_var"]
+    precip = precip_dataset[precip_var].values
     invalid_mask = ~np.isfinite(precip)
 
     assert precip.dtype == default_dtype
@@ -31,7 +33,9 @@ def test_postprocess_import_decorator(source, default_dtype):
     else:
         dtype = "single"
 
-    precip = import_data(dtype=dtype)
+    precip_dataset = import_data(dtype=dtype)
+    precip_var = precip_dataset.attrs["precip_var"]
+    precip = precip_dataset[precip_var].values
 
     assert precip.dtype == dtype
 
@@ -40,6 +44,8 @@ def test_postprocess_import_decorator(source, default_dtype):
         with pytest.raises(ValueError):
             _ = import_data(dtype=dtype)
 
-    precip = import_data(fillna=-1000)
+    precip_dataset = import_data(fillna=-1000)
+    precip_var = precip_dataset.attrs["precip_var"]
+    precip = precip_dataset[precip_var].values
     new_invalid_mask = precip == -1000
     assert (new_invalid_mask == invalid_mask).all()

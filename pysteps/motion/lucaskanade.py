@@ -22,22 +22,22 @@ regular grid to return a motion field.
     dense_lucaskanade
 """
 
+import time
+
 import numpy as np
+import xarray as xr
 from numpy.ma.core import MaskedArray
 
+from pysteps import feature, utils
 from pysteps.decorators import check_input_frames
-
-from pysteps import utils, feature
 from pysteps.tracking.lucaskanade import track_features
 from pysteps.utils.cleansing import decluster, detect_outliers
 from pysteps.utils.images import morph_opening
 
-import time
-
 
 @check_input_frames(2)
 def dense_lucaskanade(
-    input_images,
+    dataset: xr.Dataset,
     lk_kwargs=None,
     fd_method="shitomasi",
     fd_kwargs=None,
@@ -73,18 +73,14 @@ def dense_lucaskanade(
 
     Parameters
     ----------
-    input_images: ndarray_ or MaskedArray_
-        Array of shape (T, m, n) containing a sequence of *T* two-dimensional
-        input images of shape (m, n). The indexing order in **input_images** is
-        assumed to be (time, latitude, longitude).
-
-        *T* = 2 is the minimum required number of images.
-        With *T* > 2, all the resulting sparse vectors are pooled together for
-        the final interpolation on a regular grid.
-
-        In case of ndarray_, invalid values (Nans or infs) are masked,
-        otherwise the mask of the MaskedArray_ is used. Such mask defines a
-        region where features are not detected for the tracking algorithm.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain a precipitation data variable.
+        The dataset has to have a time dimension. The size of the time dimension needs to
+        be at least 2. If it is larger than 2, all the resulting sparse vectors are pooled
+        together for the final interpolation on a regular grid. Invalid values (Nans or infs)
+        are masked. This mask defines a region where features are not detected for the tracking
+        algorithm.
 
     lk_kwargs: dict, optional
         Optional dictionary containing keyword arguments for the `Lucas-Kanade`_
@@ -151,14 +147,10 @@ def dense_lucaskanade(
 
     Returns
     -------
-    out: ndarray_ or tuple
-        If **dense=True** (the default), return the advection field having shape
-        (2, m, n), where out[0, :, :] contains the x-components of the motion
-        vectors and out[1, :, :] contains the y-components.
-        The velocities are in units of pixels / timestep, where timestep is the
-        time difference between the two input images.
-        Return a zero motion field of shape (2, m, n) when no motion is
-        detected.
+    out: xarray.Dataset or tuple 
+        If **dense=True** (the default), return the input dataset with the advection
+        field added in the ``velocity_x`` and ``velocity_y`` data variables.
+        Return a zero motion field when no motion is detected.
 
         If **dense=False**, it returns a tuple containing the 2-dimensional
         arrays **xy** and **uv**, where x, y define the vector locations,
@@ -179,7 +171,9 @@ def dense_lucaskanade(
     Understanding Workshop, pp. 121–130, 1981.
     """
 
-    input_images = input_images.copy()
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    input_images = dataset[precip_var].values
 
     if verbose:
         print("Computing the motion field with the Lucas-Kanade method.")
@@ -244,7 +238,10 @@ def dense_lucaskanade(
     # return zero motion field is no sparse vectors are found
     if xy.shape[0] == 0:
         if dense:
-            return np.zeros((2, domain_size[0], domain_size[1]))
+            uvgrid = np.zeros((2, domain_size[0], domain_size[1]))
+            dataset["velocity_x"] = (["y", "x"], uvgrid[0])
+            dataset["velocity_y"] = (["y", "x"], uvgrid[1])
+            return dataset
         else:
             return xy, uv
 
@@ -266,14 +263,20 @@ def dense_lucaskanade(
 
     # return zero motion field if no sparse vectors are left for interpolation
     if xy.shape[0] == 0:
-        return np.zeros((2, domain_size[0], domain_size[1]))
+        uvgrid = np.zeros((2, domain_size[0], domain_size[1]))
+        dataset["velocity_x"] = (["y", "x"], uvgrid[0])
+        dataset["velocity_y"] = (["y", "x"], uvgrid[1])
+        return dataset
 
     # interpolation
     xgrid = np.arange(domain_size[1])
     ygrid = np.arange(domain_size[0])
     uvgrid = interpolation_method(xy, uv, xgrid, ygrid, **interp_kwargs)
 
+    dataset["velocity_x"] = (["y", "x"], uvgrid[0])
+    dataset["velocity_y"] = (["y", "x"], uvgrid[1])
+
     if verbose:
         print("--- total time: %.2f seconds ---" % (time.time() - t0))
 
-    return uvgrid
+    return dataset

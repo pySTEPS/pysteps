@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import numpy as np
 
+import numpy as np
 import pytest
 
 import pysteps
@@ -211,7 +211,9 @@ def _create_data_multivariate():
     R = []
     for fn in filenames:
         filename = os.path.join(root_path, "20160928", fn)
-        R_, _, _ = pysteps.io.import_fmi_pgm(filename, gzipped=True)
+        dataset = pysteps.io.import_fmi_pgm(filename, gzipped=True)
+        precip_var = dataset.attrs["precip_var"]
+        R_ = dataset[precip_var].values
         R_[~np.isfinite(R_)] = 0.0
         R.append(np.stack([R_, np.roll(R_, 5, axis=0)]))
 
@@ -235,7 +237,9 @@ def _create_data_univariate():
     R = []
     for fn in filenames:
         filename = os.path.join(root_path, "20160928", fn)
-        R_, _, _ = pysteps.io.import_fmi_pgm(filename, gzipped=True)
+        dataset = pysteps.io.import_fmi_pgm(filename, gzipped=True)
+        precip_var = dataset.attrs["precip_var"]
+        R_ = dataset[precip_var].values
         R_[~np.isfinite(R_)] = 0.0
         R.append(R_)
 

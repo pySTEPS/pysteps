@@ -21,21 +21,20 @@ Implementation of the linear blending and saliency-based blending between nowcas
 """
 
 import numpy as np
+import xarray as xr
 from scipy.stats import rankdata
 
 from pysteps import nowcasts
 from pysteps.utils import conversion
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 
 def forecast(
-    precip,
-    precip_metadata,
-    velocity,
+    radar_dataset: xr.Dataset,
     timesteps,
     timestep,
     nowcast_method,
-    precip_nwp=None,
-    precip_nwp_metadata=None,
+    model_dataset: xr.Dataset = None,
     start_blending=120,
     end_blending=240,
     fill_nwp=True,
@@ -43,6 +42,7 @@ def forecast(
     nowcast_kwargs=None,
 ):
     """Generate a forecast by linearly or saliency-based blending of nowcasts with NWP data
+    # XR: Update docstring
 
     Parameters
     ----------
@@ -114,20 +114,20 @@ def forecast(
     nowcast_method_func = nowcasts.get_method(nowcast_method)
 
     # Check if NWP data is given as input
-    if precip_nwp is not None:
+    if model_dataset is not None:
         # Calculate the nowcast
-        precip_nowcast = nowcast_method_func(
-            precip,
-            velocity,
-            timesteps_nowcast,
-            **nowcast_kwargs,
+        nowcast_dataset = nowcast_method_func(
+            radar_dataset, timesteps_nowcast, **nowcast_kwargs
         )
 
         # Make sure that precip_nowcast and precip_nwp are in mm/h
-        precip_nowcast, _ = conversion.to_rainrate(
-            precip_nowcast, metadata=precip_metadata
-        )
-        precip_nwp, _ = conversion.to_rainrate(precip_nwp, metadata=precip_nwp_metadata)
+        nowcast_dataset = conversion.to_rainrate(nowcast_dataset)
+        nowcast_precip_var = nowcast_dataset.attrs["precip_var"]
+        precip_nowcast = nowcast_dataset[nowcast_precip_var].values
+
+        model_dataset = conversion.to_rainrate(model_dataset)
+        model_precip_var = model_dataset.attrs["precip_var"]
+        precip_nwp = model_dataset[model_precip_var].values
 
         if len(precip_nowcast.shape) == 4:
             n_ens_members_nowcast = precip_nowcast.shape[0]
@@ -182,10 +182,10 @@ def forecast(
                     precip_nowcast = np.repeat(precip_nowcast, repeats, axis=0)
 
         # Check if dimensions are correct
-        assert (
-            precip_nwp.shape[-2:] == precip_nowcast.shape[-2:]
-        ), "The x and y dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
-            precip_nwp.shape[-2:], precip_nowcast.shape[-2:]
+        assert precip_nwp.shape[-2:] == precip_nowcast.shape[-2:], (
+            "The x and y dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
+                precip_nwp.shape[-2:], precip_nowcast.shape[-2:]
+            )
         )
 
         # Ensure we are not working with nans in the bleding.
@@ -259,22 +259,19 @@ def forecast(
 
     else:
         # Calculate the nowcast
-        precip_nowcast = nowcast_method_func(
-            precip,
-            velocity,
-            timesteps,
-            **nowcast_kwargs,
+        nowcast_dataset = nowcast_method_func(
+            radar_dataset, timesteps, **nowcast_kwargs
         )
 
         # Make sure that precip_nowcast and precip_nwp are in mm/h
-        precip_nowcast, _ = conversion.to_rainrate(
-            precip_nowcast, metadata=precip_metadata
-        )
+        nowcast_dataset = conversion.to_rainrate(nowcast_dataset)
+        nowcast_precip_var = nowcast_dataset.attrs["precip_var"]
+        precip_nowcast = nowcast_dataset[nowcast_precip_var].values
 
         # If no NWP data is given, the blended field is simply equal to the nowcast field
         precip_blended = precip_nowcast
 
-    return precip_blended
+    return convert_output_to_xarray_dataset(radar_dataset, timesteps, precip_blended)
 
 
 def _get_slice(n_dims, ref_dim, ref_id):

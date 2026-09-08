@@ -12,20 +12,20 @@ described in :cite:`GZ2004`.
 """
 
 import numpy as np
+import xarray as xr
 from scipy.signal import convolve
 
 from pysteps.nowcasts import extrapolation
 
 
 def forecast(
-    precip,
-    velocity,
+    dataset: xr.Dataset,
     timesteps,
     threshold,
     extrap_method="semilagrangian",
     extrap_kwargs=None,
     slope=5,
-):
+) -> xr.Dataset:
     """
     Generate a probability nowcast by a local lagrangian approach. The ouput is
     the probability of exceeding a given intensity threshold, i.e.
@@ -33,13 +33,11 @@ def forecast(
 
     Parameters
     ----------
-    precip: array_like
-       Two-dimensional array of shape (m,n) containing the input precipitation
-       field.
-    velocity: array_like
-       Array of shape (2,m,n) containing the x- and y-components of the
-       advection field. The velocities are assumed to represent one time step
-       between the inputs.
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain the ``velocity_x`` and
+        ``velocity_y`` data variables, as well as any pecipitation data variable.
+        It should contain a time dimension of size 1.
     timesteps: int or list of floats
        Number of time steps to forecast or a sorted list of time steps for which
        the forecasts are computed (relative to the input time step).
@@ -54,10 +52,15 @@ def forecast(
 
     Returns
     -------
-    out: ndarray
-        Three-dimensional array of shape (num_timesteps, m, n) containing a time
-        series of nowcast exceedence probabilities. The time series starts from
-        t0 + timestep, where timestep is taken from the advection field velocity.
+    out: xarray.Dataset
+        If return_output is True, a dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers` is returned containing a time series of forecast
+        precipitation fields. Otherwise, a None value
+        is returned. The time series starts from t0+timestep, where timestep is
+        taken from the metadata of the time coordinate. If measure_time is True, the
+        return value is a three-element tuple containing the nowcast dataset, the
+        initialization time of the nowcast generator and the time used in the
+        main loop (seconds).
 
     References
     ----------
@@ -68,16 +71,14 @@ def forecast(
     """
     # Compute deterministic extrapolation forecast
     if isinstance(timesteps, int) and timesteps > 0:
-        timesteps = np.arange(1, timesteps + 1)
+        timesteps = list(range(1, timesteps + 1))
     elif not isinstance(timesteps, list):
         raise ValueError(f"invalid value for argument 'timesteps': {timesteps}")
-    precip_forecast = extrapolation.forecast(
-        precip,
-        velocity,
-        timesteps,
-        extrap_method,
-        extrap_kwargs,
+    dataset_forecast = extrapolation.forecast(
+        dataset, timesteps, extrap_method, extrap_kwargs
     )
+    precip_var = dataset_forecast.attrs["precip_var"]
+    precip_forecast = dataset_forecast[precip_var].values
 
     # Ignore missing values
     nanmask = np.isnan(precip_forecast)
@@ -104,7 +105,8 @@ def forecast(
         precip_forecast[i, ...] /= kernel_sum
     precip_forecast = np.clip(precip_forecast, 0, 1)
     precip_forecast[nanmask] = np.nan
-    return precip_forecast
+    dataset_forecast[precip_var].data[:] = precip_forecast
+    return dataset_forecast
 
 
 def _get_kernel(size):
