@@ -2,7 +2,7 @@
 
 import pytest
 
-from pysteps.tests.helpers import smart_assert, get_precipitation_fields
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 precip_dataset = get_precipitation_fields(
     num_prev_files=0,
@@ -32,11 +32,11 @@ expected_proj = (
 test_attrs = [
     (precip_dataset.attrs["projection"], expected_proj, None),
     (precip_dataset.x.isel(x=0).values, 499.98876045, 1e-10),
-    (precip_dataset.y.isel(y=0).values, -4414538.12181262, 1e-10),
+    (precip_dataset.y.isel(y=-1).values, -4414538.12181262, 1e-10),
     (precip_dataset.x.isel(x=-1).values, 699484.27587271, 1e-10),
-    (precip_dataset.y.isel(y=-1).values, -3650450.41764577, 1e-10),
+    (precip_dataset.y.isel(y=0).values, -3650450.41764577, 1e-10),
     (precip_dataset.x.attrs["stepsize"], 1000.0, 1e-10),
-    (precip_dataset.y.attrs["stepsize"], 1000.0, 1e-10),
+    (precip_dataset.y.attrs["stepsize"], -1000.0, 1e-10),
     (precip_dataarray.attrs["accutime"], 5.0, 1e-10),
     (precip_dataset.time.attrs["stepsize"], 300, 1e-10),
     (precip_dataarray.attrs["units"], "mm", None),

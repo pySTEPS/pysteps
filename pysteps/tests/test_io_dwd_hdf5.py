@@ -2,7 +2,7 @@
 
 import pytest
 
-from pysteps.tests.helpers import smart_assert, get_precipitation_fields
+from pysteps.tests.helpers import get_precipitation_fields, smart_assert
 
 # Test for RADOLAN RY product
 precip_dataset = get_precipitation_fields(
@@ -34,16 +34,16 @@ expected_proj = (
 # List of (variable,expected,tolerance) tuples
 test_ry_attrs = [
     (precip_dataset.attrs["projection"], expected_proj, None),
-    (float(precip_dataset.lon.isel(x=0, y=0).values), 3.57220017, 1e-8),
-    (float(precip_dataset.lat.isel(x=0, y=0).values), 45.70099971, 1e-8),
-    (float(precip_dataset.lon.isel(x=-1, y=-1).values), 18.72270377, 1e-8),
-    (float(precip_dataset.lat.isel(x=-1, y=-1).values), 55.84175857, 1e-8),
+    (float(precip_dataset.lon.isel(x=0, y=-1).values), 3.57220017, 1e-8),
+    (float(precip_dataset.lat.isel(x=0, y=-1).values), 45.70099971, 1e-8),
+    (float(precip_dataset.lon.isel(x=-1, y=0).values), 18.72270377, 1e-8),
+    (float(precip_dataset.lat.isel(x=-1, y=0).values), 55.84175857, 1e-8),
     (precip_dataset.x.isel(x=0).values, 0.0, 1e-3),
-    (precip_dataset.y.isel(y=0).values, -1199000.0, 1e-6),
+    (precip_dataset.y.isel(y=-1).values, -1199000.0, 1e-6),
     (precip_dataset.x.isel(x=-1).values, 1099000.0, 1e-6),
-    (precip_dataset.y.isel(y=-1).values, 0.0, 1e-3),
+    (precip_dataset.y.isel(y=0).values, 0.0, 1e-3),
     (precip_dataset.x.attrs["stepsize"], 1000.0, 1e-10),
-    (precip_dataset.y.attrs["stepsize"], 1000.0, 1e-10),
+    (precip_dataset.y.attrs["stepsize"], -1000.0, 1e-10),
     (precip_dataset.x.attrs["units"], "m", None),
     (precip_dataset.y.attrs["units"], "m", None),
     (

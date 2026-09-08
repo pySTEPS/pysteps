@@ -174,7 +174,7 @@ def aggregate_fields_space(
     if ignore_nan:
         method = "".join(("nan", method))
 
-    window_size = (int(space_window[0] / ydelta), int(space_window[1] / xdelta))
+    window_size = (int(space_window[0] / xdelta), int(abs(space_window[1] / ydelta)))
 
     return aggregate_fields(dataset, window_size, ["y", "x"], method, "mean")
 
@@ -358,6 +358,8 @@ def clip_domain(dataset: xr.Dataset, extent=None):
     """
     if extent is None:
         return dataset
+    if dataset.y.stepsize < 0:
+        return dataset.sel(x=slice(extent[0], extent[1]), y=slice(extent[3], extent[2]))
     return dataset.sel(x=slice(extent[0], extent[1]), y=slice(extent[2], extent[3]))
 
 
