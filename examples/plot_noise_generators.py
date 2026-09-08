@@ -34,23 +34,35 @@ from pysteps.visualization import plot_precip_field, plot_spectrum1d
 # Import the example radar composite
 root_path = rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
-R, _, metadata = io.import_mch_gif(filename, product="AQC", unit="mm", accutime=5.0)
+precip_dataset = io.import_mch_gif(filename, product="AQC", unit="mm", accutime=5.0)
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
 
 # Nicely print the metadata
-pprint(metadata)
+pprint(precip_dataset[precip_var].attrs)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+geodata = {
+    "projection": precip_dataset.attrs["projection"],
+    "x1": precip_dataset.x.values[0],
+    "x2": precip_dataset.x.values[-1],
+    "y1": precip_dataset.y.values[0],
+    "y2": precip_dataset.y.values[-1],
+    "yorigin": "lower",
+}
+plot_precip_field(precip_dataset[precip_var], geodata=geodata)
 plt.show()
 
 # Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
 
 # Assign the fill value to all the Nans
-R[~np.isfinite(R)] = metadata["zerovalue"]
+R = precip_dataset[precip_var].values
+R[~np.isfinite(R)] = precip_dataset[precip_var].attrs["zerovalue"]
 
 ###############################################################################
 # Parametric filter

@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pysteps import io, rcparams
 from pysteps.utils import conversion, transformation
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 from scipy.stats import skew
 
 ###############################################################################
@@ -58,17 +59,52 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-
-# Keep only positive rainfall values
-Z = Z[Z > metadata["zerovalue"]].flatten()
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(Z, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
+
+# Keep only positive rainfall values
+rainrate_attrs = precip_dataset[precip_var].attrs
+R = precip_dataset[precip_var].values
+R = R[R > rainrate_attrs["zerovalue"]].flatten()
+
 
 ###############################################################################
 # Test data transformations
 # -------------------------
+
+
+def wrap_1d_as_dataset(values):
+    """Wrap a flat array of positive rain rate values in a minimal xarray
+    dataset, so that it can be passed through the xarray-based transformation
+    functions in pysteps.utils.transformation. The values are duplicated onto
+    a second row, since building a dataset requires at least a 2x2 field."""
+    metadata = {
+        "unit": rainrate_attrs["units"],
+        "threshold": rainrate_attrs["threshold"],
+        "zerovalue": rainrate_attrs["zerovalue"],
+        "projection": precip_dataset.attrs["projection"],
+        "institution": precip_dataset.attrs["institution"],
+        "cartesian_unit": precip_dataset.x.attrs["units"],
+        "x1": 0.0,
+        "x2": float(values.size),
+        "y1": 0.0,
+        "y2": 2.0,
+        "yorigin": "lower",
+    }
+    field = np.tile(values, (2, 1))
+    return convert_input_to_xarray_dataset(field, None, metadata)
+
+
+def transform_1d(transform_func, values, **kwargs):
+    """Apply a transformation function from pysteps.utils.transformation to a
+    flat array of values and return the transformed flat array."""
+    wrapped = wrap_1d_as_dataset(values)
+    wrapped = transform_func(wrapped, **kwargs)
+    var_name = wrapped.attrs["precip_var"]
+    return wrapped[var_name].values[0]
 
 
 # Define method to visualize the data distribution with boxplots and plot the
@@ -123,7 +159,7 @@ skw = []
 # Test a range of values for the transformation parameter Lambda
 Lambdas = np.linspace(-0.4, 0.4, 11)
 for i, Lambda in enumerate(Lambdas):
-    R_, _ = transformation.boxcox_transform(R, metadata, Lambda)
+    R_ = transform_1d(transformation.boxcox_transform, R, Lambda=Lambda)
     R_ = (R_ - np.mean(R_)) / np.std(R_)
     data.append(R_)
     labels.append("{0:.2f}".format(Lambda))
@@ -163,7 +199,7 @@ skw.append(skew(R))
 # ~~~~~~~~~~~~
 # We transform the rainfall data into dB units: 10*log(R)
 
-R_, _ = transformation.dB_transform(R, metadata)
+R_ = transform_1d(transformation.dB_transform, R)
 data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("dB")
 skw.append(skew(R_))
@@ -173,7 +209,7 @@ skw.append(skew(R_))
 # ~~~~~~~~~~~~~~~~~~~~~
 # Transform the data using the square-root: sqrt(R)
 
-R_, _ = transformation.sqrt_transform(R, metadata)
+R_ = transform_1d(transformation.sqrt_transform, R)
 data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("sqrt")
 skw.append(skew(R_))
@@ -183,7 +219,7 @@ skw.append(skew(R_))
 # ~~~~~~~~~~~~~~~~~
 # We now apply the Box-Cox transform using the best parameter lambda found above.
 
-R_, _ = transformation.boxcox_transform(R, metadata, Lambda)
+R_ = transform_1d(transformation.boxcox_transform, R, Lambda=Lambda)
 data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("Box-Cox\n($\lambda=$%.2f)" % Lambda)
 skw.append(skew(R_))
@@ -196,7 +232,7 @@ skw.append(skew(R_))
 #
 # .. _`Bogner et al (2012)`: http://dx.doi.org/10.5194/hess-16-1085-2012
 
-R_, _ = transformation.NQ_transform(R, metadata)
+R_ = transform_1d(transformation.NQ_transform, R)
 data.append((R_ - np.mean(R_)) / np.std(R_))
 labels.append("NQ")
 skw.append(skew(R_))

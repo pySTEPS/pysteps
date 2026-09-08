@@ -26,10 +26,11 @@ import numpy as np
 from matplotlib.pyplot import get_cmap
 from scipy.ndimage import uniform_filter
 
-import pysteps as stp
 from pysteps import motion, io, rcparams
 from pysteps.motion.vet import morph
+from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 ################################################################################
 # Load the reference precipitation data
@@ -62,37 +63,63 @@ fns = io.archive.find_by_date(
 
 # Read the reference radar composite
 importer = io.get_method(importer_name, "importer")
-reference_field, quality, metadata = io.read_timeseries(
-    fns, importer, **importer_kwargs
-)
-
-del quality  # Not used
-
-reference_field = np.squeeze(reference_field)  # Remove time dimension
+reference_dataset = io.read_timeseries(fns, importer, timestep=300, **importer_kwargs)
 
 ###############################################################################
 # Preprocess the data
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-reference_field, metadata = stp.utils.to_rainrate(reference_field, metadata)
-
-# Mask invalid values
-reference_field = np.ma.masked_invalid(reference_field)
+reference_dataset = conversion.to_rainrate(reference_dataset)
+precip_var = reference_dataset.attrs["precip_var"]
 
 # Plot the reference precipitation
-plot_precip_field(reference_field, title="Reference field")
+plot_precip_field(reference_dataset[precip_var].isel(time=0), title="Reference field")
 plt.show()
 
 # Log-transform the data [dBR]
-reference_field, metadata = stp.utils.dB_transform(
-    reference_field, metadata, threshold=0.1, zerovalue=-15.0
+reference_dataset = transformation.dB_transform(
+    reference_dataset, threshold=0.1, zerovalue=-15.0
 )
 
-print("Precip. pattern shape: " + str(reference_field.shape))
+print("Precip. pattern shape: " + str(reference_dataset[precip_var].isel(time=0).shape))
+
+# Extract the reference field as a plain masked array: everything from here on
+# (morph/create_observations) is low-level array manipulation, unaffected by
+# the xarray-based data model.
+reference_field = np.ma.masked_invalid(
+    reference_dataset[precip_var].isel(time=0).values
+)
 
 # This suppress nan conversion warnings in plot functions
 reference_field.data[reference_field.mask] = np.nan
+
+# Metadata used to wrap the synthetic (morphed) precipitation sequences into a
+# minimal xarray dataset, since the optical flow methods now operate on
+# xr.Dataset objects rather than plain arrays. The geolocation is inherited
+# from the reference field; the exact values are not important here since
+# this example only cares about the pixel-space motion field.
+_xpixelsize = abs(float(reference_dataset.x.attrs["stepsize"]))
+_ypixelsize = abs(float(reference_dataset.y.attrs["stepsize"]))
+_yorigin = "upper" if float(reference_dataset.y.attrs["stepsize"]) < 0 else "lower"
+_h, _w = reference_field.shape
+SYNTH_METADATA = {
+    "unit": "mm/h",
+    "institution": reference_dataset.attrs["institution"],
+    "projection": reference_dataset.attrs["projection"],
+    "cartesian_unit": reference_dataset.x.attrs["units"],
+    "xpixelsize": _xpixelsize,
+    "ypixelsize": _ypixelsize,
+    "x1": float(reference_dataset.x.values[0]) - 0.5 * _xpixelsize,
+    "x2": float(reference_dataset.x.values[0]) - 0.5 * _xpixelsize + _w * _xpixelsize,
+    "y1": float(reference_dataset.y.values.min()) - 0.5 * _ypixelsize,
+    "y2": float(reference_dataset.y.values.min())
+    - 0.5 * _ypixelsize
+    + _h * _ypixelsize,
+    "yorigin": _yorigin,
+    "threshold": -10.0,
+    "zerovalue": -15.0,
+}
 
 
 ################################################################################
@@ -272,18 +299,43 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
         input_precip, motion_type, num_times=num_times
     )
 
+    # Keep the per-frame invalid-data mask around: it is used below to
+    # restrict the RMSE evaluation to the "precipitation region", exactly as
+    # in the original masked-array-based version of this example.
+    obs_mask = np.ma.getmaskarray(precip_obs).copy()
+
+    # Wrap the synthetic observations into a minimal xarray dataset, since the
+    # optical flow methods now take an xr.Dataset as input.
+    obs_dataset = convert_input_to_xarray_dataset(
+        np.ma.filled(precip_obs, 0.0).astype(np.float64),
+        None,
+        SYNTH_METADATA,
+        startdate=date,
+        timestep=300,
+    )
+    obs_precip_var = obs_dataset.attrs["precip_var"]
+    # The synthetic data are already in dB units (inherited from the
+    # dB-transformed reference field): flag them as such so that the inverse
+    # dB transform below works correctly.
+    obs_dataset[obs_precip_var].attrs["transform"] = "dB"
+
     oflow_method = motion.get_method(optflow_method_name)
 
     elapsed_time = time.perf_counter()
 
-    computed_motion = oflow_method(precip_obs, verbose=False)
+    obs_dataset = oflow_method(obs_dataset, verbose=False)
 
     print(
         f"{optflow_method_name} computation time: "
         f"{(time.perf_counter() - elapsed_time):.1f} [s]"
     )
 
-    precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
+    computed_motion = np.stack(
+        [obs_dataset["velocity_x"].values, obs_dataset["velocity_y"].values]
+    )
+
+    obs_dataset = transformation.dB_transform(obs_dataset, inverse=True)
+    precip_obs = np.ma.masked_array(obs_dataset[obs_precip_var].values, mask=obs_mask)
 
     precip_data = precip_obs.max(axis=0)
     precip_data.data[precip_data.mask] = 0

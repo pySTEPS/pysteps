@@ -48,24 +48,37 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-Z, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(Z, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
+
+# Derive the geodata dict expected by the plotting routines from the dataset
+geodata = {
+    "projection": precip_dataset.attrs["projection"],
+    "x1": precip_dataset.x.values[0],
+    "x2": precip_dataset.x.values[-1],
+    "y1": precip_dataset.y.values[0],
+    "y2": precip_dataset.y.values[-1],
+    "yorigin": "lower",
+}
 
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
+plot_precip_field(precip_dataset[precip_var][-1], geodata=geodata)
 plt.show()
 
 # Store the last frame for plotting it later later
-R_ = R[-1, :, :].copy()
+R_ = precip_dataset[precip_var][-1].copy()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
 
 # Nicely print the metadata
-pprint(metadata)
+pprint(dict(precip_dataset[precip_var].attrs))
 
 ###############################################################################
 # Compute the nowcast
@@ -78,19 +91,31 @@ pprint(metadata)
 
 # Estimate the motion field with Lucas-Kanade
 oflow_method = motion.get_method("LK")
-V = oflow_method(R[-3:, :, :])
+precip_dataset_w_motion = oflow_method(precip_dataset)
 
 # Extrapolate the last radar observation
 extrapolate = nowcasts.get_method("extrapolation")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-R_f = extrapolate(R[-1, :, :], V, n_leadtimes)
+precip_dataset_w_motion[precip_var] = precip_dataset_w_motion[precip_var].fillna(
+    precip_dataset_w_motion[precip_var].attrs["zerovalue"]
+)
+precip_forecast = extrapolate(
+    precip_dataset_w_motion.isel(time=slice(-1, None)), n_leadtimes
+)
 
 # Back-transform to rain rate
-R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
+precip_forecast = transformation.dB_transform(
+    precip_forecast, threshold=-10.0, inverse=True
+)
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata)
-quiver(V, geodata=metadata, step=50)
+plot_precip_field(R_, geodata=geodata)
+velocity = np.stack(
+    [
+        precip_dataset_w_motion["velocity_x"].values,
+        precip_dataset_w_motion["velocity_y"].values,
+    ]
+)
+quiver(velocity, geodata=geodata, step=50)
 plt.show()
 
 ###############################################################################
@@ -113,8 +138,8 @@ fns = io.archive.find_by_date(
     num_next_files=n_leadtimes,
 )
 # Read the radar composites
-R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o, 223.0, 1.53)
+obs_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
+obs_dataset = conversion.to_rainrate(obs_dataset, 223.0, 1.53)
 
 # Compute fractions skill score (FSS) for all lead times, a set of scales and 1 mm/h
 fss = verification.get_method("FSS")
@@ -124,7 +149,14 @@ score = []
 for i in range(n_leadtimes):
     score_ = []
     for scale in scales:
-        score_.append(fss(R_f[i, :, :], R_o[i + 1, :, :], thr, scale))
+        score_.append(
+            fss(
+                precip_forecast[precip_var][i].values,
+                obs_dataset[precip_var][i + 1].values,
+                thr,
+                scale,
+            )
+        )
     score.append(score_)
 
 plt.figure()

@@ -47,25 +47,36 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-R, quality, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-
-del quality  # Not used
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 ###############################################################################
 # Preprocess the data
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
 
-# Store the reference frame
-R_ = R[-1, :, :].copy()
+# Derive the geodata needed by the plotting functions from the dataset
+geodata = {
+    "projection": precip_dataset.attrs["projection"],
+    "x1": precip_dataset.x.values[0],
+    "x2": precip_dataset.x.values[-1],
+    "y1": precip_dataset.y.values[0],
+    "y2": precip_dataset.y.values[-1],
+    "yorigin": "lower",
+}
+
+# Store the reference frame (in mm/h, for plotting)
+R_ = precip_dataset[precip_var][-1].copy()
 
 # Log-transform the data [dBR]
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
 
-# Nicely print the metadata
-pprint(metadata)
+# Nicely print the attributes of the precipitation variable
+pprint(precip_dataset[precip_var].attrs)
 
 ################################################################################
 # Lucas-Kanade (LK)
@@ -78,11 +89,12 @@ pprint(metadata)
 # field of motion vectors.
 
 oflow_method = motion.get_method("LK")
-V1 = oflow_method(R[-3:, :, :])
+dataset_lk = oflow_method(precip_dataset.isel(time=slice(-3, None)))
+V1 = np.stack([dataset_lk["velocity_x"].values, dataset_lk["velocity_y"].values])
 
 # Plot the motion field on top of the reference frame
-plot_precip_field(R_, geodata=metadata, title="LK")
-quiver(V1, geodata=metadata, step=25)
+plot_precip_field(R_, geodata=geodata, title="LK")
+quiver(V1, geodata=geodata, step=25)
 plt.show()
 
 ################################################################################
@@ -97,11 +109,12 @@ plt.show()
 # at minimizing a cost function between the displaced and the reference image.
 
 oflow_method = motion.get_method("VET")
-V2 = oflow_method(R[-3:, :, :])
+dataset_vet = oflow_method(precip_dataset.isel(time=slice(-3, None)))
+V2 = np.stack([dataset_vet["velocity_x"].values, dataset_vet["velocity_y"].values])
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="VET")
-quiver(V2, geodata=metadata, step=25)
+plot_precip_field(R_, geodata=geodata, title="VET")
+quiver(V2, geodata=geodata, step=25)
 plt.show()
 
 ################################################################################
@@ -115,13 +128,19 @@ plt.show()
 # motion estimation. DARTS requires a longer sequence of radar fields for
 # estimating the motion, here we are going to use all the available 10 fields.
 
+# Fill missing values with the fill value before running DARTS
+zerovalue = precip_dataset[precip_var].attrs["zerovalue"]
+precip_dataset[precip_var] = precip_dataset[precip_var].where(
+    np.isfinite(precip_dataset[precip_var]), zerovalue
+)
+
 oflow_method = motion.get_method("DARTS")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-V3 = oflow_method(R)  # needs longer training sequence
+dataset_darts = oflow_method(precip_dataset)  # needs longer training sequence
+V3 = np.stack([dataset_darts["velocity_x"].values, dataset_darts["velocity_y"].values])
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="DARTS")
-quiver(V3, geodata=metadata, step=25)
+plot_precip_field(R_, geodata=geodata, title="DARTS")
+quiver(V3, geodata=geodata, step=25)
 plt.show()
 
 ################################################################################
@@ -133,12 +152,14 @@ plt.show()
 # inconsistency during the solution of the optical flow equations.
 
 oflow_method = motion.get_method("proesmans")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-V4 = oflow_method(R[-2:, :, :])
+dataset_proesmans = oflow_method(precip_dataset.isel(time=slice(-2, None)))
+V4 = np.stack(
+    [dataset_proesmans["velocity_x"].values, dataset_proesmans["velocity_y"].values]
+)
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="Proesmans")
-quiver(V4, geodata=metadata, step=25)
+plot_precip_field(R_, geodata=geodata, title="Proesmans")
+quiver(V4, geodata=geodata, step=25)
 plt.show()
 
 ################################################################################
@@ -151,12 +172,16 @@ plt.show()
 # https://cmosarchives.ca/Congress_P_A/program_abstracts2022.pdf (p. 392).
 
 oflow_method = motion.get_method("farneback")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-V5 = oflow_method(R[-2:, :, :], verbose=True)
+dataset_farneback = oflow_method(
+    precip_dataset.isel(time=slice(-2, None)), verbose=True
+)
+V5 = np.stack(
+    [dataset_farneback["velocity_x"].values, dataset_farneback["velocity_y"].values]
+)
 
 # Plot the motion field
-plot_precip_field(R_, geodata=metadata, title="Farneback")
-quiver(V5, geodata=metadata, step=25)
+plot_precip_field(R_, geodata=geodata, title="Farneback")
+quiver(V5, geodata=geodata, step=25)
 plt.show()
 
 # sphinx_gallery_thumbnail_number = 1

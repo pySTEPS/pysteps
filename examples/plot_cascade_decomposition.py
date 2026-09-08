@@ -30,20 +30,32 @@ root_path = rcparams.data_sources["fmi"]["root_path"]
 filename = os.path.join(
     root_path, "20160928", "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"
 )
-R, _, metadata = io.import_fmi_pgm(filename, gzipped=True)
+precip_dataset = io.import_fmi_pgm(filename, gzipped=True)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
 
 # Nicely print the metadata
-pprint(metadata)
+pprint(precip_dataset[precip_var].attrs)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+geodata = {
+    "projection": precip_dataset.attrs["projection"],
+    "x1": precip_dataset.x.values[0],
+    "x2": precip_dataset.x.values[-1],
+    "y1": precip_dataset.y.values[0],
+    "y2": precip_dataset.y.values[-1],
+    "yorigin": "lower",
+}
+plot_precip_field(precip_dataset[precip_var], geodata=geodata)
 plt.show()
 
 # Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
+R = precip_dataset[precip_var].values
 
 ###############################################################################
 # 2D Fourier spectrum
@@ -52,7 +64,7 @@ R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=
 # Compute and plot the 2D Fourier power spectrum of the precipitaton field.
 
 # Set Nans as the fill value
-R[~np.isfinite(R)] = metadata["zerovalue"]
+R[~np.isfinite(R)] = precip_dataset[precip_var].attrs["zerovalue"]
 
 # Compute the Fourier transform of the input field
 F = abs(np.fft.fftshift(np.fft.fft2(R)))

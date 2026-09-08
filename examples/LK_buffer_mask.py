@@ -55,31 +55,42 @@ fns = io.archive.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-R, quality, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
-
-del quality  # Not used
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 ###############################################################################
 # Preprocess the data
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
+
+# Derive the geodata needed by the plotting functions from the dataset
+geodata = {
+    "projection": precip_dataset.attrs["projection"],
+    "x1": precip_dataset.x.values[0],
+    "x2": precip_dataset.x.values[-1],
+    "y1": precip_dataset.y.values[0],
+    "y2": precip_dataset.y.values[-1],
+    "yorigin": "lower",
+}
 
 # Keep the reference frame in mm/h and its mask (for plotting purposes)
-ref_mm = R[0, :, :].copy()
+ref_mm = precip_dataset[precip_var][0].values.copy()
 mask = np.ones(ref_mm.shape)
 mask[~np.isnan(ref_mm)] = np.nan
 
 # Log-transform the data [dBR]
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
 
 # Keep the reference frame in dBR (for plotting purposes)
-ref_dbr = R[0].copy()
+ref_dbr = precip_dataset[precip_var][0].values.copy()
 ref_dbr[ref_dbr < -10] = np.nan
 
 # Plot the reference field
-plot_precip_field(ref_mm, title="Reference field")
+plot_precip_field(ref_mm, geodata=geodata, title="Reference field")
 circle = plt.Circle((620, 400), 100, color="b", clip_on=False, fill=False)
 plt.gca().add_artist(circle)
 plt.show()
@@ -105,12 +116,9 @@ plt.show()
 # Get Lucas-Kanade optical flow method
 dense_lucaskanade = motion.get_method("LK")
 
-# Mask invalid values
-R = np.ma.masked_invalid(R)
-
 # Use no buffering of the radar mask
 fd_kwargs1 = {"buffer_mask": 0}
-xy, uv = dense_lucaskanade(R, dense=False, fd_kwargs=fd_kwargs1)
+xy, uv = dense_lucaskanade(precip_dataset, dense=False, fd_kwargs=fd_kwargs1)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(
@@ -142,7 +150,7 @@ plt.show()
 # with buffer
 buffer = 10
 fd_kwargs2 = {"buffer_mask": buffer}
-xy, uv = dense_lucaskanade(R, dense=False, fd_kwargs=fd_kwargs2)
+xy, uv = dense_lucaskanade(precip_dataset, dense=False, fd_kwargs=fd_kwargs2)
 plt.imshow(ref_dbr, cmap=plt.get_cmap("Greys"))
 plt.imshow(mask, cmap=colors.ListedColormap(["black"]), alpha=0.5)
 plt.quiver(
@@ -170,8 +178,10 @@ plt.show()
 # the negative bias that is introduced by the the erroneous interpretation of
 # velocities near the maximum range of the radars.
 
-UV1 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs1)
-UV2 = dense_lucaskanade(R, dense=True, fd_kwargs=fd_kwargs2)
+dataset_uv1 = dense_lucaskanade(precip_dataset, dense=True, fd_kwargs=fd_kwargs1)
+dataset_uv2 = dense_lucaskanade(precip_dataset, dense=True, fd_kwargs=fd_kwargs2)
+UV1 = np.stack([dataset_uv1["velocity_x"].values, dataset_uv1["velocity_y"].values])
+UV2 = np.stack([dataset_uv2["velocity_x"].values, dataset_uv2["velocity_y"].values])
 
 V1 = np.sqrt(UV1[0] ** 2 + UV1[1] ** 2)
 V2 = np.sqrt(UV2[0] ** 2 + UV2[1] ** 2)
@@ -196,13 +206,24 @@ plt.show()
 # Get the advection routine and extrapolate the last radar frame by 12 time steps
 # (i.e., 1 hour lead time)
 extrapolate = nowcasts.get_method("extrapolation")
-R[~np.isfinite(R)] = metadata["zerovalue"]
-R_f1 = extrapolate(R[-1], UV1, 12)
-R_f2 = extrapolate(R[-1], UV2, 12)
+
+zerovalue = precip_dataset[precip_var].attrs["zerovalue"]
+dataset_uv1[precip_var] = dataset_uv1[precip_var].where(
+    np.isfinite(dataset_uv1[precip_var]), zerovalue
+)
+dataset_uv2[precip_var] = dataset_uv2[precip_var].where(
+    np.isfinite(dataset_uv2[precip_var]), zerovalue
+)
+
+dataset_f1 = extrapolate(dataset_uv1, 12)
+dataset_f2 = extrapolate(dataset_uv2, 12)
 
 # Back-transform to rain rate
-R_f1 = transformation.dB_transform(R_f1, threshold=-10.0, inverse=True)[0]
-R_f2 = transformation.dB_transform(R_f2, threshold=-10.0, inverse=True)[0]
+dataset_f1 = transformation.dB_transform(dataset_f1, threshold=-10.0, inverse=True)
+dataset_f2 = transformation.dB_transform(dataset_f2, threshold=-10.0, inverse=True)
+
+R_f1 = dataset_f1[precip_var].values
+R_f2 = dataset_f2[precip_var].values
 
 # Find the veriyfing observations in the archive
 fns = io.archive.find_by_date(
@@ -210,8 +231,10 @@ fns = io.archive.find_by_date(
 )
 
 # Read and convert the radar composites
-R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
+precip_dataset_o = io.read_timeseries(fns, importer, **importer_kwargs)
+precip_dataset_o = conversion.to_rainrate(precip_dataset_o)
+precip_var_o = precip_dataset_o.attrs["precip_var"]
+R_o = precip_dataset_o[precip_var_o].values
 
 # Compute Spearman correlation
 skill = verification.get_method("corr_s")

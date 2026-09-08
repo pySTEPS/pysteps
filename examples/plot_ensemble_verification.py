@@ -55,27 +55,40 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
 
 # Upscale data to 2 km
-R, metadata = dimension.aggregate_fields_space(R, metadata, 2000)
+precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
+
+# Build the geodata dict expected by the plotting routines
+geodata = {
+    "projection": precip_dataset.attrs["projection"],
+    "x1": precip_dataset.x.values[0],
+    "x2": precip_dataset.x.values[-1],
+    "y1": precip_dataset.y.values[0],
+    "y2": precip_dataset.y.values[-1],
+    "yorigin": "lower",
+}
 
 # Plot the rainfall field
-plot_precip_field(R[-1, :, :], geodata=metadata)
+plot_precip_field(precip_dataset[precip_var][-1], geodata=geodata)
 plt.show()
 
 # Log-transform the data to unit of dBR, set the threshold to 0.1 mm/h,
 # set the fill value to -15 dBR
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
 
 # Set missing values with the fill value
-R[~np.isfinite(R)] = -15.0
+precip_dataset[precip_var] = precip_dataset[precip_var].fillna(-15.0)
 
 # Nicely print the metadata
-pprint(metadata)
+pprint(dict(precip_dataset[precip_var].attrs))
 
 ###############################################################################
 # Forecast
@@ -84,13 +97,12 @@ pprint(metadata)
 # We use the STEPS approach to produce a ensemble nowcast of precipitation fields.
 
 # Estimate the motion field
-V = dense_lucaskanade(R)
+precip_dataset_w_motion = dense_lucaskanade(precip_dataset)
 
 # Perform the ensemble nowcast with STEPS
 nowcast_method = nowcasts.get_method("steps")
-R_f = nowcast_method(
-    R[-3:, :, :],
-    V,
+ensemble_precip_forecast = nowcast_method(
+    precip_dataset_w_motion.isel(time=slice(-3, None)),
     n_leadtimes,
     n_ens_members,
     n_cascade_levels=6,
@@ -106,14 +118,21 @@ R_f = nowcast_method(
 )
 
 # Back-transform to rain rates
-R_f = transformation.dB_transform(R_f, threshold=-10.0, inverse=True)[0]
+ensemble_precip_forecast = transformation.dB_transform(
+    ensemble_precip_forecast, threshold=-10.0, inverse=True
+)
 
 # Plot some of the realizations
 fig = plt.figure()
 for i in range(4):
     ax = fig.add_subplot(221 + i)
     ax.set_title("Member %02d" % i)
-    plot_precip_field(R_f[i, -1, :, :], geodata=metadata, colorbar=False, axis="off")
+    plot_precip_field(
+        ensemble_precip_forecast[precip_var][i, -1],
+        geodata=geodata,
+        colorbar=False,
+        axis="off",
+    )
 plt.tight_layout()
 plt.show()
 
@@ -141,25 +160,27 @@ fns = io.archive.find_by_date(
 )
 
 # Read the observations
-R_o, _, metadata_o = io.read_timeseries(fns, importer, **importer_kwargs)
+obs_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to mm/h
-R_o, metadata_o = conversion.to_rainrate(R_o, metadata_o)
+obs_dataset = conversion.to_rainrate(obs_dataset)
 
 # Upscale data to 2 km
-R_o, metadata_o = dimension.aggregate_fields_space(R_o, metadata_o, 2000)
+obs_dataset = dimension.aggregate_fields_space(obs_dataset, 2000)
 
 # Compute the verification for the last lead time
 
 # compute the exceedance probability of 0.1 mm/h from the ensemble
-P_f = ensemblestats.excprob(R_f[:, -1, :, :], 0.1, ignore_nan=True)
+P_f = ensemblestats.excprob(
+    ensemble_precip_forecast[precip_var][:, -1].values, 0.1, ignore_nan=True
+)
 
 ###############################################################################
 # ROC curve
 # ~~~~~~~~~
 
 roc = verification.ROC_curve_init(0.1, n_prob_thrs=10)
-verification.ROC_curve_accum(roc, P_f, R_o[-1, :, :])
+verification.ROC_curve_accum(roc, P_f, obs_dataset[precip_var][-1].values)
 fig, ax = plt.subplots()
 verification.plot_ROC(roc, ax, opt_prob_thr=True)
 ax.set_title("ROC curve (+%i min)" % (n_leadtimes * timestep))
@@ -170,7 +191,7 @@ plt.show()
 # ~~~~~~~~~~~~~~~~~~~
 
 reldiag = verification.reldiag_init(0.1)
-verification.reldiag_accum(reldiag, P_f, R_o[-1, :, :])
+verification.reldiag_accum(reldiag, P_f, obs_dataset[precip_var][-1].values)
 fig, ax = plt.subplots()
 verification.plot_reldiag(reldiag, ax)
 ax.set_title("Reliability diagram (+%i min)" % (n_leadtimes * timestep))
@@ -180,8 +201,14 @@ plt.show()
 # Rank histogram
 # ~~~~~~~~~~~~~~
 
-rankhist = verification.rankhist_init(R_f.shape[0], 0.1)
-verification.rankhist_accum(rankhist, R_f[:, -1, :, :], R_o[-1, :, :])
+rankhist = verification.rankhist_init(
+    ensemble_precip_forecast[precip_var].shape[0], 0.1
+)
+verification.rankhist_accum(
+    rankhist,
+    ensemble_precip_forecast[precip_var][:, -1].values,
+    obs_dataset[precip_var][-1].values,
+)
 fig, ax = plt.subplots()
 verification.plot_rankhist(rankhist, ax)
 ax.set_title("Rank histogram (+%i min)" % (n_leadtimes * timestep))

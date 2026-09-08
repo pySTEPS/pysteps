@@ -17,7 +17,12 @@ from matplotlib import pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams, blending, nowcasts
+from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import (
+    convert_input_to_xarray_dataset,
+    convert_output_to_xarray_dataset,
+)
 
 ################################################################################
 # Read the radar images and the NWP forecast
@@ -38,6 +43,25 @@ date_nwp = datetime.strptime("202010310000", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["bom"]
 nwp_data_source = rcparams.data_sources["bom_nwp"]
 
+
+def geodata_from_dataset(dataset):
+    """Build a plot_precip_field-style geodata dict from a dataset."""
+    x = dataset.x.values
+    y = dataset.y.values
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
+    y1 = y[0] - dy / 2.0
+    y2 = y[-1] + dy / 2.0
+    return {
+        "projection": dataset.attrs["projection"],
+        "x1": x[0] - dx / 2.0,
+        "x2": x[-1] + dx / 2.0,
+        "y1": min(y1, y2),
+        "y2": max(y1, y2),
+        "yorigin": "lower" if dy > 0 else "upper",
+    }
+
+
 ###############################################################################
 # Load the data from the archive
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,9 +81,11 @@ fns = io.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+radar_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Import the NWP data
+# Import the NWP data. The pysteps-nwp-importers plugin has not been migrated
+# to the new xarray-based data model yet, so it still returns the old-style
+# (precip, quality, metadata) tuple. We wrap it into an xarray dataset by hand.
 filename = os.path.join(
     nwp_data_source["root_path"],
     datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),
@@ -76,34 +102,65 @@ nwp_precip, _, nwp_metadata = nwp_importer(filename)
 
 nwp_precip = nwp_precip[24:43, :, :]
 
+# blending.steps.forecast requires model_dataset to carry an "ens_number"
+# dimension (n_models/members). We only have one (deterministic) NWP model
+# here, so we add a leading dimension of size 1.
+if nwp_precip.ndim == 3:
+    nwp_precip = nwp_precip[None, :]
+
+# The importer sets metadata["transform"] = None to indicate "no transform",
+# but convert_input_to_xarray_dataset/to_rainrate expect the key to be absent
+# in that case.
+nwp_metadata = dict(nwp_metadata)
+if nwp_metadata.get("transform") is None:
+    nwp_metadata.pop("transform", None)
+
+# model_dataset's time grid must line up exactly with the radar dataset's
+# timestep grid (blending.steps.forecast selects the model data with
+# `.sel(time=...)` using the radar timestep), which is the case here since
+# both the radar and NWP data have a native 10-minute cadence and index 0 of
+# the sliced nwp_precip array corresponds to date_radar.
+model_dataset = convert_input_to_xarray_dataset(
+    nwp_precip,
+    None,
+    nwp_metadata,
+    startdate=date_radar,
+    timestep=int(timestep * 60),
+)
+
 
 ################################################################################
 # Pre-processing steps
 # --------------------
 
 # Make sure the units are in mm/h
-converter = pysteps.utils.get_method("mm/h")
-radar_precip, radar_metadata = converter(radar_precip, radar_metadata)
-nwp_precip, nwp_metadata = converter(nwp_precip, nwp_metadata)
+radar_dataset = conversion.to_rainrate(radar_dataset)
+model_dataset = conversion.to_rainrate(model_dataset)
+radar_precip_var = radar_dataset.attrs["precip_var"]
+model_precip_var = model_dataset.attrs["precip_var"]
 
 # Threshold the data
-radar_precip[radar_precip < 0.1] = 0.0
-nwp_precip[nwp_precip < 0.1] = 0.0
+radar_dataset[radar_precip_var] = radar_dataset[radar_precip_var].where(
+    radar_dataset[radar_precip_var] >= 0.1, 0.0
+)
+model_dataset[model_precip_var] = model_dataset[model_precip_var].where(
+    model_dataset[model_precip_var] >= 0.1, 0.0
+)
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
 date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
 plot_precip_field(
-    radar_precip[-1, :, :],
-    geodata=radar_metadata,
+    radar_dataset[radar_precip_var].isel(time=-1),
+    geodata=geodata_from_dataset(radar_dataset),
     title=f"Radar observation at {date_str}",
     colorscale="STEPS-NL",
 )
 plt.subplot(122)
 plot_precip_field(
-    nwp_precip[0, :, :],
-    geodata=nwp_metadata,
+    model_dataset[model_precip_var].isel(ens_number=0, time=0),
+    geodata=geodata_from_dataset(model_dataset),
     title=f"NWP forecast at {date_str}",
     colorscale="STEPS-NL",
 )
@@ -111,14 +168,8 @@ plt.tight_layout()
 plt.show()
 
 # transform the data to dB
-transformer = pysteps.utils.get_method("dB")
-radar_precip, radar_metadata = transformer(radar_precip, radar_metadata, threshold=0.1)
-nwp_precip, nwp_metadata = transformer(nwp_precip, nwp_metadata, threshold=0.1)
-
-# r_nwp has to be four dimentional (n_models, time, y, x).
-# If we only use one model:
-if nwp_precip.ndim == 3:
-    nwp_precip = nwp_precip[None, :]
+radar_dataset = transformation.dB_transform(radar_dataset, threshold=0.1)
+model_dataset = transformation.dB_transform(model_dataset, threshold=0.1)
 
 ###############################################################################
 # For the initial time step (t=0), the NWP rainfall forecast is not that different
@@ -131,51 +182,62 @@ if nwp_precip.ndim == 3:
 
 oflow_method = pysteps.motion.get_method("lucaskanade")
 
-# First for the radar images
-velocity_radar = oflow_method(radar_precip)
+# First for the radar images. dense_lucaskanade returns the input dataset
+# with velocity_x/velocity_y data variables added.
+radar_dataset = oflow_method(radar_dataset)
 
-# Then for the NWP forecast
-velocity_nwp = []
-# Loop through the models
-for n_model in range(nwp_precip.shape[0]):
-    # Loop through the timesteps. We need two images to construct a motion
-    # field, so we can start from timestep 1. Timestep 0 will be the same
-    # as timestep 1.
-    _v_nwp_ = []
-    for t in range(1, nwp_precip.shape[1]):
-        v_nwp_ = oflow_method(nwp_precip[n_model, t - 1 : t + 1, :])
-        _v_nwp_.append(v_nwp_)
-        v_nwp_ = None
-    # Add the velocity field at time step 1 to time step 0.
-    _v_nwp_ = np.insert(_v_nwp_, 0, _v_nwp_[0], axis=0)
-    velocity_nwp.append(_v_nwp_)
-velocity_nwp = np.stack(velocity_nwp)
+# Then for the NWP forecast, per model and per lead time. We need two images
+# to construct a motion field, so we start from time step 1; the velocity
+# field at time step 0 is set equal to that of time step 1.
+n_models = model_dataset.sizes["ens_number"]
+n_nwp_times = model_dataset.sizes["time"]
+h = model_dataset.sizes["y"]
+w = model_dataset.sizes["x"]
+
+velocity_x = np.zeros((n_models, n_nwp_times, h, w))
+velocity_y = np.zeros((n_models, n_nwp_times, h, w))
+for n_model in range(n_models):
+    for t in range(1, n_nwp_times):
+        pair_dataset = oflow_method(
+            model_dataset.isel(ens_number=n_model, time=slice(t - 1, t + 1))
+        )
+        velocity_x[n_model, t] = pair_dataset["velocity_x"].values
+        velocity_y[n_model, t] = pair_dataset["velocity_y"].values
+    velocity_x[n_model, 0] = velocity_x[n_model, 1]
+    velocity_y[n_model, 0] = velocity_y[n_model, 1]
+
+model_dataset["velocity_x"] = (["ens_number", "time", "y", "x"], velocity_x)
+model_dataset["velocity_y"] = (["ens_number", "time", "y", "x"], velocity_y)
 
 
 ################################################################################
 # The blended forecast
 # ~~~~~~~~~~~~~~~~~~~~
 
-precip_forecast = blending.steps.forecast(
-    precip=radar_precip,
-    precip_models=nwp_precip,
-    velocity=velocity_radar,
-    velocity_models=velocity_nwp,
+precip_thr = radar_dataset[radar_precip_var].attrs["threshold"]
+kmperpixel = abs(float(radar_dataset.x.attrs["stepsize"])) / 1000.0
+
+precip_forecast_dataset = blending.steps.forecast(
+    radar_dataset,
+    model_dataset,
     timesteps=18,
     timestep=timestep,
     issuetime=date_radar,
     n_ens_members=1,
-    precip_thr=radar_metadata["threshold"],
-    kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
+    precip_thr=precip_thr,
+    kmperpixel=kmperpixel,
     noise_stddev_adj="auto",
     vel_pert_method=None,
     seed=42,  # Fixed seed for reproducible ensemble members
 )
 
 # Transform the data back into mm/h
-precip_forecast, _ = converter(precip_forecast, radar_metadata)
-radar_precip_mmh, _ = converter(radar_precip, radar_metadata)
-nwp_precip_mmh, _ = converter(nwp_precip, nwp_metadata)
+precip_forecast_dataset = conversion.to_rainrate(precip_forecast_dataset)
+forecast_precip_var = precip_forecast_dataset.attrs["precip_var"]
+precip_forecast = precip_forecast_dataset[forecast_precip_var].values
+
+model_dataset_mmh = conversion.to_rainrate(model_dataset)
+nwp_precip_mmh = model_dataset_mmh[model_precip_var].values
 
 
 ################################################################################
@@ -198,7 +260,7 @@ for n, leadtime in enumerate(leadtimes_min):
     ax1 = plt.subplot(n_leadtimes, 2, n * 2 + 1)
     plot_precip_field(
         precip_forecast[0, int(leadtime / timestep) - 1, :, :],
-        geodata=radar_metadata,
+        geodata=geodata_from_dataset(radar_dataset),
         title=f"Nowcast +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
@@ -210,7 +272,7 @@ for n, leadtime in enumerate(leadtimes_min):
     plt.subplot(n_leadtimes, 2, n * 2 + 2)
     ax2 = plot_precip_field(
         nwp_precip_mmh[0, int(leadtime / timestep) - 1, :, :],
-        geodata=nwp_metadata,
+        geodata=geodata_from_dataset(model_dataset),
         title=f"NWP +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
@@ -238,24 +300,34 @@ plt.show()
 # We go for a simple advection-only nowcast for the example, but this setup can
 # be replaced with any external deterministic or probabilistic nowcast.
 extrapolate = nowcasts.get_method("extrapolation")
-radar_precip_to_advect = radar_precip.copy()
-radar_metadata_to_advect = radar_metadata.copy()
 
 # Make sure the data has no nans
-radar_precip_to_advect[~np.isfinite(radar_precip_to_advect)] = -15
-radar_precip_to_advect = radar_precip_to_advect.data
+radar_zerovalue = radar_dataset[radar_precip_var].attrs["zerovalue"]
+radar_dataset_to_advect = radar_dataset.copy(deep=True)
+radar_dataset_to_advect[radar_precip_var] = radar_dataset_to_advect[
+    radar_precip_var
+].where(np.isfinite(radar_dataset_to_advect[radar_precip_var]), radar_zerovalue)
 
 # Create the extrapolation
-fc_lagrangian_extrapolation = extrapolate(
-    radar_precip_to_advect[-1, :, :], velocity_radar, 18
+fc_lagrangian_extrapolation_dataset = extrapolate(
+    radar_dataset_to_advect.isel(time=slice(-1, None)), 18
 )
+fc_precip_var = fc_lagrangian_extrapolation_dataset.attrs["precip_var"]
+fc_lagrangian_extrapolation = fc_lagrangian_extrapolation_dataset[fc_precip_var].values
 
 # Insert an additional timestep at the start, as t0, which is the same as the current first slice.
 fc_lagrangian_extrapolation = np.insert(
     fc_lagrangian_extrapolation, 0, fc_lagrangian_extrapolation[0:1, :, :], axis=0
 )
-fc_lagrangian_extrapolation[~np.isfinite(fc_lagrangian_extrapolation)] = (
-    radar_metadata_to_advect["zerovalue"]
+fc_lagrangian_extrapolation[~np.isfinite(fc_lagrangian_extrapolation)] = radar_zerovalue
+
+# Wrap the resulting (t0 + 18 lead times) array back into a dataset (reusing
+# the precip_var attrs of radar_dataset, e.g. transform="dB") so that it can
+# be converted to mm/h for plotting below.
+fc_lagrangian_extrapolation_dataset_full = convert_output_to_xarray_dataset(
+    radar_dataset_to_advect.isel(time=slice(-1, None)),
+    list(range(0, fc_lagrangian_extrapolation.shape[0])),
+    fc_lagrangian_extrapolation,
 )
 
 
@@ -263,20 +335,18 @@ fc_lagrangian_extrapolation[~np.isfinite(fc_lagrangian_extrapolation)] = (
 # Blend the external nowcast with NWP - deterministic mode
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-precip_forecast = blending.steps.forecast(
-    precip=radar_precip,
-    precip_nowcast=np.array(
-        [fc_lagrangian_extrapolation]
-    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
-    precip_models=nwp_precip,
-    velocity=velocity_radar,
-    velocity_models=velocity_nwp,
+precip_forecast_dataset = blending.steps.forecast(
+    radar_dataset,
+    model_dataset,
     timesteps=18,
     timestep=timestep,
     issuetime=date_radar,
     n_ens_members=1,
-    precip_thr=radar_metadata["threshold"],
-    kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
+    precip_nowcast=np.array(
+        [fc_lagrangian_extrapolation]
+    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
+    precip_thr=precip_thr,
+    kmperpixel=kmperpixel,
     noise_stddev_adj="auto",
     vel_pert_method=None,
     nowcasting_method="external_nowcast",
@@ -287,12 +357,16 @@ precip_forecast = blending.steps.forecast(
 )
 
 # Transform the data back into mm/h
-precip_forecast, _ = converter(precip_forecast, radar_metadata)
-radar_precip_mmh, _ = converter(radar_precip, radar_metadata)
-fc_lagrangian_extrapolation_mmh, _ = converter(
-    fc_lagrangian_extrapolation, radar_metadata_to_advect
+precip_forecast_dataset = conversion.to_rainrate(precip_forecast_dataset)
+forecast_precip_var = precip_forecast_dataset.attrs["precip_var"]
+precip_forecast = precip_forecast_dataset[forecast_precip_var].values
+
+fc_lagrangian_extrapolation_mmh_dataset = conversion.to_rainrate(
+    fc_lagrangian_extrapolation_dataset_full
 )
-nwp_precipfc_lagrangian_extrapolation_mmh_mmh, _ = converter(nwp_precip, nwp_metadata)
+fc_lagrangian_extrapolation_mmh = fc_lagrangian_extrapolation_mmh_dataset[
+    fc_lagrangian_extrapolation_mmh_dataset.attrs["precip_var"]
+].values
 
 
 ################################################################################
@@ -318,7 +392,7 @@ for n, leadtime in enumerate(leadtimes_min):
     ax1 = plt.subplot(n_leadtimes, 3, n * 3 + 1)
     plot_precip_field(
         precip_forecast[0, idx, :, :],
-        geodata=radar_metadata,
+        geodata=geodata_from_dataset(radar_dataset),
         title=f"Blended +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
@@ -330,7 +404,7 @@ for n, leadtime in enumerate(leadtimes_min):
     ax2 = plt.subplot(n_leadtimes, 3, n * 3 + 2)
     plot_precip_field(
         fc_lagrangian_extrapolation_mmh[idx, :, :],
-        geodata=radar_metadata,
+        geodata=geodata_from_dataset(radar_dataset),
         title=f"NWC +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
@@ -342,7 +416,7 @@ for n, leadtime in enumerate(leadtimes_min):
     plt.subplot(n_leadtimes, 3, n * 3 + 3)
     ax3 = plot_precip_field(
         nwp_precip_mmh[0, idx, :, :],
-        geodata=nwp_metadata,
+        geodata=geodata_from_dataset(model_dataset),
         title=f"NWP +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
@@ -355,20 +429,18 @@ for n, leadtime in enumerate(leadtimes_min):
 # Blend the external nowcast with NWP - ensemble mode
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-precip_forecast = blending.steps.forecast(
-    precip=radar_precip,
-    precip_nowcast=np.array(
-        [fc_lagrangian_extrapolation]
-    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
-    precip_models=nwp_precip,
-    velocity=velocity_radar,
-    velocity_models=velocity_nwp,
+precip_forecast_dataset = blending.steps.forecast(
+    radar_dataset,
+    model_dataset,
     timesteps=18,
     timestep=timestep,
     issuetime=date_radar,
     n_ens_members=5,
-    precip_thr=radar_metadata["threshold"],
-    kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
+    precip_nowcast=np.array(
+        [fc_lagrangian_extrapolation]
+    ),  # Add an extra dimension, becuase precip_nowcast has to be 4-dimensional
+    precip_thr=precip_thr,
+    kmperpixel=kmperpixel,
     noise_stddev_adj="auto",
     vel_pert_method=None,
     nowcasting_method="external_nowcast",
@@ -380,12 +452,9 @@ precip_forecast = blending.steps.forecast(
 )
 
 # Transform the data back into mm/h
-precip_forecast, _ = converter(precip_forecast, radar_metadata)
-radar_precip_mmh, _ = converter(radar_precip, radar_metadata)
-fc_lagrangian_extrapolation_mmh, _ = converter(
-    fc_lagrangian_extrapolation, radar_metadata_to_advect
-)
-nwp_precipfc_lagrangian_extrapolation_mmh_mmh, _ = converter(nwp_precip, nwp_metadata)
+precip_forecast_dataset = conversion.to_rainrate(precip_forecast_dataset)
+forecast_precip_var = precip_forecast_dataset.attrs["precip_var"]
+precip_forecast = precip_forecast_dataset[forecast_precip_var].values
 
 
 ################################################################################
@@ -404,7 +473,7 @@ for n, leadtime in enumerate(leadtimes_min):
     ax1 = plt.subplot(n_leadtimes, 4, n * 4 + 1)
     plot_precip_field(
         precip_forecast[0, idx, :, :],
-        geodata=radar_metadata,
+        geodata=geodata_from_dataset(radar_dataset),
         title="Blend Mem. 1",
         axis="off",
         colorscale="STEPS-NL",
@@ -416,7 +485,7 @@ for n, leadtime in enumerate(leadtimes_min):
     ax2 = plt.subplot(n_leadtimes, 4, n * 4 + 2)
     plot_precip_field(
         precip_forecast[4, idx, :, :],
-        geodata=radar_metadata,
+        geodata=geodata_from_dataset(radar_dataset),
         title="Blend Mem. 5",
         axis="off",
         colorscale="STEPS-NL",
@@ -428,7 +497,7 @@ for n, leadtime in enumerate(leadtimes_min):
     ax3 = plt.subplot(n_leadtimes, 4, n * 4 + 3)
     plot_precip_field(
         fc_lagrangian_extrapolation_mmh[idx, :, :],
-        geodata=radar_metadata,
+        geodata=geodata_from_dataset(radar_dataset),
         title=f"NWC + {leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
@@ -440,7 +509,7 @@ for n, leadtime in enumerate(leadtimes_min):
     ax4 = plt.subplot(n_leadtimes, 4, n * 4 + 4)
     plot_precip_field(
         nwp_precip_mmh[0, idx, :, :],
-        geodata=nwp_metadata,
+        geodata=geodata_from_dataset(model_dataset),
         title=f"NWP + {leadtime} min",
         axis="off",
         colorscale="STEPS-NL",

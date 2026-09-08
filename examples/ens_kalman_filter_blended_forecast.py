@@ -19,16 +19,18 @@ The datasets used in this tutorial are provided by the German Weather Service (D
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 from matplotlib import pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams, blending
-from pysteps.utils import aggregate_fields_space
+from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 import pysteps_nwp_importers
+from pysteps_nwp_importers.importer_dwd_nwp import unstructured2regular
 
 ################################################################################
 # Read the radar images and the NWP forecast
@@ -49,6 +51,27 @@ date_radar = datetime.strptime("202506041645", "%Y%m%d%H%M")
 date_nwp = datetime.strptime("202506041600", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["dwd"]
 nwp_data_source = rcparams.data_sources["dwd_nwp"]
+
+
+def geodata_from_dataset(dataset):
+    """Build a plot_precip_field-style geodata dict from a dataset."""
+    x = dataset.x.values
+    y = dataset.y.values
+    dx = abs(float(x[1] - x[0]))
+    dy = abs(float(y[1] - y[0]))
+    yorigin = "upper" if float(dataset.y.attrs["stepsize"]) < 0 else "lower"
+    y1, y2 = y[0] - dy / 2.0, y[-1] + dy / 2.0
+    return {
+        "projection": dataset.attrs["projection"],
+        "x1": x[0] - dx / 2.0,
+        "x2": x[-1] + dx / 2.0,
+        "y1": min(y1, y2),
+        "y2": max(y1, y2),
+        "yorigin": yorigin,
+        "xpixelsize": dx,
+        "ypixelsize": dy,
+        "cartesian_unit": dataset.x.attrs["units"],
+    }
 
 
 ###############################################################################
@@ -76,9 +99,18 @@ fns = io.find_by_date(
 
 # Read the radar composites (which are already in mm/h)
 importer = io.get_method(importer_name, "importer")
-radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+radar_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
+# The DWD importer sets attrs["transform"] = None to indicate "no transform",
+# but conversion.to_rainrate/dB_transform expect the key to be absent in that
+# case.
+_radar_precip_var = radar_dataset.attrs["precip_var"]
+if radar_dataset[_radar_precip_var].attrs.get("transform", "unset") is None:
+    del radar_dataset[_radar_precip_var].attrs["transform"]
 
-# Import the NWP data
+# Import the NWP data. The pysteps-nwp-importers plugin has not been migrated
+# to the new xarray-based data model yet: it returns an (unstructured-grid)
+# precip DataArray together with an old-style (precip, quality, metadata)
+# tuple, which we reproject and wrap into an xarray dataset by hand below.
 filename = os.path.join(
     nwp_data_source["root_path"],
     datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),
@@ -120,35 +152,70 @@ nwp_precip = (
     nwp_precip.values.astype("single") * 3.0
 )  # (to account for the change in time step from 5 to 15 min)
 
-# Reproject ID2 data onto a regular grid
-nwp_precip_rprj, nwp_metadata_rprj = (
-    pysteps_nwp_importers.importer_dwd_nwp.unstructured2regular(
-        nwp_precip, nwp_metadata, radar_metadata
-    )
+# Reproject ICON data onto a regular grid matching the (still full-resolution)
+# radar grid. unstructured2regular is part of the old (non-xarray) plugin API,
+# so it takes/returns plain arrays and old-style metadata dicts.
+nwp_precip_rprj, nwp_metadata_rprj = unstructured2regular(
+    nwp_precip, nwp_metadata, geodata_from_dataset(radar_dataset)
 )
 nwp_precip = None
 
-# Upscale both the radar and NWP data to a twice as coarse resolution to lower
-# the memory needs (for this example)
-radar_precip, radar_metadata = aggregate_fields_space(
-    radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 4
-)
-nwp_precip_rprj, nwp_metadata_rprj = aggregate_fields_space(
+# convert_input_to_xarray_dataset expects a 4-D precip array with dims
+# (ens_number, time, y, x); unstructured2regular returns (time, ens, y, x).
+nwp_precip_rprj = nwp_precip_rprj.transpose(1, 0, 2, 3)
+
+# The importer sets metadata["transform"] = None to indicate "no transform",
+# but convert_input_to_xarray_dataset/to_rainrate expect the key to be absent
+# in that case.
+if nwp_metadata_rprj.get("transform") is None:
+    nwp_metadata_rprj.pop("transform", None)
+
+model_dataset = convert_input_to_xarray_dataset(
     nwp_precip_rprj.astype("single"),
+    None,
     nwp_metadata_rprj,
-    nwp_metadata_rprj["xpixelsize"] * 4,
+    startdate=date_nwp,
+    timestep=int(nwp_metadata_rprj["accutime"] * 60),
+)
+
+# model_dataset's reprojected grid is a few pixels smaller than radar_dataset's
+# native grid (a side-effect of the unstructured-to-regular reprojection
+# above). Crop both datasets to a common, cleanly divisible-by-4 grid so that
+# radar_dataset and model_dataset end up with identical shapes after
+# upscaling below (blending.get_method("pca_enkf") requires this).
+common_ny = 4 * (min(radar_dataset.sizes["y"], model_dataset.sizes["y"]) // 4)
+common_nx = 4 * (min(radar_dataset.sizes["x"], model_dataset.sizes["x"]) // 4)
+radar_dataset = radar_dataset.isel(y=slice(0, common_ny), x=slice(0, common_nx))
+model_dataset = model_dataset.isel(y=slice(0, common_ny), x=slice(0, common_nx))
+
+# Upscale both the radar and NWP data to a twice as coarse resolution to lower
+# the memory needs (for this example). aggregate_fields_space's meter-based
+# window computation is fragile here since radar_dataset's and
+# model_dataset's pixel sizes differ at floating-point precision (a
+# side-effect of the independent reprojection above), so aggregate directly
+# by (common) pixel count instead.
+radar_dataset = dimension.aggregate_fields(
+    radar_dataset, 4, dim=["y", "x"], method="mean"
+)
+model_dataset = dimension.aggregate_fields(
+    model_dataset, 4, dim=["y", "x"], method="mean"
 )
 
 # Make sure the units are in mm/h
-converter = pysteps.utils.get_method("mm/h")
-radar_precip, radar_metadata = converter(
-    radar_precip, radar_metadata
+radar_dataset = conversion.to_rainrate(
+    radar_dataset
 )  # The radar data should already be in mm/h
-nwp_precip_rprj, nwp_metadata_rprj = converter(nwp_precip_rprj, nwp_metadata_rprj)
+model_dataset = conversion.to_rainrate(model_dataset)
+radar_precip_var = radar_dataset.attrs["precip_var"]
+model_precip_var = model_dataset.attrs["precip_var"]
 
 # Threshold the data
-radar_precip[radar_precip < prec_thr] = 0.0
-nwp_precip_rprj[nwp_precip_rprj < prec_thr] = 0.0
+radar_dataset[radar_precip_var] = radar_dataset[radar_precip_var].where(
+    radar_dataset[radar_precip_var] >= prec_thr, 0.0
+)
+model_dataset[model_precip_var] = model_dataset[model_precip_var].where(
+    model_dataset[model_precip_var] >= prec_thr, 0.0
+)
 
 # Plot the radar rainfall field and the first time step and first ensemble member
 # of the NWP forecast.
@@ -156,15 +223,15 @@ date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
 plot_precip_field(
-    radar_precip[-1, :, :],
-    geodata=radar_metadata,
+    radar_dataset[radar_precip_var].isel(time=-1),
+    geodata=geodata_from_dataset(radar_dataset),
     title=f"Radar observation at {date_str}",
     colorscale="STEPS-NL",
 )
 plt.subplot(122)
 plot_precip_field(
-    nwp_precip_rprj[0, 0, :, :],
-    geodata=nwp_metadata_rprj,
+    model_dataset[model_precip_var].isel(ens_number=0, time=0),
+    geodata=geodata_from_dataset(model_dataset),
     title=f"NWP forecast at {date_str}",
     colorscale="STEPS-NL",
 )
@@ -172,12 +239,11 @@ plt.tight_layout()
 plt.show()
 
 # transform the data to dB
-transformer = pysteps.utils.get_method("dB")
-radar_precip, radar_metadata = transformer(
-    radar_precip, radar_metadata, threshold=prec_thr, zerovalue=log_zerovalue
+radar_dataset = transformation.dB_transform(
+    radar_dataset, threshold=prec_thr, zerovalue=log_zerovalue
 )
-nwp_precip_rprj, nwp_metadata_rprj = transformer(
-    nwp_precip_rprj, nwp_metadata_rprj, threshold=prec_thr, zerovalue=log_zerovalue
+model_dataset = transformation.dB_transform(
+    model_dataset, threshold=prec_thr, zerovalue=log_zerovalue
 )
 
 
@@ -188,32 +254,15 @@ nwp_precip_rprj, nwp_metadata_rprj = transformer(
 # In contrast to the STEPS blending method, no motion field for the NWP fields
 # is needed in the ensemble kalman filter blending approach.
 
-# Estimate the motion vector field
+# Estimate the motion vector field. dense_lucaskanade returns the input
+# dataset with velocity_x/velocity_y data variables added.
 oflow_method = pysteps.motion.get_method("lucaskanade")
-velocity_radar = oflow_method(radar_precip)
+radar_dataset = oflow_method(radar_dataset)
 
 
 ################################################################################
 # The blended forecast
 # ~~~~~~~~~~~~~~~~~~~~
-
-# Set the timestamps for radar_precip and nwp_precip_rprj
-timestamps_radar = np.array(
-    sorted(
-        [
-            date_radar - timedelta(minutes=i * timestep_radar)
-            for i in range(len(radar_precip))
-        ]
-    )
-)
-timestamps_nwp = np.array(
-    sorted(
-        [
-            date_nwp + timedelta(minutes=i * int(nwp_metadata_rprj["accutime"]))
-            for i in range(nwp_precip_rprj.shape[0])
-        ]
-    )
-)
 
 # Set the combination kwargs
 combination_kwargs = dict(
@@ -235,12 +284,9 @@ combination_kwargs = dict(
 
 # Call the PCA EnKF method
 blending_method = blending.get_method("pca_enkf")
-precip_forecast = blending_method(
-    obs_precip=radar_precip,  # Radar data in dBR
-    obs_timestamps=timestamps_radar,  # Radar timestamps
-    nwp_precip=nwp_precip_rprj,  # NWP in dBR
-    nwp_timestamps=timestamps_nwp,  # NWP timestamps
-    velocity=velocity_radar,  # Velocity vector field
+precip_forecast_dataset = blending_method(
+    radar_dataset,  # Radar dataset in dBR, with velocity_x/velocity_y embedded
+    model_dataset,  # NWP ensemble dataset in dBR
     forecast_horizon=120,  # Forecast length (horizon) in minutes - only a short forecast horizon due to the limited dataset length stored here.
     issuetime=date_radar,  # Forecast issue time as datetime object
     n_ens_members=10,  # No. of ensemble members
@@ -263,9 +309,9 @@ precip_forecast = blending_method(
 )
 
 # Transform the data back into mm/h
-precip_forecast, _ = converter(precip_forecast, radar_metadata)
-radar_precip, _ = converter(radar_precip, radar_metadata)
-nwp_precip, _ = converter(nwp_precip_rprj, nwp_metadata_rprj)
+precip_forecast_dataset = conversion.to_rainrate(precip_forecast_dataset)
+forecast_precip_var = precip_forecast_dataset.attrs["precip_var"]
+model_dataset_mmh = conversion.to_rainrate(model_dataset)
 
 
 ################################################################################
@@ -287,8 +333,10 @@ for n, leadtime in enumerate(leadtimes_min):
     # Nowcast with blending into NWP
     plt.subplot(n_leadtimes, 2, n * 2 + 1)
     plot_precip_field(
-        precip_forecast[0, int(leadtime / timestep_radar) - 1, :, :],
-        geodata=radar_metadata,
+        precip_forecast_dataset[forecast_precip_var].isel(
+            ens_number=0, time=int(leadtime / timestep_radar) - 1
+        ),
+        geodata=geodata_from_dataset(radar_dataset),
         title=f"Blended +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",
@@ -298,8 +346,11 @@ for n, leadtime in enumerate(leadtimes_min):
     # Raw NWP forecast
     plt.subplot(n_leadtimes, 2, n * 2 + 2)
     plot_precip_field(
-        nwp_precip[int(leadtime / int(nwp_metadata_rprj["accutime"])) - 1, 0, :, :],
-        geodata=nwp_metadata_rprj,
+        model_dataset_mmh[model_precip_var].isel(
+            ens_number=0,
+            time=int(leadtime / int(model_dataset["time"].attrs["stepsize"] / 60)) - 1,
+        ),
+        geodata=geodata_from_dataset(model_dataset),
         title=f"NWP +{leadtime} min",
         axis="off",
         colorscale="STEPS-NL",

@@ -8,10 +8,11 @@ radar data.
 
 """
 
+from datetime import datetime
+
 import matplotlib.pyplot as plt
 import xarray as xr
 
-from datetime import datetime
 from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob
@@ -60,16 +61,24 @@ precip_var = precip_dataset.attrs["precip_var"]
 
 # Upscale data to 2 km to limit memory usage
 precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
+y1 = precip_dataset.y.values[0] - (
+    precip_dataset.y.values[1] - precip_dataset.y.values[0]
+)
+y2 = precip_dataset.y.values[-1] + (
+    precip_dataset.y.values[1] - precip_dataset.y.values[0]
+)
 
 # XR: change plot_precip_fields to take in an xarray and remove
 # geodata, derive geodata from xarray?
 geodata = {
     "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",  # is this always the case using xarray approach?
+    "x1": precip_dataset.x.values[0]
+    - (precip_dataset.x.values[1] - precip_dataset.x.values[0]),
+    "x2": precip_dataset.x.values[-1]
+    + (precip_dataset.x.values[1] - precip_dataset.x.values[0]),
+    "y1": min(y1, y2),
+    "y2": max(y1, y2),
+    "yorigin": "lower" if y1 < y2 else "upper",
 }
 
 # Plot the rainfall field

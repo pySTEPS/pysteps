@@ -48,12 +48,11 @@ filenames = io.archive.find_by_date(
 
 # Read the input time series
 importer = io.get_method(importer_name, "importer")
-rainrate_field, quality, metadata = io.read_timeseries(
-    filenames, importer, **importer_kwargs
-)
+rainrate_dataset = io.read_timeseries(filenames, importer, **importer_kwargs)
 
 # Convert to rain rate (mm/h)
-rainrate_field, metadata = utils.to_rainrate(rainrate_field, metadata)
+rainrate_dataset = utils.to_rainrate(rainrate_dataset)
+precip_var = rainrate_dataset.attrs["precip_var"]
 
 ################################################################################
 # Compute the advection field
@@ -78,50 +77,70 @@ oflow_kwargs["decl_scale"] = 10
 
 oflow = motion.get_method("lucaskanade")
 
-# transform the input data to logarithmic scale
-rainrate_field_log, _ = utils.transformation.dB_transform(
-    rainrate_field, metadata=metadata
-)
-velocity = oflow(rainrate_field_log, **oflow_kwargs)
+# transform the input data to logarithmic scale and estimate the advection
+# field from it
+rainrate_dataset_log = transformation.dB_transform(rainrate_dataset)
+rainrate_dataset_log = oflow(rainrate_dataset_log, **oflow_kwargs)
+velocity_x = rainrate_dataset_log["velocity_x"]
+velocity_y = rainrate_dataset_log["velocity_y"]
+
+
+def with_velocity(dataset):
+    """Attach the previously estimated advection field to a dataset."""
+    dataset = dataset.copy()
+    dataset["velocity_x"] = velocity_x
+    dataset["velocity_y"] = velocity_y
+    return dataset
+
 
 ###############################################################################
 # Compute the nowcasts and threshold rain rates below 0.5 mm/h
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-forecast_extrap = extrapolation.forecast(
-    rainrate_field[-1], velocity, 3, extrap_kwargs={"allow_nonfinite_values": True}
+forecast_extrap_dataset = extrapolation.forecast(
+    with_velocity(rainrate_dataset).isel(time=slice(-1, None)),
+    3,
+    extrap_kwargs={"allow_nonfinite_values": True},
 )
+forecast_extrap = forecast_extrap_dataset[precip_var].values.copy()
 forecast_extrap[forecast_extrap < 0.5] = 0.0
 
 # log-transform the data and the threshold value to dBR units for S-PROG
-rainrate_field_db, _ = transformation.dB_transform(
-    rainrate_field, metadata, threshold=0.1, zerovalue=-15.0
+rainrate_dataset_db = transformation.dB_transform(
+    rainrate_dataset, threshold=0.1, zerovalue=-15.0
 )
-rainrate_thr, _ = transformation.dB_transform(
-    np.array([0.5]), metadata, threshold=0.1, zerovalue=-15.0
+precip_thr = 10.0 * np.log10(0.5)
+forecast_sprog_dataset = sprog.forecast(
+    with_velocity(rainrate_dataset_db).isel(time=slice(-3, None)),
+    3,
+    n_cascade_levels=6,
+    precip_thr=precip_thr,
 )
-forecast_sprog = sprog.forecast(
-    rainrate_field_db[-3:], velocity, 3, n_cascade_levels=6, precip_thr=rainrate_thr[0]
+forecast_sprog_dataset = transformation.dB_transform(
+    forecast_sprog_dataset, threshold=-10.0, inverse=True
 )
-forecast_sprog, _ = transformation.dB_transform(
-    forecast_sprog, threshold=-10.0, inverse=True
-)
+forecast_sprog = forecast_sprog_dataset[precip_var].values.copy()
 forecast_sprog[forecast_sprog < 0.5] = 0.0
 
-forecast_anvil = anvil.forecast(
-    rainrate_field[-4:], velocity, 3, ar_window_radius=25, ar_order=2
+forecast_anvil_dataset = anvil.forecast(
+    with_velocity(rainrate_dataset).isel(time=slice(-4, None)),
+    3,
+    ar_window_radius=25,
+    ar_order=2,
 )
+forecast_anvil = forecast_anvil_dataset[precip_var].values.copy()
 forecast_anvil[forecast_anvil < 0.5] = 0.0
 
 ###############################################################################
 # Read the reference observation field and threshold rain rates below 0.5 mm/h
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 filenames = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep=5, num_next_files=3
 )
 
-refobs_field, _, metadata = io.read_timeseries(filenames, importer, **importer_kwargs)
+refobs_dataset = io.read_timeseries(filenames, importer, **importer_kwargs)
+refobs_dataset = utils.to_rainrate(refobs_dataset)
 
-refobs_field, metadata = utils.to_rainrate(refobs_field[-1], metadata)
+refobs_field = refobs_dataset[precip_var][-1].values.copy()
 refobs_field[refobs_field < 0.5] = 0.0
 
 
@@ -176,9 +195,11 @@ def plot_growth_decay_circles(ax):
 
 fig = plt.figure(figsize=(10, 13))
 
+obs_field = rainrate_dataset[precip_var][-1].values.copy()
+obs_field[obs_field < 0.5] = 0.0
+
 ax = fig.add_subplot(321)
-rainrate_field[-1][rainrate_field[-1] < 0.5] = 0.0
-plot_precip_field(rainrate_field[-1])
+plot_precip_field(obs_field)
 plot_growth_decay_circles(ax)
 ax.set_title("Obs. %s" % str(date))
 

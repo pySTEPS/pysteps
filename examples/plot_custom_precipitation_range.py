@@ -62,15 +62,25 @@ fns = io.find_by_date(
 
 # Read the frame from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert the reflectivity data to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
+
+geodata = {
+    "projection": precip_dataset.attrs["projection"],
+    "x1": precip_dataset.x.values[0],
+    "x2": precip_dataset.x.values[-1],
+    "y1": precip_dataset.y.values[0],
+    "y2": precip_dataset.y.values[-1],
+    "yorigin": "lower",
+}
 
 # Plot the first rainfall field from the loaded data
 plt.figure(figsize=(10, 5), dpi=300)
 plt.axis("off")
-plot_precip_field(R[0, :, :], geodata=metadata, axis="off")
+plot_precip_field(precip_dataset[precip_var][0], geodata=geodata, axis="off")
 
 plt.tight_layout()
 plt.show()
@@ -136,7 +146,9 @@ config = ColormapConfig()
 # Plot the precipitation field using the custom colormap
 plt.figure(figsize=(10, 5), dpi=300)
 plt.axis("off")
-plot_precip_field(R[0, :, :], geodata=metadata, axis="off", colormap_config=config)
+plot_precip_field(
+    precip_dataset[precip_var][0], geodata=geodata, axis="off", colormap_config=config
+)
 
 plt.tight_layout()
 plt.show()
