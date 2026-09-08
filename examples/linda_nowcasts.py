@@ -137,6 +137,7 @@ nowcast_linda = linda.forecast(
     n_ens_members=40,
     num_workers=8,
     measure_time=True,
+    seed=42,  # Fixed seed for reproducible ensemble members
 )[0]
 
 # Compute 40-member STEPS nowcast for comparison
@@ -151,6 +152,7 @@ nowcast_steps = steps.forecast(
     kmperpixel=2.0,
     timestep=datasource_params["timestep"],
     vel_pert_method=None,
+    seed=42,  # Fixed seed for reproducible ensemble members
 )
 
 # Convert reflectivity nowcast to rain rate

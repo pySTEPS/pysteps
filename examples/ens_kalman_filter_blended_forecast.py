@@ -87,11 +87,9 @@ filename = os.path.join(
     + nwp_data_source["fn_ext"],
 )
 nwp_importer = io.get_method("dwd_nwp", "importer")
-kwargs = nwp_data_source["importer_kwargs"]
-# Resolve grid_file_path relative to PYSTEPS_DATA_PATH
-kwargs["grid_file_path"] = os.path.join(
-    os.environ["PYSTEPS_DATA_PATH"], kwargs["grid_file_path"]
-)
+# grid_file_path in importer_kwargs is already resolvable from the repo root,
+# like every other data_sources path in pystepsrc.
+kwargs = dict(nwp_data_source["importer_kwargs"])
 nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
 # We lower the number of ens members to 10 to reduce the memory needs in the
 # example here. However, it is advised to have a minimum of 20 members for the
@@ -250,7 +248,10 @@ precip_forecast = blending_method(
     n_cascade_levels=6,  # No. of cascade levels
     precip_thr=log_thr_prec,  # Precip threshold
     norain_thr=0.0005,  # Minimum of 0.5% precip needed, otherwise 'zero rainfall'
-    num_workers=4,  # No. of parallel threads
+    # No. of parallel threads. Kept at 1 so that the forecast (and the plots
+    # in this example) are exactly reproducible: multi-threaded FFT/dask
+    # reductions are not guaranteed to be bit-for-bit deterministic.
+    num_workers=1,
     noise_stddev_adj="auto",  # Standard deviation adjustment
     noise_method="ssft",  # SSFT as noise method
     enable_combination=True,  # Enable combination
@@ -258,6 +259,7 @@ precip_forecast = blending_method(
     extrap_kwargs={"interp_order": 3, "map_coordinates_mode": "nearest"},
     combination_kwargs=combination_kwargs,
     filter_kwargs={"include_mean": True},
+    seed=42,  # Fixed seed for reproducible ensemble members
 )
 
 # Transform the data back into mm/h
