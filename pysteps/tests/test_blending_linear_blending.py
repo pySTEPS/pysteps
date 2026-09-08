@@ -1,164 +1,47 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+
 import numpy as np
 import pytest
-from pysteps.blending.linear_blending import forecast, _get_ranked_salience, _get_ws
 from numpy.testing import assert_array_almost_equal
+
+from pysteps.blending.linear_blending import (_get_ranked_salience, _get_ws,
+                                              forecast)
 from pysteps.utils import transformation
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 # Test function arguments
 linear_arg_values = [
-    (5, 30, 60, 20, 45, "eulerian", None, 1, False, True, False),
-    (5, 30, 60, 20, 45, "eulerian", None, 2, False, False, False),
-    (5, 30, 60, 20, 45, "eulerian", None, 0, False, False, False),
-    (4, 23, 33, 9, 28, "eulerian", None, 1, False, False, False),
-    (3, 18, 36, 13, 27, "eulerian", None, 1, False, False, False),
-    (7, 30, 68, 11, 49, "eulerian", None, 1, False, False, False),
-    (7, 30, 68, 11, 49, "eulerian", None, 1, False, False, True),
-    (10, 100, 160, 25, 130, "eulerian", None, 1, False, False, False),
-    (6, 60, 180, 22, 120, "eulerian", None, 1, False, False, False),
-    (5, 100, 200, 40, 150, "eulerian", None, 1, False, False, False),
-    (
-        5,
-        30,
-        60,
-        20,
-        45,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        False,
-    ),
-    (
-        4,
-        23,
-        33,
-        9,
-        28,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        False,
-    ),
-    (
-        3,
-        18,
-        36,
-        13,
-        27,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        False,
-    ),
-    (
-        7,
-        30,
-        68,
-        11,
-        49,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        False,
-    ),
-    (
-        10,
-        100,
-        160,
-        25,
-        130,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        False,
-    ),
-    (
-        6,
-        60,
-        180,
-        22,
-        120,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        False,
-    ),
-    (
-        5,
-        100,
-        200,
-        40,
-        150,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        False,
-    ),
-    (
-        5,
-        100,
-        200,
-        40,
-        150,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        False,
-        False,
-        True,
-    ),
-    (5, 30, 60, 20, 45, "eulerian", None, 1, True, True, False),
-    (5, 30, 60, 20, 45, "eulerian", None, 2, True, False, False),
-    (5, 30, 60, 20, 45, "eulerian", None, 0, True, False, False),
-    (
-        5,
-        30,
-        60,
-        20,
-        45,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        True,
-        False,
-        False,
-    ),
-    (4, 23, 33, 9, 28, "extrapolation", np.zeros((2, 200, 200)), 1, True, False, False),
-    (
-        3,
-        18,
-        36,
-        13,
-        27,
-        "extrapolation",
-        np.zeros((2, 200, 200)),
-        1,
-        True,
-        False,
-        False,
-    ),
+    (5, 30, 60, 20, 45, "eulerian", 1, False, True, False),
+    (5, 30, 60, 20, 45, "eulerian", 2, False, False, False),
+    (5, 30, 60, 20, 45, "eulerian", 0, False, False, False),
+    (4, 23, 33, 9, 28, "eulerian", 1, False, False, False),
+    (3, 18, 36, 13, 27, "eulerian", 1, False, False, False),
+    (7, 30, 68, 11, 49, "eulerian", 1, False, False, False),
+    (7, 30, 68, 11, 49, "eulerian", 1, False, False, True),
+    (10, 100, 160, 25, 130, "eulerian", 1, False, False, False),
+    (6, 60, 180, 22, 120, "eulerian", 1, False, False, False),
+    (5, 100, 200, 40, 150, "eulerian", 1, False, False, False),
+    (5, 30, 60, 20, 45, "extrapolation", 1, False, False, False),
+    (4, 23, 33, 9, 28, "extrapolation", 1, False, False, False),
+    (3, 18, 36, 13, 27, "extrapolation", 1, False, False, False),
+    (7, 30, 68, 11, 49, "extrapolation", 1, False, False, False),
+    (10, 100, 160, 25, 130, "extrapolation", 1, False, False, False),
+    (6, 60, 180, 22, 120, "extrapolation", 1, False, False, False),
+    (5, 100, 200, 40, 150, "extrapolation", 1, False, False, False),
+    (5, 100, 200, 40, 150, "extrapolation", 1, False, False, True),
+    (5, 30, 60, 20, 45, "eulerian", 1, True, True, False),
+    (5, 30, 60, 20, 45, "eulerian", 2, True, False, False),
+    (5, 30, 60, 20, 45, "eulerian", 0, True, False, False),
+    (5, 30, 60, 20, 45, "extrapolation", 1, True, False, False),
+    (4, 23, 33, 9, 28, "extrapolation", 1, True, False, False),
+    (3, 18, 36, 13, 27, "extrapolation", 1, True, False, False),
 ]
 
 
 @pytest.mark.parametrize(
-    "timestep, start_blending, end_blending, n_timesteps, controltime, nowcast_method, V, n_models, salient_blending, squeeze_nwp_array, fill_nwp",
+    "timestep, start_blending, end_blending, n_timesteps, controltime, nowcast_method, n_models, salient_blending, squeeze_nwp_array, fill_nwp",
     linear_arg_values,
 )
 def test_linear_blending(
@@ -168,7 +51,6 @@ def test_linear_blending(
     n_timesteps,
     controltime,
     nowcast_method,
-    V,
     n_models,
     salient_blending,
     squeeze_nwp_array,
@@ -253,9 +135,9 @@ def test_linear_blending(
     radar_dataset = transformation.dB_transform(
         radar_dataset, threshold=0.1, zerovalue=-15.0
     )
-    if V is not None:
-        radar_dataset["velocity_x"] = (["y", "x"], V[0])
-        radar_dataset["velocity_y"] = (["y", "x"], V[1])
+    V = np.zeros((2, 200, 200))
+    radar_dataset["velocity_x"] = (["y", "x"], V[0])
+    radar_dataset["velocity_y"] = (["y", "x"], V[1])
 
     if r_nwp is None:
         model_dataset = None
@@ -344,6 +226,9 @@ def test_salient_weight(
     assert ws.shape == (
         200,
         200,
+    ), "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
+        ws.shape
+    )
     ), "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
         ws.shape
     )

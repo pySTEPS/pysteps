@@ -76,7 +76,6 @@ def test_linda(
     dataset_input = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
-        metadata=True,
         clip=(354000, 866000, -96000, 416000),
         upscale=4000,
         log_transform=False,
@@ -203,7 +202,6 @@ def test_linda_callback(tmp_path):
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
-        metadata=True,
         upscale=2000,
     )
     precip_input = precip_input.filled()

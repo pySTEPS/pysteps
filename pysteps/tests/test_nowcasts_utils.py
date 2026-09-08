@@ -29,8 +29,6 @@ def test_nowcast_main_loop(
     dataset = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
-        return_raw=False,
-        metadata=False,
         upscale=2000,
     )
 

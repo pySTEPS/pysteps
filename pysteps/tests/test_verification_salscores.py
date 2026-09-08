@@ -20,9 +20,7 @@ class TestSAL:
 
     def test_sal_zeros(self, converter, thr_factor):
         """Test the SAL verification method."""
-        dataset_input = get_precipitation_fields(
-            num_prev_files=0, log_transform=False, metadata=True
-        )
+        dataset_input = get_precipitation_fields(num_prev_files=0, log_transform=False)
         dataset_input = converter(dataset_input)
         precip_var = dataset_input.attrs["precip_var"]
         precip = dataset_input[precip_var].values[0]
@@ -37,9 +35,7 @@ class TestSAL:
 
     def test_sal_same_image(self, converter, thr_factor):
         """Test the SAL verification method."""
-        dataset_input = get_precipitation_fields(
-            num_prev_files=0, log_transform=False, metadata=True
-        )
+        dataset_input = get_precipitation_fields(num_prev_files=0, log_transform=False)
         dataset_input = converter(dataset_input)
         precip_var = dataset_input.attrs["precip_var"]
         precip = dataset_input[precip_var].values[0]
@@ -49,9 +45,7 @@ class TestSAL:
         assert np.allclose(result, [0, 0, 0])
 
     def test_sal_translation(self, converter, thr_factor):
-        dataset_input = get_precipitation_fields(
-            num_prev_files=0, log_transform=False, metadata=True
-        )
+        dataset_input = get_precipitation_fields(num_prev_files=0, log_transform=False)
         dataset_input = converter(dataset_input)
         precip_var = dataset_input.attrs["precip_var"]
         precip = dataset_input[precip_var].values[0]

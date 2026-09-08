@@ -71,7 +71,7 @@ def forecast(
 
     dataset = dataset.copy(deep=True)
     precip_var = dataset.attrs["precip_var"]
-    precip = dataset[precip_var].values[0]
+    precip = dataset[precip_var].values[-1]
     velocity = np.stack([dataset["velocity_x"], dataset["velocity_y"]])
     _check_inputs(precip, velocity, timesteps)
 

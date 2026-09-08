@@ -11,7 +11,6 @@ def test_read_timeseries_mch():
         num_prev_files=1,
         num_next_files=1,
         return_raw=True,
-        metadata=True,
         source="mch",
         log_transform=False,
     )

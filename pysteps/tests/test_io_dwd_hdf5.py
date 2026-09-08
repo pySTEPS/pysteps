@@ -9,7 +9,6 @@ precip_dataset = get_precipitation_fields(
     num_prev_files=0,
     num_next_files=0,
     return_raw=True,
-    metadata=True,
     source="dwd",
     log_transform=False,
 )

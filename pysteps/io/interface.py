@@ -14,7 +14,6 @@ Interface for the io module.
 """
 from importlib.metadata import entry_points
 
-from pysteps.decorators import postprocess_import
 from pysteps.io import importers, exporters, interface
 from pprint import pprint
 
@@ -57,8 +56,6 @@ def discover_importers():
         importer_function_name = _importer.__name__
         importer_short_name = importer_function_name.replace("import_", "")
 
-        _postprocess_kws = getattr(_importer, "postprocess_kws", dict())
-        _importer = postprocess_import(**_postprocess_kws)(_importer)
         if importer_short_name not in _importer_methods:
             _importer_methods[importer_short_name] = _importer
         else:

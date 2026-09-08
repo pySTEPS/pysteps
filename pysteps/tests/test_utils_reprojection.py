@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import numpy as np
 import pytest
 import xarray as xr
@@ -92,7 +91,6 @@ precip_dataset = get_precipitation_fields(
     num_next_files=0,
     source="rmi",
     return_raw=True,
-    metadata=True,
     log_transform=False,
 )
 

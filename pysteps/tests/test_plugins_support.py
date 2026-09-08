@@ -20,13 +20,6 @@ from contextlib import contextmanager
 from pysteps import io, postprocessing
 
 
-# BUG:
-# XR: Cookie cutter makes two calls to importers, one
-# which is not wrapped with postprocess_import resulting in the importer
-# returning 3 values on the first call. On the second call the importer goes
-# through the postprocess_import resulting in one dataset being returned.
-# Should fix this issue first before fixing tests.
-# Test has been therefore commented out.
 def _check_installed_importer_plugin(import_func_name):
     # reload the pysteps module to detect the installed plugin
     io.discover_importers()
@@ -90,7 +83,12 @@ def _uninstall_plugin(project_name):
     )
 
 
-# XR: Commented out test for reason explained above
+# BUG:
+# XR: Cookie cutter tries to add an importer using the postprocess importer
+#     decorator. I removed this decorator and made it so that any importer
+#     just directly returns an xarray. This example plugin needs to be updated
+#     to reflect that before this test will work again.
+
 # def test_importers_plugins():
 #     with _create_and_install_plugin("pysteps-importer-institution-fun", "importer"):
 #         _check_installed_importer_plugin("importer_institution_fun")
