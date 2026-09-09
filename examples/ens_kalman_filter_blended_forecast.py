@@ -22,13 +22,13 @@ import os
 from datetime import datetime, timedelta
 
 import numpy as np
+import pysteps_nwp_importers
 from matplotlib import pyplot as plt
 
 import pysteps
-from pysteps import io, rcparams, blending
+from pysteps import blending, io, rcparams
 from pysteps.utils import aggregate_fields_space
 from pysteps.visualization import plot_precip_field
-import pysteps_nwp_importers
 
 ################################################################################
 # Read the radar images and the NWP forecast
@@ -306,6 +306,7 @@ for n, leadtime in enumerate(leadtimes_min):
         colorbar=False,
     )
 
+plt.show()
 
 ################################################################################
 # References

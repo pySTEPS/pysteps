@@ -16,7 +16,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import pysteps
-from pysteps import io, rcparams, blending, nowcasts
+from pysteps import blending, io, nowcasts, rcparams
 from pysteps.visualization import plot_precip_field
 
 ################################################################################
@@ -350,6 +350,7 @@ for n, leadtime in enumerate(leadtimes_min):
     )
     ax3.axis("off")
 
+plt.show()
 
 ################################################################################
 # Blend the external nowcast with NWP - ensemble mode
