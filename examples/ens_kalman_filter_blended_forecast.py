@@ -57,19 +57,19 @@ def geodata_from_dataset(dataset):
     """Build a plot_precip_field-style geodata dict from a dataset."""
     x = dataset.x.values
     y = dataset.y.values
-    dx = abs(float(x[1] - x[0]))
-    dy = abs(float(y[1] - y[0]))
-    yorigin = "upper" if float(dataset.y.attrs["stepsize"]) < 0 else "lower"
-    y1, y2 = y[0] - dy / 2.0, y[-1] + dy / 2.0
+    dx = dataset.x.attrs["stepsize"]
+    dy = dataset.y.attrs["stepsize"]
+    yorigin = "upper" if dy < 0 else "lower"
+    y1, y2 = y[0] - dy * 0.5, y[-1] + dy * 0.5
     return {
         "projection": dataset.attrs["projection"],
-        "x1": x[0] - dx / 2.0,
-        "x2": x[-1] + dx / 2.0,
+        "x1": x[0] - dx * 0.5,
+        "x2": x[-1] + dx * 0.5,
         "y1": min(y1, y2),
         "y2": max(y1, y2),
         "yorigin": yorigin,
         "xpixelsize": dx,
-        "ypixelsize": dy,
+        "ypixelsize": abs(dy),
         "cartesian_unit": dataset.x.attrs["units"],
     }
 
@@ -211,10 +211,18 @@ model_precip_var = model_dataset.attrs["precip_var"]
 
 # Threshold the data
 radar_dataset[radar_precip_var] = radar_dataset[radar_precip_var].where(
-    radar_dataset[radar_precip_var] >= prec_thr, 0.0
+    np.logical_or(
+        radar_dataset[radar_precip_var].values >= prec_thr,
+        np.isnan(radar_dataset[radar_precip_var].values),
+    ),
+    0.0,
 )
 model_dataset[model_precip_var] = model_dataset[model_precip_var].where(
-    model_dataset[model_precip_var] >= prec_thr, 0.0
+    np.logical_or(
+        model_dataset[model_precip_var].values >= prec_thr,
+        np.isnan(model_dataset[model_precip_var].values),
+    ),
+    0.0,
 )
 
 # Plot the radar rainfall field and the first time step and first ensemble member
