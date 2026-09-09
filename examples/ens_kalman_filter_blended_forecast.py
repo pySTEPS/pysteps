@@ -22,15 +22,15 @@ import os
 from datetime import datetime
 
 import numpy as np
+import pysteps_nwp_importers
 from matplotlib import pyplot as plt
+from pysteps_nwp_importers.importer_dwd_nwp import unstructured2regular
 
 import pysteps
-from pysteps import io, rcparams, blending
-from pysteps.utils import conversion, dimension, transformation
+from pysteps import blending, io, rcparams
+from pysteps.utils import aggregate_fields_space, conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
-import pysteps_nwp_importers
-from pysteps_nwp_importers.importer_dwd_nwp import unstructured2regular
 
 ################################################################################
 # Read the radar images and the NWP forecast
@@ -357,6 +357,7 @@ for n, leadtime in enumerate(leadtimes_min):
         colorbar=False,
     )
 
+plt.show()
 
 ################################################################################
 # References
