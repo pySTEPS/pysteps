@@ -496,6 +496,64 @@ def import_mrms_grib(
     precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
 
+    proj_params = _get_grib_projection(grib_msg)
+    pr = pyproj.Proj(proj_params)
+    proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
+
+    xsize = grib_msg["iDirectionIncrementInDegrees"] * window_size[0]
+    ysize = grib_msg["jDirectionIncrementInDegrees"] * window_size[1]
+
+    x1, y1 = pr(ul_lon, lr_lat)
+    x2, y2 = pr(lr_lon, ul_lat)
+
+    metadata = dict(
+        institution="NOAA National Severe Storms Laboratory",
+        xpixelsize=xsize,
+        ypixelsize=ysize,
+        unit="mm/h",
+        accutime=2.0,
+        zerovalue=0,
+        projection=proj_def.strip(),
+        yorigin="upper",
+        threshold=_get_threshold_value(precip),
+        x1=x1 - xsize / 2,
+        x2=x2 + xsize / 2,
+        y1=y1 - ysize / 2,
+        y2=y2 + ysize / 2,
+        cartesian_unit="degrees",
+    )
+
+    precip_dataset = convert_input_to_xarray_dataset(precip, None, metadata)
+
+    if window_size != (1, 1):
+        # Create a function with default arguments for aggregate_fields
+        block_reduce = partial(aggregate_fields, method="mean", trim=True)
+        # Downscale data
+        precip_var = precip_dataset.attrs["precip_var"]
+        # block_reduce does not handle nan values
+        no_data_mask = np.isnan(precip_dataset[precip_var].values)
+        precip_dataset[precip_var].data[no_data_mask] = 0
+        precip_dataset["no_data_mask"] = (("y", "x"), no_data_mask)
+        precip_dataset = block_reduce(precip_dataset, window_size, dim=("y", "x"))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = precip_dataset.no_data_mask.values == 1.0
+        precip_dataset = precip_dataset.drop_vars("no_data_mask")
+
+        # Downscale coords
+        lats = precip_dataset.y.values
+        lons = precip_dataset.x.values
+
+        # Update the limits
+        ul_lat, lr_lat = (
+            lats[0],
+            lats[-1],
+        )  # Lat from North to south!
+        ul_lon, lr_lon = lons[0], lons[-1]
+
+    precip = precip_dataset[precip_var].values
+
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan
 
@@ -550,23 +608,6 @@ def import_mrms_grib(
     precip = _postprocess_precip(precip, fillna, dtype)
 
     precip_dataset = convert_input_to_xarray_dataset(precip, None, metadata)
-
-    if window_size != (1, 1):
-        # Create a function with default arguments for aggregate_fields
-        block_reduce = partial(aggregate_fields, method="mean", trim=True)
-        # Downscale data
-        precip_var = precip_dataset.attrs["precip_var"]
-        # block_reduce does not handle nan values
-        no_data_mask = np.isnan(precip_dataset[precip_var].values)
-        precip_dataset[precip_var].data[no_data_mask] = 0
-        precip_dataset["no_data_mask"] = (("y", "x"), no_data_mask)
-        precip_dataset = block_reduce(precip_dataset, window_size, dim=("y", "x"))
-
-        # Consider that if a single invalid observation is located in the block,
-        # then mark that value as invalid.
-        no_data_mask = precip_dataset.no_data_mask.values == 1.0
-        precip_dataset = precip_dataset.drop_vars("no_data_mask")
-        precip_dataset[precip_var].data[no_data_mask] = fillna
 
     return precip_dataset
 
