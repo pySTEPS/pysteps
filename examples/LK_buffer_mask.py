@@ -84,7 +84,7 @@ ref_dbr = precip_dataset[precip_var][0].values.copy()
 ref_dbr[ref_dbr < -10] = np.nan
 
 # Plot the reference field
-plot_precip_field(ref_mm, geodata=geodata, title="Reference field")
+plot_precip_field(ref_mm, title="Reference field")
 circle = plt.Circle((620, 400), 100, color="b", clip_on=False, fill=False)
 plt.gca().add_artist(circle)
 plt.show()
