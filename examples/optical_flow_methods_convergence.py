@@ -18,8 +18,8 @@ To test the convergence, using an example precipitation field we will:
 Let's first load the libraries that we will use.
 """
 
-from datetime import datetime
 import time
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +27,7 @@ from matplotlib.pyplot import get_cmap
 from scipy.ndimage import uniform_filter
 
 import pysteps as stp
-from pysteps import motion, io, rcparams
+from pysteps import io, motion, rcparams
 from pysteps.motion.vet import morph
 from pysteps.visualization import plot_precip_field, quiver
 
@@ -237,12 +237,14 @@ def create_observations(input_precip, motion_type, num_times=9):
 
     synthetic_observations = np.ma.masked_invalid(synthetic_observations)
 
-    synthetic_observations.data[np.ma.getmaskarray(synthetic_observations)] = 0
+    synthetic_observations.data[np.ma.getmaskarray(synthetic_observations)] = np.nan
 
     return ideal_motion, synthetic_observations
 
 
-def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_type):
+def plot_optflow_method_convergence(
+    input_precip, optflow_method_name, motion_type, remove_nans=False
+):
     """
     Test the convergence to the actual solution of the optical flow method used.
 
@@ -276,7 +278,11 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
 
     elapsed_time = time.perf_counter()
 
-    computed_motion = oflow_method(precip_obs, verbose=False)
+    precip_for_motion = precip_obs.data
+    if remove_nans:
+        precip_for_motion[precip_obs.mask] = np.nanmin(precip_for_motion)
+
+    computed_motion = oflow_method(precip_for_motion, verbose=False)
 
     print(
         f"{optflow_method_name} computation time: "
@@ -299,11 +305,13 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
     # Compare retrieved motion field with the ideal one
     plt.figure(figsize=(9, 4))
     plt.subplot(1, 2, 1)
-    ax = plot_precip_field(precip_obs[0], title="Reference motion")
+    precip_plot_data = precip_obs[0].data
+    precip_plot_data[precip_obs[0].mask] = np.nan
+    ax = plot_precip_field(precip_plot_data, title="Reference motion")
     quiver(ideal_motion, step=25, ax=ax)
 
     plt.subplot(1, 2, 2)
-    ax = plot_precip_field(precip_obs[0], title="Retrieved motion")
+    ax = plot_precip_field(precip_plot_data, title="Retrieved motion")
     quiver(computed_motion, step=25, ax=ax)
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
@@ -314,9 +322,7 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
     mse = ((ideal_motion - computed_motion)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
-    plt.suptitle(
-        f"{optflow_method_name} " f"Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%"
-    )
+    plt.suptitle(f"{optflow_method_name} Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%")
     plt.show()
 
 
@@ -362,17 +368,17 @@ plot_optflow_method_convergence(reference_field, "VET", "rotor")
 #
 # Constant motion x-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, "DARTS", "linear_x")
+plot_optflow_method_convergence(reference_field, "DARTS", "linear_x", remove_nans=True)
 
 ################################################################################
 # Constant motion y-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, "DARTS", "linear_y")
+plot_optflow_method_convergence(reference_field, "DARTS", "linear_y", remove_nans=True)
 
 ################################################################################
 # Rotational motion
 # ~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, "DARTS", "rotor")
+plot_optflow_method_convergence(reference_field, "DARTS", "rotor", remove_nans=True)
 
 ################################################################################
 # Farneback
