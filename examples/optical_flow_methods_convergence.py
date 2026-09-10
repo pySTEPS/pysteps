@@ -337,11 +337,13 @@ def plot_optflow_method_convergence(
     # Compare retrieved motion field with the ideal one
     plt.figure(figsize=(9, 4))
     plt.subplot(1, 2, 1)
-    ax = plot_precip_field(precip_obs[0], title="Reference motion")
+    precip_plot_data = precip_obs[0].data
+    precip_plot_data[precip_obs[0].mask] = np.nan
+    ax = plot_precip_field(precip_plot_data, title="Reference motion")
     quiver(ideal_motion, step=25, ax=ax)
 
     plt.subplot(1, 2, 2)
-    ax = plot_precip_field(precip_obs[0], title="Retrieved motion")
+    ax = plot_precip_field(precip_plot_data, title="Retrieved motion")
     quiver(computed_motion, step=25, ax=ax)
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
