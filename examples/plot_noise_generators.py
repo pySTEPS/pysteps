@@ -11,16 +11,22 @@ nowcast in order to represent the uncertainty in the evolution of the rainfall
 field.
 """
 
-from matplotlib import cm, pyplot as plt
-import numpy as np
 import os
 from pprint import pprint
+
+import numpy as np
+from matplotlib import cm
+from matplotlib import pyplot as plt
+
 from pysteps import io, rcparams
-from pysteps.noise.fftgenerators import initialize_param_2d_fft_filter
-from pysteps.noise.fftgenerators import initialize_nonparam_2d_fft_filter
-from pysteps.noise.fftgenerators import generate_noise_2d_fft_filter
+from pysteps.noise.fftgenerators import (
+    generate_noise_2d_fft_filter,
+    initialize_nonparam_2d_fft_filter,
+    initialize_param_2d_fft_filter,
+)
 from pysteps.utils import conversion, rapsd, transformation
 from pysteps.visualization import plot_precip_field, plot_spectrum1d
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ###############################################################################
 # Read precipitation field
@@ -44,14 +50,7 @@ precip_var = precip_dataset.attrs["precip_var"]
 pprint(precip_dataset[precip_var].attrs)
 
 # Plot the rainfall field
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(precip_dataset)
 plot_precip_field(precip_dataset[precip_var], geodata=geodata)
 plt.show()
 

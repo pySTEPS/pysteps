@@ -10,13 +10,15 @@ range of precipitation values.
 
 import os
 from datetime import datetime
+
 import matplotlib.pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams
+from pysteps.datasets import create_default_pystepsrc, download_pysteps_data
 from pysteps.utils import conversion
 from pysteps.visualization import plot_precip_field
-from pysteps.datasets import download_pysteps_data, create_default_pystepsrc
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ###############################################################################
 # Download the data if it is not available
@@ -68,14 +70,7 @@ precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 precip_dataset = conversion.to_rainrate(precip_dataset)
 precip_var = precip_dataset.attrs["precip_var"]
 
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the first rainfall field from the loaded data
 plt.figure(figsize=(10, 5), dpi=300)

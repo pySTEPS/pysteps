@@ -15,14 +15,15 @@ detected nearby no-data areas.
 """
 
 from datetime import datetime
-from matplotlib import cm, colors
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import cm, colors
 
 from pysteps import io, motion, nowcasts, rcparams, verification
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ################################################################################
 # Read the radar input images
@@ -66,14 +67,7 @@ precip_dataset = conversion.to_rainrate(precip_dataset)
 precip_var = precip_dataset.attrs["precip_var"]
 
 # Derive the geodata needed by the plotting functions from the dataset
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Keep the reference frame in mm/h and its mask (for plotting purposes)
 ref_mm = precip_dataset[precip_var][0].values.copy()

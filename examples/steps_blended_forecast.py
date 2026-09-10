@@ -22,6 +22,7 @@ from pysteps.visualization import plot_precip_field
 from pysteps.xarray_helpers import (
     convert_input_to_xarray_dataset,
     convert_output_to_xarray_dataset,
+    geodata_from_dataset,
 )
 
 ################################################################################
@@ -42,24 +43,6 @@ date_radar = datetime.strptime("202010310400", "%Y%m%d%H%M")
 date_nwp = datetime.strptime("202010310000", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["bom"]
 nwp_data_source = rcparams.data_sources["bom_nwp"]
-
-
-def geodata_from_dataset(dataset):
-    """Build a plot_precip_field-style geodata dict from a dataset."""
-    x = dataset.x.values
-    y = dataset.y.values
-    dx = x[1] - x[0]
-    dy = y[1] - y[0]
-    y1 = y[0] - dy / 2.0
-    y2 = y[-1] + dy / 2.0
-    return {
-        "projection": dataset.attrs["projection"],
-        "x1": x[0] - dx / 2.0,
-        "x2": x[-1] + dx / 2.0,
-        "y1": min(y1, y2),
-        "y2": max(y1, y2),
-        "yorigin": "lower" if dy > 0 else "upper",
-    }
 
 
 ###############################################################################

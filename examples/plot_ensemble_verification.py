@@ -9,14 +9,17 @@ using MeteoSwiss radar data.
 """
 
 from datetime import datetime
+from pprint import pprint
+
 import matplotlib.pyplot as plt
 import numpy as np
-from pprint import pprint
+
 from pysteps import io, nowcasts, rcparams, verification
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing import ensemblestats
 from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ###############################################################################
 # Read precipitation field
@@ -65,14 +68,7 @@ precip_var = precip_dataset.attrs["precip_var"]
 precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
 
 # Build the geodata dict expected by the plotting routines
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the rainfall field
 plot_precip_field(precip_dataset[precip_var][-1], geodata=geodata)

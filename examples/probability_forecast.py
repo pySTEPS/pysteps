@@ -17,7 +17,7 @@ import numpy as np
 
 from pysteps.nowcasts.lagrangian_probability import forecast
 from pysteps.visualization import plot_precip_field
-from pysteps.xarray_helpers import convert_input_to_xarray_dataset
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset, geodata_from_dataset
 
 ###############################################################################
 # Numerical example
@@ -85,7 +85,7 @@ from datetime import datetime
 
 from pysteps import io, rcparams, utils
 from pysteps.motion.lucaskanade import dense_lucaskanade
-from pysteps.verification import reldiag_init, reldiag_accum, plot_reldiag
+from pysteps.verification import plot_reldiag, reldiag_accum, reldiag_init
 
 # data source
 source = rcparams.data_sources["mch"]
@@ -139,14 +139,7 @@ plt.show()
 plt.close()
 
 # Derive the geodata needed by the plotting functions from the dataset
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the field of probabilities
 plot_precip_field(

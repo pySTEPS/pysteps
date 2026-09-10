@@ -18,6 +18,7 @@ from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob
 from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 # Set nowcast parameters
 n_ens_members = 20
@@ -70,16 +71,7 @@ y2 = precip_dataset.y.values[-1] + (
 
 # XR: change plot_precip_fields to take in an xarray and remove
 # geodata, derive geodata from xarray?
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0]
-    - (precip_dataset.x.values[1] - precip_dataset.x.values[0]),
-    "x2": precip_dataset.x.values[-1]
-    + (precip_dataset.x.values[1] - precip_dataset.x.values[0]),
-    "y1": min(y1, y2),
-    "y2": max(y1, y2),
-    "yorigin": "lower" if y1 < y2 else "upper",
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the rainfall field
 plot_precip_field(precip_dataset[precip_var][-1], geodata=geodata)

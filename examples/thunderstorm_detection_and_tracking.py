@@ -38,7 +38,8 @@ from pysteps import io, rcparams
 from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
 from pysteps.utils import to_reflectivity
-from pysteps.visualization import plot_precip_field, plot_track, plot_cart_contour
+from pysteps.visualization import plot_cart_contour, plot_precip_field, plot_track
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ################################################################################
 # Read the radar input images
@@ -116,16 +117,7 @@ track_list, cell_list, label_list = tstorm_dating.dating(refl_dataset)
 # Plotting the results
 # ~~~~~~~~~~~~~~~~~~~~
 
-geodata = {
-    "projection": refl_dataset.attrs["projection"],
-    "x1": refl_dataset.x.values[0],
-    "x2": refl_dataset.x.values[-1],
-    "y1": refl_dataset.y.values[0],
-    "y2": refl_dataset.y.values[-1],
-    "xpixelsize": refl_dataset.x.attrs["stepsize"],
-    "ypixelsize": refl_dataset.y.attrs["stepsize"],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(refl_dataset)
 
 # Plot precipitation field
 plot_precip_field(

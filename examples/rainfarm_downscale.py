@@ -28,17 +28,19 @@ References:
     Stochastic rainfall downscaling of climate models. J. Hydrometeorol., 15(2):830–843.
 """
 
+import logging
+import os
 from datetime import datetime
+from pprint import pprint
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-from pprint import pprint
-import logging
 
 from pysteps import io, rcparams
-from pysteps.utils import aggregate_fields_space, square_domain, to_rainrate
 from pysteps.downscaling import rainfarm
+from pysteps.utils import aggregate_fields_space, square_domain, to_rainrate
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 # Configure logging
 logging.basicConfig(
@@ -68,18 +70,6 @@ def read_precipitation_data(file_path):
     return precip_dataset
 
 
-def get_geodata(precip_dataset):
-    """Build the geodata dict that plot_precip_field expects from a dataset."""
-    return {
-        "projection": precip_dataset.attrs["projection"],
-        "x1": precip_dataset.x.values[0],
-        "x2": precip_dataset.x.values[-1],
-        "y1": precip_dataset.y.values[0],
-        "y2": precip_dataset.y.values[-1],
-        "yorigin": "lower",
-    }
-
-
 # Import the example radar composite
 root_path = rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
@@ -93,7 +83,8 @@ pprint(precip_dataset[precip_var].attrs)
 
 # Plot the original rainfall field
 plot_precip_field(
-    precip_dataset[precip_var].isel(time=0), geodata=get_geodata(precip_dataset)
+    precip_dataset[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset),
 )
 plt.title("Original Rainfall Field")
 plt.show()
@@ -124,7 +115,8 @@ precip_dataset_lr = upscale_field(precip_dataset, scale_factor)
 # Plot the upscaled rainfall field
 plt.figure()
 plot_precip_field(
-    precip_dataset_lr[precip_var].isel(time=0), geodata=get_geodata(precip_dataset_lr)
+    precip_dataset_lr[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset_lr),
 )
 plt.title("Upscaled Rainfall Field")
 plt.show()
@@ -144,7 +136,8 @@ precip_dataset_hr = rainfarm.downscale(precip_dataset_lr, ds_factor=scale_factor
 # Plot the downscaled rainfall field
 plt.figure()
 plot_precip_field(
-    precip_dataset_hr[precip_var].isel(time=0), geodata=get_geodata(precip_dataset_hr)
+    precip_dataset_hr[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset_hr),
 )
 plt.title("Downscaled Rainfall Field")
 plt.show()
@@ -163,7 +156,7 @@ precip_dataset_hr_smooth = rainfarm.downscale(
 plt.figure()
 plot_precip_field(
     precip_dataset_hr_smooth[precip_var].isel(time=0),
-    geodata=get_geodata(precip_dataset_hr_smooth),
+    geodata=geodata_from_dataset(precip_dataset_hr_smooth),
 )
 plt.title("Downscaled Rainfall Field with Gaussian Smoothing")
 plt.show()
@@ -182,7 +175,7 @@ precip_dataset_hr_fusion = rainfarm.downscale(
 plt.figure()
 plot_precip_field(
     precip_dataset_hr_fusion[precip_var].isel(time=0),
-    geodata=get_geodata(precip_dataset_hr_fusion),
+    geodata=geodata_from_dataset(precip_dataset_hr_fusion),
 )
 plt.title("Downscaled Rainfall Field with Spectral Fusion")
 plt.show()
@@ -205,7 +198,7 @@ precip_dataset_hr_combined = rainfarm.downscale(
 plt.figure()
 plot_precip_field(
     precip_dataset_hr_combined[precip_var].isel(time=0),
-    geodata=get_geodata(precip_dataset_hr_combined),
+    geodata=geodata_from_dataset(precip_dataset_hr_combined),
 )
 plt.title("Downscaled Rainfall Field with Gaussian Smoothing and Spectral Fusion")
 plt.show()

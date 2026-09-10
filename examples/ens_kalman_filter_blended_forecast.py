@@ -22,15 +22,14 @@ import os
 from datetime import datetime
 
 import numpy as np
-import pysteps_nwp_importers
 from matplotlib import pyplot as plt
 from pysteps_nwp_importers.importer_dwd_nwp import unstructured2regular
 
 import pysteps
 from pysteps import blending, io, rcparams
-from pysteps.utils import aggregate_fields_space, conversion, dimension, transformation
+from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
-from pysteps.xarray_helpers import convert_input_to_xarray_dataset
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset, geodata_from_dataset
 
 ################################################################################
 # Read the radar images and the NWP forecast
@@ -51,27 +50,6 @@ date_radar = datetime.strptime("202506041645", "%Y%m%d%H%M")
 date_nwp = datetime.strptime("202506041600", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["dwd"]
 nwp_data_source = rcparams.data_sources["dwd_nwp"]
-
-
-def geodata_from_dataset(dataset):
-    """Build a plot_precip_field-style geodata dict from a dataset."""
-    x = dataset.x.values
-    y = dataset.y.values
-    dx = dataset.x.attrs["stepsize"]
-    dy = dataset.y.attrs["stepsize"]
-    yorigin = "upper" if dy < 0 else "lower"
-    y1, y2 = y[0] - dy * 0.5, y[-1] + dy * 0.5
-    return {
-        "projection": dataset.attrs["projection"],
-        "x1": x[0] - dx * 0.5,
-        "x2": x[-1] + dx * 0.5,
-        "y1": min(y1, y2),
-        "y2": max(y1, y2),
-        "yorigin": yorigin,
-        "xpixelsize": dx,
-        "ypixelsize": abs(dy),
-        "cartesian_unit": dataset.x.attrs["units"],
-    }
 
 
 ###############################################################################

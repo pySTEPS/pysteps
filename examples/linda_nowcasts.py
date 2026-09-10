@@ -8,8 +8,10 @@ nowcasts using Swiss radar data.
 
 """
 
-from datetime import datetime
 import warnings
+from datetime import datetime
+
+from pysteps.xarray_helpers import geodata_from_dataset
 
 warnings.simplefilter("ignore")
 
@@ -56,14 +58,7 @@ precip_var = precip_dataset.attrs["precip_var"]
 precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
 
 # Build the geodata dict expected by the plotting routines
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the most recent rain rate field
 plt.figure()
@@ -178,14 +173,14 @@ for i in range(2):
     ax = plot_precip_field(
         nowcast_linda[i, -1, :, :], geodata=geodata, colorbar=False, axis="off"
     )
-    ax.set_title(f"LINDA Member {i+1}")
+    ax.set_title(f"LINDA Member {i + 1}")
 
 for i in range(2):
     ax = fig.add_subplot(2, 2, 3 + i)
     ax = plot_precip_field(
         nowcast_steps[i, -1, :, :], geodata=geodata, colorbar=False, axis="off"
     )
-    ax.set_title(f"STEPS Member {i+1}")
+    ax.set_title(f"STEPS Member {i + 1}")
 
 ###############################################################################
 # The above figure shows the main difference between LINDA and STEPS. In

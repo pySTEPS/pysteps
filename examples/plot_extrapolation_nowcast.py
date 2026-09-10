@@ -9,12 +9,15 @@ Finnish radar data.
 """
 
 from datetime import datetime
+from pprint import pprint
+
 import matplotlib.pyplot as plt
 import numpy as np
-from pprint import pprint
+
 from pysteps import io, motion, nowcasts, rcparams, verification
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ###############################################################################
 # Read the radar input images
@@ -55,14 +58,7 @@ precip_dataset = conversion.to_rainrate(precip_dataset)
 precip_var = precip_dataset.attrs["precip_var"]
 
 # Derive the geodata dict expected by the plotting routines from the dataset
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the rainfall field
 plot_precip_field(precip_dataset[precip_var][-1], geodata=geodata)
