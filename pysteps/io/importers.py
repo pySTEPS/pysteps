@@ -527,14 +527,14 @@ def import_mrms_grib(
         # Downscale data
         precip_var = precip_dataset.attrs["precip_var"]
         # block_reduce does not handle nan values
-        no_data_mask = np.isnan(precip_dataset[precip_var].values)
+        no_data_mask = precip_dataset[precip_var].values == -3
         precip_dataset[precip_var].data[no_data_mask] = 0
         precip_dataset["no_data_mask"] = (("y", "x"), no_data_mask)
         precip_dataset = block_reduce(precip_dataset, window_size, dim=("y", "x"))
 
         # Consider that if a single invalid observation is located in the block,
         # then mark that value as invalid.
-        no_data_mask = precip_dataset.no_data_mask.values == 1.0
+        no_data_mask = precip_dataset.no_data_mask.values > 0.0
         precip_dataset = precip_dataset.drop_vars("no_data_mask")
 
         # Downscale coords
