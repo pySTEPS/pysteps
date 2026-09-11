@@ -503,9 +503,6 @@ def import_mrms_grib(
     xsize = grib_msg["iDirectionIncrementInDegrees"] * window_size[0]
     ysize = grib_msg["jDirectionIncrementInDegrees"] * window_size[1]
 
-    x1, y1 = pr(ul_lon, lr_lat)
-    x2, y2 = pr(lr_lon, ul_lat)
-
     metadata = dict(
         institution="NOAA National Severe Storms Laboratory",
         xpixelsize=xsize,
@@ -516,10 +513,10 @@ def import_mrms_grib(
         projection=proj_def.strip(),
         yorigin="upper",
         threshold=_get_threshold_value(precip),
-        x1=x1 - xsize / 2,
-        x2=x2 + xsize / 2,
-        y1=y1 - ysize / 2,
-        y2=y2 + ysize / 2,
+        x1=lons[0] - (lons[1] - lons[0]) / 2,
+        x2=lons[-1] + (lons[-1] - lons[-2]) / 2,
+        y1=lats[-1] - (lats[-2] - lats[-1]) / 2,
+        y2=lats[0] + (lats[0] - lats[1]) / 2,
         cartesian_unit="degrees",
     )
 
