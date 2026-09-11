@@ -173,9 +173,13 @@ ensemble_precip_forecast = transformation.dB_transform(
 )
 
 # Plot the ensemble mean
-precip_forecast_mean = ensemble_precip_forecast[precip_var].mean(dim="ens_number")
+precip_forecast_mean = (
+    ensemble_precip_forecast[precip_var]
+    .isel(time=-1)
+    .mean(dim="ens_number", skipna=False)
+)
 plot_precip_field(
-    precip_forecast_mean[-1],
+    precip_forecast_mean.values,
     geodata=geodata,
     title="Ensemble mean (+ %i min)" % (n_leadtimes * timestep),
 )
