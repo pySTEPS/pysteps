@@ -497,7 +497,6 @@ def import_mrms_grib(
     no_data_mask = precip == -3  # Missing values
 
     proj_params = _get_grib_projection(grib_msg)
-    pr = pyproj.Proj(proj_params)
     proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
 
     xsize = grib_msg["iDirectionIncrementInDegrees"] * window_size[0]
