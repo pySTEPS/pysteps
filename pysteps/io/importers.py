@@ -695,10 +695,10 @@ def _import_bom_rf3_geodata(ds_rainfall):
         if getattr(ds_rainfall.variables["x"], "units") == "km":
             factor_scale = 1000.0
 
-    geodata["x1"] = xmin * factor_scale
-    geodata["y1"] = ymin * factor_scale
-    geodata["x2"] = xmax * factor_scale
-    geodata["y2"] = ymax * factor_scale
+    geodata["x1"] = (xmin - xpixelsize * 0.5) * factor_scale
+    geodata["y1"] = (ymin - ypixelsize * 0.5) * factor_scale
+    geodata["x2"] = (xmax + xpixelsize * 0.5) * factor_scale
+    geodata["y2"] = (ymax + ypixelsize * 0.5) * factor_scale
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
     geodata["cartesian_unit"] = "m"
