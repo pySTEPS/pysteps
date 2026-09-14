@@ -137,7 +137,7 @@ precip_dataset_hr = rainfarm.downscale(precip_dataset_lr, ds_factor=scale_factor
 plt.figure()
 plot_precip_field(
     precip_dataset_hr[precip_var].isel(time=0),
-    geodata=geodata_from_dataset(precip_dataset_hr),
+    geodata=geodata_from_dataset(precip_dataset),
 )
 plt.title("Downscaled Rainfall Field")
 plt.show()
@@ -156,7 +156,7 @@ precip_dataset_hr_smooth = rainfarm.downscale(
 plt.figure()
 plot_precip_field(
     precip_dataset_hr_smooth[precip_var].isel(time=0),
-    geodata=geodata_from_dataset(precip_dataset_hr_smooth),
+    geodata=geodata_from_dataset(precip_dataset),
 )
 plt.title("Downscaled Rainfall Field with Gaussian Smoothing")
 plt.show()
@@ -175,7 +175,7 @@ precip_dataset_hr_fusion = rainfarm.downscale(
 plt.figure()
 plot_precip_field(
     precip_dataset_hr_fusion[precip_var].isel(time=0),
-    geodata=geodata_from_dataset(precip_dataset_hr_fusion),
+    geodata=geodata_from_dataset(precip_dataset),
 )
 plt.title("Downscaled Rainfall Field with Spectral Fusion")
 plt.show()
@@ -198,7 +198,7 @@ precip_dataset_hr_combined = rainfarm.downscale(
 plt.figure()
 plot_precip_field(
     precip_dataset_hr_combined[precip_var].isel(time=0),
-    geodata=geodata_from_dataset(precip_dataset_hr_combined),
+    geodata=geodata_from_dataset(precip_dataset),
 )
 plt.title("Downscaled Rainfall Field with Gaussian Smoothing and Spectral Fusion")
 plt.show()
