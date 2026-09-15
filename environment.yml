@@ -13,3 +13,5 @@ dependencies:
   - pillow
   - pyproj
   - scipy
+  - pip:
+    - git+https://github.com/pySTEPS/pysteps-nwp-importers
