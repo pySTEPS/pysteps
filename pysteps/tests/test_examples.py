@@ -108,7 +108,9 @@ def test_example_plots(script_name, tmp_path, monkeypatch):
         for image in actual_images:
             actual_path = image
             baseline_path = baseline_dir / image.name
-            result = compare_images(str(baseline_path), str(actual_path), tol=1.0)
+            result = compare_images(
+                str(baseline_path), str(actual_path), tol=IMAGE_COMPARISON_TOLERANCE
+            )
             assert result is None, result
     finally:
         plt.close("all")
