@@ -34,3 +34,4 @@ dependencies:
   - pytest-cov
   - pip:
       - cookiecutter
+      - git+https://github.com/pySTEPS/pysteps-nwp-importers

@@ -16,7 +16,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import pysteps
-from pysteps import io, rcparams, blending, nowcasts
+from pysteps import blending, io, nowcasts, rcparams
 from pysteps.visualization import plot_precip_field
 
 ################################################################################
@@ -169,6 +169,7 @@ precip_forecast = blending.steps.forecast(
     kmperpixel=radar_metadata["xpixelsize"] / 1000.0,
     noise_stddev_adj="auto",
     vel_pert_method=None,
+    seed=42,  # Fixed seed for reproducible ensemble members
 )
 
 # Transform the data back into mm/h
@@ -349,6 +350,7 @@ for n, leadtime in enumerate(leadtimes_min):
     )
     ax3.axis("off")
 
+plt.show()
 
 ################################################################################
 # Blend the external nowcast with NWP - ensemble mode
@@ -375,6 +377,7 @@ precip_forecast = blending.steps.forecast(
     probmatching_method="cdf",
     mask_method="incremental",
     weights_method="bps",
+    seed=42,  # Fixed seed for reproducible ensemble members
 )
 
 # Transform the data back into mm/h

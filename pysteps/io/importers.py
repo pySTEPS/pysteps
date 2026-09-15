@@ -519,10 +519,10 @@ def _import_bom_rf3_geodata(ds_rainfall):
         if getattr(ds_rainfall.variables["x"], "units") == "km":
             factor_scale = 1000.0
 
-    geodata["x1"] = xmin * factor_scale
-    geodata["y1"] = ymin * factor_scale
-    geodata["x2"] = xmax * factor_scale
-    geodata["y2"] = ymax * factor_scale
+    geodata["x1"] = (xmin - xpixelsize * 0.5) * factor_scale
+    geodata["y1"] = (ymin - ypixelsize * 0.5) * factor_scale
+    geodata["x2"] = (xmax + xpixelsize * 0.5) * factor_scale
+    geodata["y2"] = (ymax + ypixelsize * 0.5) * factor_scale
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
     geodata["cartesian_unit"] = "m"
@@ -1807,37 +1807,6 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
 
-    # Get the projection and grid information from the HDF5 file
-    pr = pyproj.Proj(file_content["where"]["projdef"])
-    ll_x, ll_y = pr(
-        file_content["where"]["LL_lon"],
-        file_content["where"]["LL_lat"],
-    )
-    ur_x, ur_y = pr(
-        file_content["where"]["UR_lon"],
-        file_content["where"]["UR_lat"],
-    )
-
-    # Determine domain corners in geographic and carthesian coordinates
-    if len([k for k in file_content["where"].keys() if "_lat" in k]) == 4:
-        lr_x, lr_y = pr(
-            file_content["where"]["LR_lon"],
-            file_content["where"]["LR_lat"],
-        )
-        ul_x, ul_y = pr(
-            file_content["where"]["UL_lon"],
-            file_content["where"]["UL_lat"],
-        )
-        x1 = min(ll_x, ul_x)
-        y1 = min(ll_y, lr_y)
-        x2 = max(lr_x, ur_x)
-        y2 = max(ul_y, ur_y)
-    else:
-        x1 = ll_x
-        y1 = ll_y
-        x2 = ur_x
-        y2 = ur_y
-
     # Get the grid cell size
     if (
         "where" in file_content["dataset1"].keys()
@@ -1849,8 +1818,12 @@ def import_dwd_hdf5(filename, qty="RATE", **kwargs):
         xpixelsize = file_content["where"]["xscale"]
         ypixelsize = file_content["where"]["yscale"]
     else:
-        xpixelsize = None
-        ypixelsize = None
+        raise ValueError("No xscale found in ODIM hdf5 file")
+
+    x1 = -xpixelsize * 0.5
+    x2 = -xpixelsize * 0.5 + precip.shape[1] * xpixelsize
+    y1 = xpixelsize * 0.5 - precip.shape[0] * ypixelsize
+    y2 = ypixelsize * 0.5
 
     # Get the unit and transform
     if qty == "ACRR":

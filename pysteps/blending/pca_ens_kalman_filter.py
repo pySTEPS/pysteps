@@ -666,6 +666,15 @@ class ForecastModel:
 
         self.__ens_member = ens_member
 
+        # Dedicated, per-member random generator for selecting noise fields from
+        # the pool in __iterate, so that the "seed" config option fully controls
+        # the reproducibility of the forecast instead of relying on the global,
+        # unseeded numpy random state.
+        seed = self.__forecast_state.config.seed
+        self.__randgen_select = np.random.RandomState(
+            None if seed is None else seed + ens_member
+        )
+
     # Bundle single steps of the forecast.
     def run_forecast_step(self, nwp, is_correction_timestep=False):
         # Decompose precipitation field.
@@ -813,7 +822,9 @@ class ForecastModel:
         # precipitation mask and the standard deviation coefficients.
         epsilon = (
             self.__forecast_state.noise_field_pool[
-                np.random.randint(self.__forecast_state.config.n_noise_fields)
+                self.__randgen_select.randint(
+                    self.__forecast_state.config.n_noise_fields
+                )
             ]
             * self.__forecast_state.precip_mask[self.__ens_member][None, :, :]
             * self.__forecast_state.params.noise_std_coeffs[:, None, None]
