@@ -26,6 +26,7 @@ References
     match
     couple_track
 """
+
 import numpy as np
 import xarray as xr
 
@@ -175,11 +176,11 @@ def dating(
     """
     if not SKIMAGE_IMPORTED:
         raise MissingOptionalDependency(
-            "skimage is required for thunderstorm DATing " "but it is not installed"
+            "skimage is required for thunderstorm DATing but it is not installed"
         )
     if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
-            "pandas is required for thunderstorm DATing " "but it is not installed"
+            "pandas is required for thunderstorm DATing but it is not installed"
         )
 
     # Check arguments
@@ -221,8 +222,10 @@ def dating(
             max_ID = np.nanmax([np.nanmax(cid), max_ID]) + 1
             continue
         if t >= 2:
-            dataset = oflow_method(dataset.isel(time=slice(t - 2, t + 1)))
-            flowfield = np.stack([dataset.velocity_x.values, dataset.velocity_y.values])
+            dataset_flow = oflow_method(dataset.isel(time=slice(t - 2, t + 1)))
+            flowfield = np.stack(
+                [dataset_flow.velocity_x.values, dataset_flow.velocity_y.values]
+            )
             cells_id, max_ID, newlabels, splitted_cells = tracking(
                 cells_id,
                 cell_list[-1],
