@@ -27,8 +27,32 @@ import matplotlib.pyplot as plt
 import pytest
 from matplotlib.testing.compare import compare_images
 
-EXAMPLES_DIR = Path(__file__).resolve().parents[2] / "examples"
-BASELINE_DIR = Path(__file__).resolve().parent / "image_comparison_files" / "examples"
+
+def _resolve_dir(default: Path, repo_relative: str) -> Path:
+    """Resolve a directory that lives in the source checkout but is not
+    shipped with the installed package (e.g. in CI, where pysteps is
+    installed with ``pip install .`` rather than in editable mode).
+
+    Falls back to ``$PYSTEPS_REPO_ROOT / repo_relative`` when the
+    package-relative ``default`` path doesn't exist on disk.
+    """
+    if default.is_dir():
+        return default
+    repo_root = os.environ.get("PYSTEPS_REPO_ROOT")
+    if repo_root:
+        candidate = Path(repo_root) / repo_relative
+        if candidate.is_dir():
+            return candidate
+    return default
+
+
+EXAMPLES_DIR = _resolve_dir(
+    Path(__file__).resolve().parents[2] / "examples", "examples"
+)
+BASELINE_DIR = _resolve_dir(
+    Path(__file__).resolve().parent / "image_comparison_files" / "examples",
+    "pysteps/tests/image_comparison_files/examples",
+)
 
 # RMS pixel value tolerance (0-255 scale) passed to
 # matplotlib.testing.compare.compare_images. 0 requires an exact pixel match.

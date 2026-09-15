@@ -100,6 +100,7 @@ jobs:
         working-directory: ${{github.workspace}}/pysteps_data
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
+          PYSTEPS_REPO_ROOT: ${{github.workspace}}
         run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
 
       - name: Upload coverage to Codecov (Linux only)
