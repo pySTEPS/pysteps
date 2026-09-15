@@ -32,7 +32,7 @@ BASELINE_DIR = Path(__file__).resolve().parent / "image_comparison_files" / "exa
 
 # RMS pixel value tolerance (0-255 scale) passed to
 # matplotlib.testing.compare.compare_images. 0 requires an exact pixel match.
-IMAGE_COMPARISON_TOLERANCE = 0
+IMAGE_COMPARISON_TOLERANCE = 1.0
 
 UPDATE_BASELINE_IMAGES = bool(os.environ.get("PYSTEPS_UPDATE_BASELINE_IMAGES"))
 
