@@ -2091,7 +2091,7 @@ class StepsBlendingNowcaster:
                 outdir_path=self.__config.outdir_path_skill,
                 **self.__params.climatology_kwargs,
             )
-        if t > 0:
+        if t > 1:
             # Determine the skill of the components for lead time (t0 + t)
             # First for the extrapolation component. Only calculate it when t > 0.
             (
