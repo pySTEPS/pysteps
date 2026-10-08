@@ -129,6 +129,10 @@ def boxcox_transform(
         if zerovalue is None:
             zerovalue = 0.0
 
+        # Find the zeros before the back-transformation: for Lambda > 0, values
+        # below -1 / Lambda (e.g. the zero value) have no inverse and become NaN
+        zeros = R < threshold
+
         # Apply inverse Box-Cox transform
         if Lambda == 0.0:
             R = np.exp(R)
@@ -138,7 +142,7 @@ def boxcox_transform(
             R = np.exp(np.log(Lambda * R + 1) / Lambda)
             threshold = np.exp(np.log(Lambda * threshold + 1) / Lambda)
 
-        R[R < threshold] = zerovalue
+        R[zeros] = zerovalue
 
         metadata["transform"] = None
         metadata["zerovalue"] = zerovalue
