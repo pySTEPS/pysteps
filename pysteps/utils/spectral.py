@@ -98,37 +98,43 @@ def mean(X, shape):
 
 
 def rapsd(
-    field, fft_method=None, return_freq=False, d=1.0, normalize=False, **fft_kwargs
+    field, fft_method=np.fft, return_freq=False, d=1.0, normalize=False, **fft_kwargs
 ):
     """
-    Compute radially averaged power spectral density (RAPSD) from the given
-    2D input field.
+    Compute radially averaged power spectral density (RAPSD) of the given 2D
+    input field.
 
     Parameters
     ----------
-    field: array_like
+    field : array_like
         A 2d array of shape (m, n) containing the input field.
-    fft_method: object
+    fft_method : object, optional
+        The fast Fourier transform (FFT) method to apply to the input field.
         A module or object implementing the same methods as numpy.fft and
         scipy.fftpack. If set to None, field is assumed to represent the
         shifted discrete Fourier transform of the input field, where the
         origin is at the center of the array
-        (see numpy.fft.fftshift or scipy.fftpack.fftshift).
-    return_freq: bool
-        Whether to also return the Fourier frequencies.
-    d: scalar
-        Sample spacing (inverse of the sampling rate). Defaults to 1.
-        Applicable if return_freq is 'True'.
-    normalize: bool
-        If True, normalize the power spectrum so that it sums to one.
+        (see numpy.fft.fftshift or scipy.fftpack.fftshift). Defaults to
+        numpy.fft.
+    return_freq : bool, optional
+        Whether to also return the Fourier frequencies. Defaults to ``False``.
+    d : scalar, optional
+        Sample spacing (inverse of the sampling rate). Applicable if
+        return_freq is ``True``. Defaults to 1.
+    normalize : bool, optional
+        If True, normalize the power spectrum so that it sums to one. Defaults
+        to ``False``.
+    fft_kwargs : dict, optional
+        Optional keyword arguments that are passed to the FFT method. Defaults
+        to ``None``.
 
     Returns
     -------
     out: ndarray
-      One-dimensional array containing the RAPSD. The length of the array is
-      int(l/2) (if l is even) or int(l/2)+1 (if l is odd), where l=max(m,n).
+        One-dimensional array containing the RAPSD. The length of the array is
+        int(l/2) (if l is even) or int(l/2)+1 (if l is odd), where l=max(m,n).
     freq: ndarray
-      One-dimensional array containing the Fourier frequencies.
+        One-dimensional array containing the Fourier frequencies.
 
     References
     ----------
