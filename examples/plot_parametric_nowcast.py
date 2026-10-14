@@ -1,6 +1,6 @@
 """
 Parametric nowcast from three rain-rate fields
-============================================
+==============================================
 
 This self-contained example builds three synthetic observations, then lets the
 parametric engine estimate motion and parameters and generate an ensemble.

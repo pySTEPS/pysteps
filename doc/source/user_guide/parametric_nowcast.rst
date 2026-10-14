@@ -41,7 +41,7 @@ importing three observations, selecting a complete domain, generating the
 ensemble, and plotting means, members, and exceedance probabilities.
 
 Reference settings and regional overrides
-----------------------------------------
+-----------------------------------------
 
 These defaults preserve the evaluated ``nowcast_v2`` engine configuration from
 ``psteps_param_paper/config/db/config.json`` and the WRNZ acceptance configuration,
@@ -132,7 +132,7 @@ The reference has window (31,31), three pyramid levels, minimum eigenvalue
 It is estimated from two images, once, with no velocity perturbations.
 
 Dry and unavailable estimates
-----------------------------
+-----------------------------
 
 If the newest field has no rain at the occurrence threshold, the ensemble is
 zero, including when earlier observations were wet. Motion/noise generation is
@@ -177,7 +177,7 @@ NetCDF packing and storage. Outputs have no regional 200 mm/h cap; finite
 generated values are required. No input arrays or settings are modified.
 
 Randomness, diagnostics, and incremental output
-----------------------------------------------
+-----------------------------------------------
 
 A local NumPy SeedSequence spawns independent member streams. With the same
 seed and settings, the leading members agree when ensemble size increases.

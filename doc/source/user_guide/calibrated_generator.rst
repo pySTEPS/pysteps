@@ -77,7 +77,7 @@ quantile clip can all be overridden. No reference defaults were retuned during
 this port.
 
 Random streams and dry cases
----------------------------
+----------------------------
 
 ``seed`` creates a local NumPy random stream without changing global random state.
 Alternatively, pass a caller-owned ``rng``; it advances in place and must be
@@ -91,7 +91,7 @@ wet pixels raise an error. Missing/nonfinite input and invalid parameters also
 raise errors; they are not classified as dry rainfall.
 
 Cascade innovations and marginal adjustment
-------------------------------------------
+-------------------------------------------
 
 The raw field retains its rainfall marginal. The parametric engine generates it
 first, then obtains normalized cascade innovations through decomposition::
