@@ -4,6 +4,5 @@ include pysteps/pystepsrc_schema.json
 include pysteps/io/mch_lut_8bit_Metranet_AZC_V104.txt
 include pysteps/io/mch_lut_8bit_Metranet_v103.txt
 recursive-include pysteps *.pyx
+recursive-include pysteps/tests/data *.json *.npz
 include pyproject.toml
-
-  

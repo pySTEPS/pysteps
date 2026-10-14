@@ -24,6 +24,11 @@ For stochastic methods that produce an ensemble, the output is a
 four-dimensional array of shape (num_ensemble_members,num_timesteps,m,n).
 The time step of the output is taken from the inputs.
 
+The ``parametric`` method additionally estimates motion when velocity is omitted.
+It requires exactly three complete rain-rate observations in mm/h, pixel size
+in km, and a timestep in minutes; its output is also in mm/h. Its first release
+accepts integer timesteps only. See its method-specific forecast documentation.
+
 .. autosummary::
     :toctree: ../generated/
 
@@ -37,6 +42,7 @@ from pysteps.nowcasts import (
     extrapolation,
     lagrangian_probability,
     linda,
+    parametric,
     sprog,
     sseps,
     steps,
@@ -51,6 +57,7 @@ _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast
 _nowcast_methods["linda"] = linda.forecast
+_nowcast_methods["parametric"] = parametric.forecast
 _nowcast_methods["probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
@@ -80,6 +87,9 @@ def get_method(name):
     |  extrapolation  | using the motion field (Lagrangian persistence)       |
     +-----------------+-------------------------------------------------------+
     |  linda          | the LINDA method developed in :cite:`PCN2021`         |
+    +-----------------+-------------------------------------------------------+
+    |  parametric     | three rain-rate observations to a parametric ensemble |
+    |                 | with internal parameter and motion estimation         |
     +-----------------+-------------------------------------------------------+
     |  lagrangian\_   | this approach computes local lagrangian probability   |
     |  probability    | forecasts of threshold exceedences                    |

@@ -14,11 +14,130 @@ Methods for matching the probability distribution of two data sets.
     pmm_compute
     shift_scale
     resample_distributions
+    match_rainfall_distribution
 """
 
 import numpy as np
 from scipy import interpolate as sip
 from scipy import optimize as sop
+from scipy import stats as sstats
+
+
+def match_rainfall_distribution(
+    field,
+    rain_fraction,
+    mean,
+    stdev,
+    threshold,
+    *,
+    zerovalue=None,
+    min_rain_fraction=0.0,
+    nbins=500,
+    eps=0.001,
+):
+    """Map a finite field to a prescribed occurrence and Normal rainfall marginal.
+
+    Parameters
+    ----------
+    field: array_like
+        Nonempty, finite real 2D field, converted to float64 without modification.
+    rain_fraction: float
+        Requested wet fraction in [0, 1]. A histogram cutoff selects the wet
+        pixels before marginal mapping; the final wet fraction is approximate.
+    mean, stdev: float
+        Finite parent-Normal location and positive scale in transformed units.
+        These are caller-selected generation moments, not necessarily ordinary
+        retained wet-pixel moments. No moment selection is performed here.
+    threshold: float
+        Rain/no-rain threshold in the same transformed units.
+    zerovalue: float, optional
+        Finite dry value below threshold, default threshold-0.1. Used for an
+        explicit dry result; positive-fraction mapping retains continuous dry
+        anomalies below threshold, as in the source generator.
+    min_rain_fraction: float, optional
+        Explicit dry-output policy for fractions below this value. Default 0
+        suppresses no positive fraction. The source post-AR adjustment uses 0.025.
+    nbins: int, optional
+        Number of histogram bins (default 500).
+    eps: float, optional
+        Normal-quantile probability clip in (0, 0.5), default 0.001.
+
+    Returns
+    -------
+    mapped: ndarray
+        Field of the same shape and transformed units. Zero requested fraction
+        or a fraction below min_rain_fraction returns the configured dry value.
+
+    Notes
+    -----
+    Preserves the source ``normalize_stoch_field`` mapping: find the last bin
+    whose cumulative probability is <= 1-rain_fraction, shift its upper edge
+    to threshold, and map the strictly-above-threshold sample's binned CDF to
+    clipped Normal quantiles using bin-centre linear interpolation. Wet mapped
+    values can cross back below threshold, and spectra can change. Neither
+    occurrence nor marginal moments are exact guarantees. Unavailable or
+    degenerate positive-fraction mappings raise ValueError, not a dry fallback.
+    """
+    if np.iscomplexobj(field):
+        raise ValueError("field must contain real values")
+    field = np.asarray(field, dtype=float)
+    if field.ndim != 2 or field.size == 0 or not np.isfinite(field).all():
+        raise ValueError("field must be a nonempty finite two-dimensional array")
+    for name, value in [
+        ("rain_fraction", rain_fraction),
+        ("mean", mean),
+        ("stdev", stdev),
+        ("threshold", threshold),
+        ("min_rain_fraction", min_rain_fraction),
+        ("eps", eps),
+    ]:
+        if not np.isscalar(value) or np.iscomplexobj(value) or not np.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if not 0 <= rain_fraction <= 1 or not 0 <= min_rain_fraction <= 1:
+        raise ValueError("rain fractions must lie in [0, 1]")
+    if stdev <= 0:
+        raise ValueError("stdev must be positive")
+    if not isinstance(nbins, (int, np.integer)) or nbins < 2:
+        raise ValueError("nbins must be an integer of at least two")
+    if not 0 < eps < 0.5:
+        raise ValueError("eps must lie in (0, 0.5)")
+    zerovalue = threshold - 0.1 if zerovalue is None else zerovalue
+    if (
+        not np.isscalar(zerovalue)
+        or np.iscomplexobj(zerovalue)
+        or not np.isfinite(zerovalue)
+        or zerovalue >= threshold
+    ):
+        raise ValueError("zerovalue must be finite and below threshold")
+    if rain_fraction == 0 or rain_fraction < min_rain_fraction:
+        return np.full_like(field, zerovalue)
+
+    distribution = sstats.cumfreq(field, numbins=nbins)
+    edges = distribution.lowerlimit + np.arange(nbins + 1) * distribution.binsize
+    cdf = distribution.cumcount / distribution.cumcount[-1]
+    below = np.flatnonzero(cdf <= 1 - rain_fraction)
+    rain_bin = int(below[-1]) if below.size else 0
+    mapped = field + (threshold - edges[rain_bin + 1])
+    wet = mapped > threshold
+    sample = mapped[wet]
+    if sample.size < 2 or np.ptp(sample) == 0:
+        raise ValueError("mapping produced too few distinct raining pixels")
+    distribution = sstats.cumfreq(sample, numbins=nbins)
+    edges = distribution.lowerlimit + np.arange(nbins + 1) * distribution.binsize
+    centres = 0.5 * (edges[:-1] + edges[1:])
+    cdf = distribution.cumcount / distribution.cumcount[-1]
+    quantiles = sstats.norm.ppf(np.clip(cdf, eps, 1 - eps), loc=mean, scale=stdev)
+    transform = sip.interp1d(
+        centres,
+        quantiles,
+        kind="linear",
+        bounds_error=False,
+        fill_value=(quantiles[0], quantiles[-1]),
+    )
+    mapped[wet] = transform(sample)
+    if not np.isfinite(mapped).all():
+        raise ValueError("marginal mapping produced nonfinite values")
+    return mapped
 
 
 def compute_empirical_cdf(bin_edges, hist):

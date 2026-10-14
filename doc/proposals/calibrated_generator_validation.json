@@ -1,0 +1,127 @@
+{
+  "provenance": {
+    "source_revision": "94bd4c1571637a8f246ac391470e1a820d6376a6",
+    "source_sha256": {
+      "rain_stats_compute.py": "2fd6f0b622e88e143d8128f80cb5d0920f0111c1021c6c448222c90bff92c889",
+      "stochastic_generator.py": "94c491e4fd90da0c733ce65b48227b6b73dc31a8fc6a23a44e211ad36b3f9343"
+    }
+  },
+  "paper_revision": "335f7660775480d865d9771820a81923c461832a",
+  "seeds": [
+    0,
+    20260908
+  ],
+  "scale_break_km": 15.0,
+  "pixel_size_km": 1.0,
+  "threshold_mm_per_hour": 1.0,
+  "lower_truncation_dbr": 1.25,
+  "target_policy": "Raw estimator outputs; regional generation QA not applied",
+  "coupled_maximum_absolute_error_tolerance_dbr": 0.0001,
+  "cases": [
+    {
+      "name": "auckland_flood",
+      "input_sha256": "f78b06cc1efeb8d9ee061426eac2f51ed82235e00f4941b1d47104d104f667bd",
+      "parameters": {
+        "beta_1": -2.273651863876293,
+        "beta_2": -3.662396072463196,
+        "rain_fraction": 0.5553436279296875,
+        "mean_db": 8.847101002812746,
+        "stdev_db": 3.8570109547579055
+      },
+      "comparisons": [
+        {
+          "seed": 0,
+          "attempts": 1,
+          "selected_attempt": 1,
+          "tolerance_achieved": true,
+          "distance": 0.6383365056784039,
+          "identical_targets_maximum_field_difference": 0.0,
+          "coupled_estimators_maximum_field_difference": 2.5451289848987813e-06,
+          "coupled_distance_difference": 2.5999754238448247e-08,
+          "coupled_threshold_classification_changes": 0
+        },
+        {
+          "seed": 20260908,
+          "attempts": 1,
+          "selected_attempt": 1,
+          "tolerance_achieved": true,
+          "distance": 0.6095533515286298,
+          "identical_targets_maximum_field_difference": 0.0,
+          "coupled_estimators_maximum_field_difference": 2.0263810918130787e-06,
+          "coupled_distance_difference": 3.071912091368034e-08,
+          "coupled_threshold_classification_changes": 0
+        }
+      ]
+    },
+    {
+      "name": "isolated_convection",
+      "input_sha256": "89f2e91182e1d3e6ca25f72665c79bfbe21bb32b6e342820d009f00e5e4cd9cf",
+      "parameters": {
+        "beta_1": -2.6892617566424533,
+        "beta_2": -4.121223604980568,
+        "rain_fraction": 0.0120086669921875,
+        "mean_db": 7.35241634620303,
+        "stdev_db": 5.986137951026812
+      },
+      "comparisons": [
+        {
+          "seed": 0,
+          "attempts": 5,
+          "selected_attempt": 1,
+          "tolerance_achieved": false,
+          "distance": 1.7682317797999607,
+          "identical_targets_maximum_field_difference": 0.0,
+          "coupled_estimators_maximum_field_difference": 3.0861900794931785e-06,
+          "coupled_distance_difference": 2.7100723221096246e-08,
+          "coupled_threshold_classification_changes": 0
+        },
+        {
+          "seed": 20260908,
+          "attempts": 5,
+          "selected_attempt": 5,
+          "tolerance_achieved": false,
+          "distance": 1.372658775569873,
+          "identical_targets_maximum_field_difference": 0.0,
+          "coupled_estimators_maximum_field_difference": 3.81796733961437e-06,
+          "coupled_distance_difference": 1.336142596564116e-08,
+          "coupled_threshold_classification_changes": 0
+        }
+      ]
+    },
+    {
+      "name": "maximum_war",
+      "input_sha256": "c4b4056eb831909d7743ed843cafe5d8e2d07ee51aaaae48baf5b13bcd2e228f",
+      "parameters": {
+        "beta_1": -2.0124000625157166,
+        "beta_2": -2.815792829116034,
+        "rain_fraction": 0.97393798828125,
+        "mean_db": 4.864743029213302,
+        "stdev_db": 2.3268029538539783
+      },
+      "comparisons": [
+        {
+          "seed": 0,
+          "attempts": 1,
+          "selected_attempt": 1,
+          "tolerance_achieved": false,
+          "distance": 2.239759280240739,
+          "identical_targets_maximum_field_difference": 0.0,
+          "coupled_estimators_maximum_field_difference": 7.808604465253666e-07,
+          "coupled_distance_difference": 1.093659296458327e-08,
+          "coupled_threshold_classification_changes": 0
+        },
+        {
+          "seed": 20260908,
+          "attempts": 1,
+          "selected_attempt": 1,
+          "tolerance_achieved": false,
+          "distance": 1.8951416473971945,
+          "identical_targets_maximum_field_difference": 0.0,
+          "coupled_estimators_maximum_field_difference": 5.423179940677869e-07,
+          "coupled_distance_difference": 7.69973840242244e-09,
+          "coupled_threshold_classification_changes": 0
+        }
+      ]
+    }
+  ]
+}
