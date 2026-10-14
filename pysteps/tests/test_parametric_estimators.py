@@ -59,7 +59,13 @@ def test_source_marginal_parity(reference):
     original = field.copy()
     estimated = compute_field_statistics(field, 0, lower_truncation=1.25)
     for name, expected in reference["marginal"].items():
-        assert estimated[name] == pytest.approx(expected, rel=1e-12, abs=1e-12)
+        # The likelihood optimizer's latent moments vary slightly across
+        # numerical libraries and platforms; direct moments remain tighter.
+        if name in ("latent_mean", "latent_stdev"):
+            rel_tol, abs_tol = 1e-7, 1e-8
+        else:
+            rel_tol, abs_tol = 1e-12, 1e-12
+        assert estimated[name] == pytest.approx(expected, rel=rel_tol, abs=abs_tol)
     assert_array_equal(field, original)
 
 
