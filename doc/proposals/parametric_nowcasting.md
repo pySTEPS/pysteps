@@ -293,6 +293,8 @@ forecast engine and executable example are now implemented; see the
 [engine extraction and validation record](parametric_engine.md) for the
 public call, reference defaults, source comparisons, limitations, and a
 separate assessment of the non-parametric inflow extension.
+The non-parametric engine is deferred until the parametric contribution is in
+pySTEPS; it is not part of the current delivery work.
 
 Use this Markdown proposal as the scope and design record for upstream discussion.
 Link it from issue #472 or a subsequent contribution discussion when ready.

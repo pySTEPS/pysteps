@@ -179,6 +179,13 @@ source forecasts, exact cached-advection parity for zero/constant/varying flow,
 fractional cadence, independent streams and input purity, streaming equivalence,
 dry/partly dry/sparse histories, safeguard choices, and invalid input/settings.
 The gallery example executed successfully with internal motion and estimation.
+The additional [Swiss radar tutorial](../../examples/plot_parametric_nowcast_swiss.py)
+also ran with the actual MeteoSwiss example observations at 11:50, 11:55, and
+12:00 UTC on 31 January 2017. A complete 300 km LV03 subdomain, aggregated to
+2 km, produced a finite `(20, 6, 150, 150)` ensemble and four rendered figures:
+observation, ensemble mean, four members, and 1 mm/h exceedance probabilities.
+Domain metadata and probability calculations were checked. This demonstrates
+the interface on Swiss data; it does not retune or validate a Swiss calibration.
 The wheel built successfully; its engine, trajectory helper, and forecast
 fixtures matched the checkout by SHA-256. All 154 packaged engine, estimator,
 and generator tests passed from the extracted wheel outside the checkout.
@@ -189,6 +196,10 @@ This is a targeted test run; a full repository test suite and Sphinx build are
 not claimed.
 
 ## Non-parametric contribution: assessment, not implementation
+
+Decision, 15 October 2026: defer the non-parametric engine and discussion with
+upstream maintainers until the parametric contribution is in pySTEPS. The
+assessment below is retained as background; it is not current delivery work.
 
 There is merit in a subsequent contribution, chiefly the **Eulerian stochastic
 inflow treatment** evaluated in the source comparisons. Native upstream STEPS
@@ -225,5 +236,5 @@ The design implication is modest:
    force a general framework before either method is accepted.
 
 The non-parametric engine and native STEPS evolution are unchanged by this
-contribution. Its useful boundary extension can be reviewed as a separate
-scientific contribution after this engine is accepted.
+contribution. Its useful boundary extension is on hold and can be raised as a
+separate scientific contribution after the parametric engine is upstream.

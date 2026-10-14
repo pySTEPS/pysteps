@@ -140,7 +140,25 @@ Sphinx documentation build was not run because Sphinx was unavailable.
 ## Documentation and next stage
 
 API docstrings and noise-module reference entries are provided, with executable
-examples in `doc/source/user_guide/calibrated_generator.rst`. The next stage is
-the three-observation parametric nowcast engine, assembling transformation, motion,
-estimation, reference settings and parameter safeguards, calibrated innovations,
-advection/AR updates, and marginal feedback within one forecast interface.
+examples in `doc/source/user_guide/calibrated_generator.rst`. The assembled
+three-observation engine is documented in [its implementation record](parametric_engine.md).
+
+The [companion gallery example](../../examples/plot_calibrated_noise_generator.py)
+uses the same MeteoSwiss composite as `plot_noise_generators.py`: 11 July 2016,
+21:00 UTC. It estimates ordinary/latent moments and prescribed-break slopes on
+a complete 300 km domain at 2 km spacing, explicitly selects generation moments,
+and generates three seeded calibrated fields. It compares observed and calibrated
+rainfall exceedance curves, contrasts radial spectra with an uncorrected field,
+then decomposes the raw
+field into normalized innovations. The original standardized-noise example
+remains unchanged.
+
+The companion ran on the actual sample data and all four figures rendered.
+Seeds 42 and 44 met the default spectral tolerance (distances 0.634 and 0.817);
+seed 43 returned `best_available` with distance 1.295, correctly reported as
+outside tolerance. The run checked finite 150-by-150 fields, rain-rate units and
+thresholding, seed reproducibility, monotone exceedance curves and their wet-area
+denominators, and zero-mean/unit-standard-deviation cascade innovations.
+The raw generated fields had standard deviations around 2.39 dBR, preserving
+the distinction from standardized cascade noise. This illustrates the methods
+on Swiss data rather than asserting a Swiss calibration or new forecast skill.

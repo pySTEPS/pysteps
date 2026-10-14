@@ -35,6 +35,10 @@ per observation timestep. Otherwise dense Lucas-Kanade motion is estimated
 from the latest two transformed observations. Statistical parameters and motion
 remain fixed throughout each forecast. See :ref:`sphx_glr_auto_examples_plot_parametric_nowcast.py`
 for a complete runnable synthetic example.
+For a radar-data walkthrough using the same Swiss sequence as the STEPS tutorial,
+see :ref:`sphx_glr_auto_examples_plot_parametric_nowcast_swiss.py`. It shows
+importing three observations, selecting a complete domain, generating the
+ensemble, and plotting means, members, and exceedance probabilities.
 
 Reference settings and regional overrides
 ----------------------------------------

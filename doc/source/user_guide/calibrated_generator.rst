@@ -3,16 +3,20 @@ Calibrated stochastic rainfall fields
 
 The calibrated generator creates a NumPy rainfall-marginal field from an explicit
 statistical parameter mapping. It implements the ``inverse_calibrated_v2`` method
-extracted from ``pysteps_param``. It is a component of the proposed parametric
+extracted from ``pysteps_param``. It is a component of the parametric
 nowcast engine; ensemble state evolution and observation preparation are separate
-stages.
+stages. See :ref:`sphx_glr_auto_examples_plot_calibrated_noise_generator.py`
+for a radar-data example using the new estimators, explicit moment selection,
+calibration diagnostics, rainfall distributions, spectra, and normalized
+cascade innovations. It uses the same Swiss composite as the original
+stochastic-noise tutorial on a complete subdomain.
 
 Generating a field
 ------------------
 
 Supply signed spectral slopes, rain fraction, and caller-selected Normal location
 and scale in transformed rainfall units. The example values illustrate the
-interface; the eventual engine will estimate and select these parameters from
+interface; the parametric engine estimates and selects these parameters from
 the observations::
 
     import numpy as np
@@ -103,7 +107,7 @@ first, then obtains normalized cascade innovations through decomposition::
 
 The raw field is not guaranteed to have global mean zero and variance one.
 Existing native STEPS noise-method registrations retain their perturbation
-interface; the calibrated parametric engine will consume this helper directly.
+interface; the calibrated parametric engine consumes this helper directly.
 
 The shared :func:`pysteps.postprocessing.probmatching.match_rainfall_distribution`
 also supports the post-AR marginal adjustment. Its default suppresses no positive
