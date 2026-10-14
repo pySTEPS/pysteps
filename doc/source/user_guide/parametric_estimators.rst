@@ -2,9 +2,9 @@ Parametric rainfall estimators
 ==============================
 
 The parametric estimators provide NumPy-based spatial statistics and temporal
-model utilities extracted from ``pysteps_param``. They are the first components
-of a proposed parametric nowcast engine; they do not yet implement the public
-three-observation forecast endpoint.
+model utilities extracted from ``pysteps_param``. They support the
+three-observation forecast endpoint described in :doc:`parametric_nowcast`
+and can also be used independently.
 
 Spatial estimation
 ------------------
@@ -114,7 +114,8 @@ the external repositories nor a database. The reference-generation script in
 ``pysteps/tests/data/generate_parametric_reference.py`` documents how to refresh
 the fixture using the source project's environment.
 
-The defaults used to configure the eventual engine will be associated with the
-evaluated paper and case-study configuration. These utilities leave regional
-calibration settings and operational parameter-repair policies explicit. The
-scope and extraction record are maintained under ``doc/proposals/``.
+The engine defaults are traced to the evaluated paper and case-study
+configuration in ``doc/proposals/parametric_engine.md``. These utilities leave
+regional calibration settings and operational parameter-repair policies
+explicit. The scope and extraction record are maintained under
+``doc/proposals/``.
