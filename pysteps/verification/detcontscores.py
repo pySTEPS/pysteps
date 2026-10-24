@@ -327,6 +327,11 @@ def det_cont_fct_accum(err, pred, obs):
                 + "verification object %s!=%s" % (nshape, err["cov"].shape)
             )
 
+    # Use the same forecast-observation pairs for means, variances and counts.
+    valid = np.isfinite(pred) & np.isfinite(obs)
+    pred = np.where(valid, pred, np.nan)
+    obs = np.where(valid, obs, np.nan)
+
     # conditioning
     if err["conditioning"] is not None:
         if err["conditioning"] == "single":
