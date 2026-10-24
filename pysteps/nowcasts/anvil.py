@@ -23,6 +23,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from pysteps import cascade, extrapolation
 from pysteps.nowcasts.utils import nowcast_main_loop
+from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.timeseries import autoregression
 from pysteps import utils
 
@@ -184,7 +185,7 @@ def forecast(
         starttime_init = time.time()
 
     m, n = vil.shape[1:]
-    vil = vil.copy()
+    vil = vil[-(ar_order+2) :].copy()
 
     if rainrate is None and apply_rainrate_mask:
         rainrate_mask = vil[-1, :] < 0.1
@@ -273,6 +274,10 @@ def forecast(
                 gamma[i, 0, :], gamma[i, 1, :]
             )
 
+    nowcast_utils.print_corrcoefs(
+        np.nanmean(gamma, axis=(-2,-1))
+        )
+    
     # estimate the parameters of the ARI models
     phi = []
     for i in range(n_cascade_levels):
@@ -284,6 +289,10 @@ def forecast(
             phi_ = _estimate_ar1_params(gamma[i, :])
         phi.append(phi_)
 
+    nowcast_utils.print_ar_params(
+        np.nanmean(np.array(phi), axis=(-2,-1))
+        )
+    
     vil_dec = vil_dec[:, -(ar_order + 1) :, :]
 
     if measure_time:
@@ -339,7 +348,7 @@ def _check_inputs(vil, rainrate, velocity, timesteps, ar_order):
                 "rainrate.shape = %s, but a two-dimensional array expected"
                 % str(rainrate.shape)
             )
-    if vil.shape[0] != ar_order + 2:
+    if vil.shape[0] < ar_order + 2:
         raise ValueError(
             "vil.shape[0] = %d, but vil.shape[0] = ar_order + 2 = %d required"
             % (vil.shape[0], ar_order + 2)
