@@ -16,6 +16,7 @@ Forecast evaluation and skill scores for deterministic continuous forecasts.
 """
 
 import collections
+import copy
 import numpy as np
 from scipy.stats import spearmanr
 
@@ -433,7 +434,7 @@ def det_cont_fct_merge(err_1, err_2):
         raise ValueError("cannot merge: no data found")
 
     # merge the two verification error objects
-    err = err_1.copy()
+    err = copy.deepcopy(err_1)
 
     # update variances
     _parallel_var(
