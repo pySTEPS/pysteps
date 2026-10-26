@@ -351,6 +351,7 @@ def forecast(
     seed=None,
     motion_kwargs=None,
     estimation_kwargs=None,
+    temporal_fallback=None,
     noise_kwargs=None,
     callback=None,
     return_output=True,
@@ -393,6 +394,14 @@ def forecast(
         Override marginal fitting, temporal scaling, moment selection, bounds,
         and regional low-coverage fallbacks. See the parametric-nowcast user
         guide for all keys and defaults. Reference time is in minutes.
+    temporal_fallback: dict, optional
+        Configured temporal-only fallback with positive ``lzero`` (km) and
+        ``tzero`` (minutes). If any observed AR(2) pair or the estimated
+        reference time is invalid, use tzero*(wavelength/lzero)**temporal_exponent
+        to construct all model correlations. Complete input grids and valid
+        marginal/spatial estimates remain required. This mode disables the
+        legacy low-coverage spectral/persistence replacement. Cannot be combined
+        with an explicit estimation_kwargs reference_time override.
     noise_kwargs: dict, optional
         Calibration controls for generate_calibrated_field; nbins and eps also
         control post-AR marginal mapping. Randomness is controlled by seed.
@@ -464,6 +473,14 @@ def forecast(
         if not isinstance(flag, (bool, np.bool_)):
             raise ValueError(f"{name} must be boolean")
     estimation = _estimation_settings(estimation_kwargs, threshold, n_cascade_levels)
+    if temporal_fallback is not None:
+        if not isinstance(temporal_fallback, Mapping) or set(temporal_fallback) != {"lzero", "tzero"}:
+            raise ValueError("temporal_fallback requires exactly lzero (km) and tzero (minutes)")
+        temporal_fallback = {k: _positive(k, v) for k, v in temporal_fallback.items()}
+        if estimation["reference_time"] is not None:
+            raise ValueError("temporal_fallback cannot be combined with reference_time override")
+        # Temporal fallback must never mask an unavailable spatial estimate.
+        estimation["low_rain_fraction"] = 0.0
     noise_settings = _noise_settings(noise_kwargs)
     if motion_kwargs is not None and not isinstance(motion_kwargs, Mapping):
         raise ValueError("motion_kwargs must be a mapping")
@@ -502,6 +519,7 @@ def forecast(
         taper_sigma_pixels=taper_sigma,
         min_rain_fraction=min_rain_fraction,
         estimation=estimation,
+        temporal_fallback=temporal_fallback,
         noise=noise_settings,
         motion=motion_settings,
     )
@@ -562,11 +580,34 @@ def forecast(
         if estimation["reference_time"] is None
         else estimation["reference_time"]
     )
+    temporal_selection = dict(source="observed", reason=None)
+    if estimation["reference_time"] is not None:
+        temporal_selection["source"] = "override"
+    use_fallback = temporal_fallback is not None and (
+        not np.isfinite(times).all() or np.any(times <= 0)
+        or not np.isfinite(estimated_time) or estimated_time <= 0
+    )
+    if use_fallback:
+        reference_time = temporal_fallback["tzero"] * (
+            wavelengths[0] / temporal_fallback["lzero"]
+        ) ** estimation["temporal_exponent"]
+        temporal_selection.update(
+            source="configured_fallback",
+            reason="invalid_observed_ar2_or_reference_time",
+            configuration=deepcopy(temporal_fallback),
+        )
+    temporal_selection["selected_reference_time_minutes"] = reference_time
     frequency, power = rapsd_logarithmic(transformed[-1])
     spectrum = fit_power_law_spectrum(frequency, power, scale_break / kmperpixel)
     parameters, safeguards = _generation_parameters(
         statistics, spectrum, reference_time, estimation
     )
+    if use_fallback:
+        # The explicit configured scale law is not clipped to regional bounds.
+        parameters["reference_time"] = reference_time
+        safeguards["bounded_parameters"] = [
+            k for k in safeguards["bounded_parameters"] if k != "reference_time"
+        ]
     model_lags, temporal_diagnostics = model_cascade_correlations(
         parameters["reference_time"],
         wavelengths,
@@ -586,6 +627,7 @@ def forecast(
         parameters=parameters.copy(),
         safeguards=safeguards,
         temporal_model=temporal_diagnostics,
+        temporal_selection=temporal_selection,
         model_correlations=model_lags,
         ar_coefficients=phi,
         constant_observed_levels=[
