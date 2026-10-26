@@ -421,3 +421,41 @@ def test_safeguards_moment_selection_and_joint_bounds():
     statistics["latent_mean"] = np.nan
     _, audit = parametric._generation_parameters(statistics, spectrum, 200, settings)
     assert audit["moment_reason"] == "invalid_latent"
+
+
+@pytest.mark.parametrize("invalid_pair", [[np.nan, np.nan], [1.0, 1.0], [0.2, -0.99]])
+def test_configured_temporal_fallback(reference, monkeypatch, invalid_pair):
+    def correlations(cascades, velocity):
+        return np.tile(invalid_pair, (cascades.shape[1], 1))
+    monkeypatch.setattr(parametric, "lagrangian_autocorrelation", correlations)
+    result, diag = _call(reference, temporal_fallback={"lzero": 256, "tzero": 420},
+                         timestep=7.5, return_diagnostics=True)
+    expected_time = 420 * (diag["wavelengths_km"][0] / 256) ** 0.81
+    assert diag["temporal_selection"]["source"] == "configured_fallback"
+    assert diag["parameters"]["reference_time"] == pytest.approx(expected_time)
+    np.testing.assert_allclose(diag["temporal_model"]["requested_times"],
+                               420 * (diag["wavelengths_km"] / 256) ** 0.81)
+    assert not diag["safeguards"]["low_rain_fraction_fallback"]
+    assert np.isfinite(result).all()
+
+
+def test_configured_fallback_preserves_valid_observation(reference):
+    result, diag = _call(reference, temporal_fallback={"lzero": 256, "tzero": 420},
+                         return_diagnostics=True)
+    assert diag["temporal_selection"]["source"] == "observed"
+    original = _call(reference)
+    np.testing.assert_array_equal(result, original)
+
+
+def test_temporal_fallback_does_not_replace_spatial_estimates(reference, monkeypatch):
+    monkeypatch.setattr(parametric, "fit_power_law_spectrum",
+                        lambda *args: {"beta_1": np.nan, "beta_2": np.nan})
+    with pytest.raises(ValueError, match="Unavailable spectral"):
+        _call(reference, temporal_fallback={"lzero": 256, "tzero": 420})
+
+
+@pytest.mark.parametrize("fallback", [{}, {"lzero": 0, "tzero": 420},
+                                     {"lzero": 256, "tzero": float("nan")}])
+def test_invalid_temporal_fallback(reference, fallback):
+    with pytest.raises(ValueError):
+        _call(reference, temporal_fallback=fallback)
