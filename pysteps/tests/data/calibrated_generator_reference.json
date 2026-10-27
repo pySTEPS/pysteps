@@ -1,0 +1,100 @@
+{
+  "provenance": {
+    "source_revision": "94bd4c1571637a8f246ac391470e1a820d6376a6",
+    "source_sha256": {
+      "rain_stats_compute.py": "2fd6f0b622e88e143d8128f80cb5d0920f0111c1021c6c448222c90bff92c889",
+      "stochastic_generator.py": "94c491e4fd90da0c733ce65b48227b6b73dc31a8fc6a23a44e211ad36b3f9343"
+    },
+    "numpy_version": "2.5.1",
+    "scipy_version": "1.18.0"
+  },
+  "cases": [
+    {
+      "shape": [
+        128,
+        96
+      ],
+      "parameters": {
+        "beta_1": -2.4,
+        "beta_2": -3.1,
+        "rain_fraction": 0.08,
+        "mean_db": 6.0,
+        "stdev_db": 3.5
+      },
+      "seed": 4,
+      "kmperpixel": 1.0,
+      "scale_break": 20.0,
+      "threshold": 0.0,
+      "settings": {},
+      "diagnostics": {
+        "estimated_beta_1": -2.699411978542842,
+        "estimated_beta_2": -2.968097079810876,
+        "distance": 1.2454548636920237,
+        "attempts": 5,
+        "selected_attempt": 3,
+        "tolerance_achieved": false
+      }
+    },
+    {
+      "shape": [
+        128,
+        96
+      ],
+      "parameters": {
+        "beta_1": -2.4,
+        "beta_2": -3.1,
+        "rain_fraction": 0.3,
+        "mean_db": 6.0,
+        "stdev_db": 3.5
+      },
+      "seed": 17,
+      "kmperpixel": 1.0,
+      "scale_break": 20.0,
+      "threshold": 0.0,
+      "settings": {},
+      "diagnostics": {
+        "estimated_beta_1": -2.7242621897368915,
+        "estimated_beta_2": -3.2148751587431503,
+        "distance": 1.3133773650788025,
+        "attempts": 1,
+        "selected_attempt": 1,
+        "tolerance_achieved": false
+      }
+    },
+    {
+      "shape": [
+        95,
+        127
+      ],
+      "parameters": {
+        "beta_1": -2.4,
+        "beta_2": -3.1,
+        "rain_fraction": 0.05,
+        "mean_db": 6.0,
+        "stdev_db": 3.5
+      },
+      "seed": 11,
+      "kmperpixel": 1.0,
+      "scale_break": 20.0,
+      "threshold": 0.0,
+      "settings": {
+        "distance_threshold": 0.01
+      },
+      "diagnostics": {
+        "estimated_beta_1": -2.3629217611415716,
+        "estimated_beta_2": -2.8660387998408443,
+        "distance": 0.8583197619445808,
+        "attempts": 5,
+        "selected_attempt": 3,
+        "tolerance_achieved": false
+      }
+    }
+  ],
+  "post_ar_parameters": {
+    "rain_fraction": 0.35,
+    "mean": 6.5,
+    "stdev": 1.2,
+    "threshold": 0.0,
+    "zerovalue": -0.1
+  }
+}

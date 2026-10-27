@@ -11,5 +11,6 @@ from .fft import *
 from .pca import *
 from .reprojection import *
 from .spectral import *
+from .statistics import *
 from .tapering import *
 from .transformation import *
