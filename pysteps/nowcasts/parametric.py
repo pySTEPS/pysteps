@@ -474,11 +474,18 @@ def forecast(
             raise ValueError(f"{name} must be boolean")
     estimation = _estimation_settings(estimation_kwargs, threshold, n_cascade_levels)
     if temporal_fallback is not None:
-        if not isinstance(temporal_fallback, Mapping) or set(temporal_fallback) != {"lzero", "tzero"}:
-            raise ValueError("temporal_fallback requires exactly lzero (km) and tzero (minutes)")
+        if not isinstance(temporal_fallback, Mapping) or set(temporal_fallback) != {
+            "lzero",
+            "tzero",
+        }:
+            raise ValueError(
+                "temporal_fallback requires exactly lzero (km) and tzero (minutes)"
+            )
         temporal_fallback = {k: _positive(k, v) for k, v in temporal_fallback.items()}
         if estimation["reference_time"] is not None:
-            raise ValueError("temporal_fallback cannot be combined with reference_time override")
+            raise ValueError(
+                "temporal_fallback cannot be combined with reference_time override"
+            )
         # Temporal fallback must never mask an unavailable spatial estimate.
         estimation["low_rain_fraction"] = 0.0
     noise_settings = _noise_settings(noise_kwargs)
@@ -584,13 +591,17 @@ def forecast(
     if estimation["reference_time"] is not None:
         temporal_selection["source"] = "override"
     use_fallback = temporal_fallback is not None and (
-        not np.isfinite(times).all() or np.any(times <= 0)
-        or not np.isfinite(estimated_time) or estimated_time <= 0
+        not np.isfinite(times).all()
+        or np.any(times <= 0)
+        or not np.isfinite(estimated_time)
+        or estimated_time <= 0
     )
     if use_fallback:
-        reference_time = temporal_fallback["tzero"] * (
-            wavelengths[0] / temporal_fallback["lzero"]
-        ) ** estimation["temporal_exponent"]
+        reference_time = (
+            temporal_fallback["tzero"]
+            * (wavelengths[0] / temporal_fallback["lzero"])
+            ** estimation["temporal_exponent"]
+        )
         temporal_selection.update(
             source="configured_fallback",
             reason="invalid_observed_ar2_or_reference_time",
