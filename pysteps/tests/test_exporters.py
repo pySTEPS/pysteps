@@ -12,6 +12,7 @@ from pysteps.io import import_netcdf_pysteps
 from pysteps.io.exporters import _get_geotiff_filename
 from pysteps.io.exporters import close_forecast_files
 from pysteps.io.exporters import export_forecast_dataset
+from pysteps.io.exporters import initialize_forecast_exporter_kineros
 from pysteps.io.exporters import initialize_forecast_exporter_netcdf
 from pysteps.io.exporters import _convert_proj4_to_grid_mapping
 from pysteps.tests.helpers import get_precipitation_fields, get_invalid_mask
@@ -205,3 +206,18 @@ def test_convert_proj4_to_grid_mapping(proj4str, expected_value):
     output = _convert_proj4_to_grid_mapping(proj4str)
 
     assert output == expected_value
+
+
+def test_io_export_kineros_incremental_not_supported():
+    """Test that the KINEROS exporter rejects incremental writing with a ValueError."""
+    with pytest.raises(ValueError, match="unknown option timestep"):
+        initialize_forecast_exporter_kineros(
+            tempfile.gettempdir(),
+            "test_kineros",
+            datetime(2020, 1, 1),
+            5,
+            1,
+            (10, 10),
+            {},
+            incremental="timestep",
+        )

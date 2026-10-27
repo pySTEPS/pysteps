@@ -304,7 +304,7 @@ def initialize_forecast_exporter_kineros(
 
     if incremental is not None:
         raise ValueError(
-            "unknown option %s: " + "incremental writing is not supported" % incremental
+            "unknown option %s: incremental writing is not supported" % incremental
         )
 
     exporter = {}
