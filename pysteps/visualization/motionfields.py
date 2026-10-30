@@ -13,6 +13,8 @@ Functions to plot motion fields.
     streamplot
 """
 
+import numpy as np
+
 from pysteps.visualization import utils
 
 VALID_PLOT_TYPES = ("quiver", "streamplot", "stream")
@@ -33,6 +35,7 @@ def motion_plot(
     plot_kwargs=None,
     map_kwargs=None,
     step=20,
+    quiverkey_kwargs=None,
 ):
     """
     Function to plot a motion field as arrows (quiver) or as stream lines (streamplot).
@@ -40,6 +43,8 @@ def motion_plot(
     .. _`quiver_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.htm
 
     .. _`streamplot_doc`: https://matplotlib.org/api/_as_gen/matplotlib.pyplot.streamplot.html
+
+    .. _`quiverkey_doc`: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.quiverkey.html
 
     Parameters
     ----------
@@ -90,6 +95,16 @@ def motion_plot(
     map_kwargs: dict
         Optional parameters that need to be passed to
         :py:func:`pysteps.visualization.basemaps.plot_geography`.
+    quiverkey_kwargs: dict, optional
+        Only used when plot_type is "quiver". If not None, a key (reference
+        arrow) is added to the plot with matplotlib's `quiverkey()`, see the
+        `quiverkey_doc`_. The dictionary can contain any keyword argument
+        accepted by `quiverkey()`, including X, Y, U and label. By default, the
+        key is placed above the upper right corner of the axes (X=0.75, Y=1.02,
+        coordinates="axes", labelpos="E"), U is the maximum magnitude of the
+        plotted vectors rounded to one significant digit and the label is
+        "<U> px timestep$^{-1}$". Pass an empty dictionary to use these
+        defaults. Default: None (no key).
 
     Returns
     -------
@@ -100,6 +115,9 @@ def motion_plot(
         raise ValueError(
             f"Invalid plot_type: {plot_type}.\nSupported: {str(VALID_PLOT_TYPES)}"
         )
+
+    if quiverkey_kwargs is not None and plot_type.lower() != "quiver":
+        raise ValueError("quiverkey_kwargs can only be used with plot_type='quiver'")
 
     if plot_kwargs is None:
         plot_kwargs = {}
@@ -126,7 +144,9 @@ def motion_plot(
         dy *= -1
 
     if plot_type.lower() == "quiver":
-        ax.quiver(x_grid, y_grid, dx, dy, angles="xy", zorder=20, **plot_kwargs)
+        quiv = ax.quiver(x_grid, y_grid, dx, dy, angles="xy", zorder=20, **plot_kwargs)
+        if quiverkey_kwargs is not None:
+            _add_quiverkey(ax, quiv, dx, dy, quiverkey_kwargs)
     else:
         ax.streamplot(x_grid, y_grid, dx, dy, zorder=30, **plot_kwargs)
 
@@ -142,6 +162,38 @@ def motion_plot(
     return ax
 
 
+def _add_quiverkey(ax, quiv, dx, dy, quiverkey_kwargs):
+    """Add a quiverkey to a quiver plot, filling in default options."""
+    quiverkey_kwargs = dict(quiverkey_kwargs)
+
+    if "U" not in quiverkey_kwargs:
+        magnitude = np.hypot(np.ma.filled(dx, np.nan), np.ma.filled(dy, np.nan))
+        if np.any(np.isfinite(magnitude)):
+            max_magnitude = np.nanmax(magnitude)
+        else:
+            max_magnitude = 0.0
+        if max_magnitude > 0:
+            # round to one significant digit, e.g. 12.3 -> 10, 0.27 -> 0.3
+            quiverkey_kwargs["U"] = float(f"{max_magnitude:.1g}")
+        else:
+            quiverkey_kwargs["U"] = 1.0
+
+    quiverkey_kwargs.setdefault(
+        "label", f"{quiverkey_kwargs['U']:g} px timestep$^{{-1}}$"
+    )
+    quiverkey_kwargs.setdefault("X", 0.75)
+    quiverkey_kwargs.setdefault("Y", 1.02)
+    quiverkey_kwargs.setdefault("coordinates", "axes")
+    quiverkey_kwargs.setdefault("labelpos", "E")
+
+    X = quiverkey_kwargs.pop("X")
+    Y = quiverkey_kwargs.pop("Y")
+    U = quiverkey_kwargs.pop("U")
+    label = quiverkey_kwargs.pop("label")
+
+    return ax.quiverkey(quiv, X, Y, U, label, **quiverkey_kwargs)
+
+
 def quiver(
     uv_motion_field,
     ax=None,
@@ -150,6 +202,7 @@ def quiver(
     step=20,
     quiver_kwargs=None,
     map_kwargs=None,
+    quiverkey_kwargs=None,
 ):
     """Function to plot a motion field as arrows.
     Wrapper for :func:`pysteps.visualization.motionfields.motion_plot` passing
@@ -165,6 +218,11 @@ def quiver(
       Optional dictionary containing keyword arguments for the quiver method.
       This argument is passed to
       See the `quiver_doc`_ matplotlib's documentation.
+    quiverkey_kwargs: dict, optional
+      If not None, add a key (reference arrow) to the plot. The dictionary
+      contains keyword arguments for matplotlib's `quiverkey()`. Pass an empty
+      dictionary to use the default options. See
+      :py:func:`pysteps.visualization.motionfields.motion_plot`.
 
     Other parameters
     ----------------
@@ -187,6 +245,7 @@ def quiver(
         step=step,
         plot_kwargs=quiver_kwargs,
         map_kwargs=map_kwargs,
+        quiverkey_kwargs=quiverkey_kwargs,
     )
 
 
