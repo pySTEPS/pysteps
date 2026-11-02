@@ -84,6 +84,24 @@ def test_boxcox_transform(R, metadata, Lambda, threshold, zerovalue, inverse, ex
     )
 
 
+@pytest.mark.parametrize("Lambda", [0.0, 0.5, 1.0])
+def test_boxcox_transform_roundtrip_with_zeros(Lambda):
+    """Test that the inverse boxcox_transform maps the zero value back to zero."""
+    R = np.array([0.0, 0.05, 0.1, 1.0, 10.0])
+    metadata = {
+        "accutime": 5,
+        "transform": None,
+        "unit": "mm/h",
+        "threshold": 0.1,
+        "zerovalue": 0.0,
+    }
+    R_t, metadata_t = transformation.boxcox_transform(R.copy(), metadata, Lambda)
+    R_b, metadata_b = transformation.boxcox_transform(R_t, metadata_t, inverse=True)
+    assert_array_almost_equal(R_b, [0.0, 0.0, 0.1, 1.0, 10.0])
+    assert metadata_b["transform"] is None
+    assert metadata_b["threshold"] == pytest.approx(0.1)
+
+
 # dB_transform
 test_data = [
     (
