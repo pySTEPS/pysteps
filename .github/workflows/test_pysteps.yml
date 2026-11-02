@@ -35,12 +35,26 @@ jobs:
 
       # need headless opencv on Linux, see https://github.com/conda-forge/opencv-feedstock/issues/401
       - name: Install mamba and create environment for Linux
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         uses: mamba-org/setup-micromamba@v1
         with:
           # https://github.com/mamba-org/setup-micromamba/issues/225
           micromamba-version: 1.5.10-0
           environment-file: ci/ci_test_env.yml
+          environment-name: test_environment
+          generate-run-shell: false
+          create-args: >-
+            python=${{ matrix.python-version }}
+            libopencv=*=headless*
+
+      # need headless opencv on Linux, see https://github.com/conda-forge/opencv-feedstock/issues/401
+      - name: Install mamba and create environment for Linux
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          # https://github.com/mamba-org/setup-micromamba/issues/225
+          micromamba-version: 1.5.10-0
+          environment-file: ci/ci_test_env_fixed_versions.yml
           environment-name: test_environment
           generate-run-shell: false
           create-args: >-
@@ -101,16 +115,7 @@ jobs:
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
           PYSTEPS_REPO_ROOT: ${{github.workspace}}
-        run: pytest -m "not example_regression" --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra --basetemp=${{github.workspace}}/pytest-tmp
-
-      - name: Upload example test images
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: example-test-images-${{ matrix.os }}-${{ matrix.python-version }}
-          path: ${{github.workspace}}/pytest-tmp/**/fig_*.png
-          if-no-files-found: ignore
-          retention-days: 7
+        run: pytest -m "not example_regression" --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
 
       - name: Upload coverage to Codecov (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -125,3 +130,20 @@ jobs:
           env_vars: OS,PYTHON
           fail_ci_if_error: true
           verbose: true
+
+      - name: Run regression tests on examples (compare against reference images)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        working-directory: ${{github.workspace}}/pysteps_data
+        env:
+          PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
+          PYSTEPS_REPO_ROOT: ${{github.workspace}}
+        run: pytest -m example_regression --pyargs pysteps -ra --basetemp=${{github.workspace}}/pytest-tmp
+
+      - name: Upload example test images
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-test-images-${{ matrix.os }}-${{ matrix.python-version }}
+          path: ${{github.workspace}}/pytest-tmp/**/fig_*.png
+          if-no-files-found: ignore
+          retention-days: 7

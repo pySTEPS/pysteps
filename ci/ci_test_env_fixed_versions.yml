@@ -1,0 +1,38 @@
+# pysteps development environment
+name: test_environment
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.11
+  - pip==26.2.2
+  - mamba==2.10.0
+  # Minimal dependencies
+  - numpy==2.5.4
+  - cython==3.3.1
+  - jsmin==3.0.1
+  - jsonschema==4.26.0
+  - matplotlib==3.11.2
+  - netCDF4==1.7.4
+  - opencv==5.0.0
+  - pillow==13.0.0
+  - pyproj==3.8.0
+  - scipy==1.18.1
+  # Optional dependencies
+  - dask==2026.8.0
+  - pyfftw==0.15.1
+  - cartopy==0.26.0
+  - h5py==3.16.0
+  - PyWavelets==1.10.0
+  - pandas==3.1.0
+  - scikit-image==0.26.0
+  - scikit-learn==1.9.1
+  - rasterio==1.5.2
+  - gdal==3.13.3
+  - pygrib==2.1.8
+  # Test dependencies
+  - pytest==9.2.0
+  - pytest-cov==7.1.0
+  - pip:
+      - cookiecutter==2.7.1
+      - git+https://github.com/pySTEPS/pysteps-nwp-importers
