@@ -73,7 +73,7 @@ jobs:
           create-args: python=${{ matrix.python-version }}
 
       - name: Install pygrib (not win)
-        if: matrix.os != 'windows-latest'
+        if: matrix.os != 'windows-latest' && (matrix.os != 'ubuntu-latest' || matrix.python-version != '3.13')
         run: mamba install --quiet pygrib
 
       - name: Install pysteps for MacOS
