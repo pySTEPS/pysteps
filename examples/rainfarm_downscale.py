@@ -114,6 +114,9 @@ plt.show()
 #
 # We can now use RainFARM to downscale the precipitation field.
 
+# Fixed seed for reproducible stochastic noise fields
+np.random.seed(42)
+
 # Basic downscaling
 precip_hr = rainfarm.downscale(precip_lr, ds_factor=scale_factor)
 

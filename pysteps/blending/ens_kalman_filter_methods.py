@@ -433,6 +433,16 @@ class MaskedEnKF(EnsembleKalmanFilter):
         self.__degradation_timestep = 0.2
         self.__inflation_factor_obs_tmp = 1.0
 
+        # Dedicated, per-member random generators for the iterative probability
+        # matching resampling below, so that "seed" fully controls the
+        # reproducibility of the forecast instead of relying on the global,
+        # unseeded numpy random state.
+        seed = self._config.seed
+        self.__randgen_probmatch = [
+            np.random.RandomState(None if seed is None else seed + j)
+            for j in range(self._config.n_ens_members)
+        ]
+
         print("Initialize masked ensemble Kalman filter")
         print("========================================")
         print("")
@@ -603,6 +613,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
                     first_array=background_ensemble[j],
                     second_array=observation_ensemble[j],
                     probability_first_array=1 - self.__sampling_probability,
+                    randgen=self.__randgen_probmatch[j],
                 ).reshape(self.__params.len_y, self.__params.len_x)
 
             dask_worker_collection = []
