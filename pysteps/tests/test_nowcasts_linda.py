@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -198,18 +198,34 @@ def test_linda_callback(tmp_path):
     n_ens_members = 2
     n_timesteps = 3
 
-    precip_input, metadata = get_precipitation_fields(
+    dataset_input = get_precipitation_fields(
         num_prev_files=2,
         num_next_files=0,
         return_raw=False,
         upscale=2000,
     )
-    precip_input = precip_input.filled()
-    field_shape = (precip_input.shape[1], precip_input.shape[2])
-    startdate = metadata["timestamps"][-1]
-    timestep = metadata["accutime"]
+    precip_var = dataset_input.attrs["precip_var"]
+    precip_attrs = dataset_input[precip_var].attrs
+    field_shape = dataset_input[precip_var].shape[1:]
+    startdate = dataset_input.time.values[-1].astype("datetime64[us]").astype(datetime)
+    timestep = precip_attrs["accutime"]
 
-    motion_field = np.zeros((2, *field_shape))
+    metadata = {
+        "projection": dataset_input.attrs["projection"],
+        "x1": dataset_input.x.isel(x=0).values,
+        "y1": dataset_input.y.isel(y=0).values,
+        "x2": dataset_input.x.isel(x=-1).values,
+        "y2": dataset_input.y.isel(y=-1).values,
+        "unit": precip_attrs["units"],
+        "yorigin": "upper" if dataset_input.y.attrs["stepsize"] < 0 else "lower",
+        "cartesian_unit": dataset_input.x.attrs["units"],
+    }
+
+    # Dummy (all-zero) motion field embedded into the dataset, as required by
+    # the current nowcasts.linda.forecast API.
+    dataset_w_motion = dataset_input.copy()
+    dataset_w_motion["velocity_x"] = (["y", "x"], np.zeros(field_shape))
+    dataset_w_motion["velocity_y"] = (["y", "x"], np.zeros(field_shape))
 
     exporter = io.initialize_forecast_exporter_netcdf(
         outpath=tmp_path.as_posix(),
@@ -226,25 +242,26 @@ def test_linda_callback(tmp_path):
     def callback(array):
         return io.export_forecast_dataset(array, exporter)
 
-    precip_output = nowcasts.get_method("linda")(
-        precip_input,
-        motion_field,
+    dataset_output = nowcasts.get_method("linda")(
+        dataset_w_motion,
         timesteps=n_timesteps,
         add_perturbations=False,
         n_ens_members=n_ens_members,
         kmperpixel=4.0,
-        timestep=metadata["accutime"],
+        timestep=timestep,
         callback=callback,
         return_output=True,
     )
     io.close_forecast_files(exporter)
+    precip_output = dataset_output[precip_var].values
 
     # assert that netcdf exists and its size is not zero
     tmp_file = os.path.join(tmp_path, "test_linda.nc")
     assert os.path.exists(tmp_file) and os.path.getsize(tmp_file) > 0
 
     # assert that the file can be read by the nowcast importer
-    precip_netcdf, metadata_netcdf = io.import_netcdf_pysteps(tmp_file, dtype="float64")
+    dataset_netcdf = io.import_netcdf_pysteps(tmp_file, dtype="float64")
+    precip_netcdf = dataset_netcdf[precip_var].values
 
     # assert that the dimensionality of the array is as expected
     assert precip_netcdf.ndim == 4, "Wrong number of dimensions"
@@ -261,5 +278,12 @@ def test_linda_callback(tmp_path):
     td = timedelta(minutes=timestep)
     leadtimes = [(i + 1) * timestep for i in range(n_timesteps)]
     timestamps = [startdate + (i + 1) * td for i in range(n_timesteps)]
-    assert (metadata_netcdf["leadtimes"] == leadtimes).all(), "Wrong leadtimes"
-    assert (metadata_netcdf["timestamps"] == timestamps).all(), "Wrong timestamps"
+    timestamps_netcdf = [
+        ts.astype("datetime64[us]").astype(datetime)
+        for ts in dataset_netcdf.time.values
+    ]
+    leadtimes_netcdf = [
+        (ts - startdate).total_seconds() / 60.0 for ts in timestamps_netcdf
+    ]
+    assert leadtimes_netcdf == leadtimes, "Wrong leadtimes"
+    assert timestamps_netcdf == timestamps, "Wrong timestamps"

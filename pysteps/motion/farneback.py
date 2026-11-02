@@ -20,6 +20,7 @@ available in OpenCV_.
 """
 
 import numpy as np
+import xarray as xr
 from numpy.ma.core import MaskedArray
 import scipy.ndimage as sndi
 import time
@@ -38,7 +39,7 @@ except ImportError:
 
 @check_input_frames(2)
 def farneback(
-    input_images,
+    dataset: xr.Dataset,
     pyr_scale=0.5,
     levels=3,
     winsize=15,
@@ -75,17 +76,18 @@ def farneback(
 
     Parameters
     ----------
-    input_images: ndarray_ or MaskedArray_
-        Array of shape (T, m, n) containing a sequence of *T* two-dimensional
-        input images of shape (m, n). The indexing order in **input_images** is
-        assumed to be (time, latitude, longitude).
+    dataset: xarray.Dataset
+        Input dataset as described in the documentation of
+        :py:mod:`pysteps.io.importers`. It has to contain a precipitation data variable.
+        The dataset has to have a time dimension of size *T*, containing a sequence of
+        *T* two-dimensional input images of shape (m, n).
 
         *T* = 2 is the minimum required number of images.
         With *T* > 2, all the resulting motion vectors are averaged together.
 
-        In case of ndarray_, invalid values (Nans or infs) are masked,
-        otherwise the mask of the MaskedArray_ is used. Such mask defines a
-        region where features are not detected for the tracking algorithm.
+        Invalid values (Nans or infs) are masked, otherwise the mask of the
+        MaskedArray_ is used. Such mask defines a region where features are not
+        detected for the tracking algorithm.
 
     pyr_scale : float, optional
         Parameter specifying the image scale (<1) used to build pyramids for
@@ -143,14 +145,11 @@ def farneback(
 
     Returns
     -------
-    out : ndarray_, shape (2,m,n)
-        Return the advection field having shape
-        (2, m, n), where out[0, :, :] contains the x-components of the motion
-        vectors and out[1, :, :] contains the y-components.
-        The velocities are in units of pixels / timestep, where timestep is the
-        time difference between the two input images.
-        Return a zero motion field of shape (2, m, n) when no motion is
-        detected.
+    out: xarray.Dataset
+        Return the input dataset with the advection field added in the
+        ``velocity_x`` and ``velocity_y`` data variables. The velocities are in
+        units of pixels / timestep, where timestep is the time difference
+        between the two input images.
         
     References
     ----------
@@ -160,6 +159,10 @@ def farneback(
     methods for radar precipitation extrapolation.
     Canadian Meteorological and Oceanographic Society Congress, contributed abstract 11801.
     """
+
+    dataset = dataset.copy(deep=True)
+    precip_var = dataset.attrs["precip_var"]
+    input_images = dataset[precip_var].values
 
     if len(input_images.shape) != 3:
         raise ValueError(
@@ -263,7 +266,10 @@ def farneback(
 
     UV = np.stack([us * mult, vs * mult])
 
+    dataset["velocity_x"] = (["y", "x"], UV[0])
+    dataset["velocity_y"] = (["y", "x"], UV[1])
+
     if verbose:
         print("--- %s seconds ---" % (time.time() - t0))
 
-    return UV
+    return dataset

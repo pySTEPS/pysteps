@@ -3793,6 +3793,8 @@ def forecast(
     # Check the input precip and ar_order to be consistent
     # zero-precip/constant field in previous time steps has to be removed
     # (constant field causes autoregression to fail)
+    radar_precip_var = radar_dataset.attrs["precip_var"]
+    precip = radar_dataset[radar_precip_var].values
     precip, ar_order = check_previous_radar_obs(
         precip,
         ar_order,
@@ -3803,6 +3805,10 @@ def forecast(
             "win_fun": "tukey" if noise_kwargs is None else noise_kwargs["win_fun"],
         },
     )
+    radar_dataset = radar_dataset.isel(time=slice(-precip.shape[0], None)).copy(
+        deep=True
+    )
+    radar_dataset[radar_precip_var].values = precip
 
     blending_config = StepsBlendingConfig(
         n_ens_members=n_ens_members,

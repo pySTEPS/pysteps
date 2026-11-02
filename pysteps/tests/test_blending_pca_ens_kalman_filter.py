@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pysteps import blending, motion, utils
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 # fmt: off
 pca_enkf_arg_values = [
@@ -164,41 +165,81 @@ def test_pca_enkf_combination(
     metadata["unit"] = "mm"
     metadata["transformation"] = "dB"
     metadata["accutime"] = 5.0
-    metadata["transform"] = None
     metadata["zerovalue"] = 0.0
     metadata["threshold"] = thr_prec
     metadata["zr_a"] = 200.0
     metadata["zr_b"] = 1.6
+    metadata["x1"] = 0.0
+    metadata["x2"] = 200.0
+    metadata["y1"] = 0.0
+    metadata["y2"] = 200.0
+    metadata["yorigin"] = "lower"
+    metadata["institution"] = "test"
+    metadata["cartesian_unit"] = "km"
+    metadata["projection"] = (
+        "+proj=stere +lat_0=90 +lon_0=0.0 +lat_ts=60.0 +a=6378.137 +b=6356.752 +x_0=0 +y_0=0"
+    )
 
     # Converting the input data
     # Thresholding
     radar_precip[radar_precip < metadata["threshold"]] = 0.0
     nwp_precip[nwp_precip < metadata["threshold"]] = 0.0
 
+    # Build the radar and NWP datasets, using the actual timestamps of the
+    # synthetic data so that the datasets' time coordinates match
+    # `*_precip_timestamps`.
+    radar_dataset = convert_input_to_xarray_dataset(
+        radar_precip,
+        None,
+        metadata,
+        radar_precip_timestamps[0],
+        temporal_res_radar * 60,
+    )
+    model_dataset = convert_input_to_xarray_dataset(
+        nwp_precip,
+        None,
+        metadata,
+        nwp_precip_timestamps[0],
+        temporal_res_nwp * 60,
+    )
+
     # Convert the data
-    converter = utils.get_method("mm/h")
-    radar_precip, _ = converter(radar_precip, metadata)
-    nwp_precip, metadata = converter(nwp_precip, metadata)
+    converter_name = "mm/h"
+    converter = utils.get_method(converter_name)
+    radar_dataset = converter(radar_dataset)
+    model_dataset = converter(model_dataset)
 
     # Transform the data
-    transformer = utils.get_method(metadata["transformation"])
-    radar_precip, _ = transformer(radar_precip, metadata)
-    nwp_precip, metadata = transformer(nwp_precip, metadata)
+    transformer_name = "dB"
+    transformer = utils.get_method(transformer_name)
+    radar_dataset = transformer(radar_dataset)
+    model_dataset = transformer(model_dataset)
+
+    radar_precip_var = radar_dataset.attrs["precip_var"]
+    model_precip_var = model_dataset.attrs["precip_var"]
 
     # Set NaN equal to zero
-    radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
-    nwp_precip[~np.isfinite(nwp_precip)] = metadata["zerovalue"]
+    radar_dataset[radar_precip_var].values[
+        ~np.isfinite(radar_dataset[radar_precip_var].values)
+    ] = radar_dataset[radar_precip_var].attrs["zerovalue"]
+    model_dataset[model_precip_var].values[
+        ~np.isfinite(model_dataset[model_precip_var].values)
+    ] = model_dataset[model_precip_var].attrs["zerovalue"]
 
     assert (
-        np.any(~np.isfinite(radar_precip)) == False
+        np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False
     ), "There are still infinite values in the input radar data"
     assert (
-        np.any(~np.isfinite(nwp_precip)) == False
+        np.any(~np.isfinite(model_dataset[model_precip_var].values)) == False
     ), "There are still infinite values in the NWP data"
 
     # Initialize radar velocity
     oflow_method = motion.get_method("LK")
-    radar_velocity = oflow_method(radar_precip)
+    radar_dataset = oflow_method(radar_dataset)
+
+    # The precipitation threshold has been transformed into dB units above by
+    # the transformer; use the transformed value for the forecast call.
+    precip_thr = radar_dataset[radar_precip_var].attrs["threshold"]
 
     # Set the combination kwargs
     combination_kwargs = dict(
@@ -219,19 +260,16 @@ def test_pca_enkf_combination(
     )
 
     # Call the reduced-spaced ensemble Kalman filter approach.
-    combined_forecast = blending.pca_ens_kalman_filter.forecast(
-        obs_precip=radar_precip,
-        obs_timestamps=radar_precip_timestamps,
-        nwp_precip=nwp_precip,
-        nwp_timestamps=nwp_precip_timestamps,
-        velocity=radar_velocity,
+    combined_forecast_dataset = blending.pca_ens_kalman_filter.forecast(
+        radar_dataset=radar_dataset,
+        model_dataset=model_dataset,
         forecast_horizon=forecast_length,
         issuetime=forecast_init,
         n_ens_members=n_ens_members,
         precip_mask_dilation=1,
         smooth_radar_mask_range=smooth_radar_mask_range,
         n_cascade_levels=6,
-        precip_thr=metadata["threshold"],
+        precip_thr=precip_thr,
         norain_thr=norain_thr,
         extrap_method="semilagrangian",
         decomp_method="fft",
@@ -256,8 +294,10 @@ def test_pca_enkf_combination(
     )
 
     if verbose_output:
-        assert len(combined_forecast) == 2, "Wrong amount of output data"
-        combined_forecast = combined_forecast[0]
+        assert len(combined_forecast_dataset) == 2, "Wrong amount of output data"
+        combined_forecast_dataset = combined_forecast_dataset[0]
+
+    combined_forecast = combined_forecast_dataset[radar_precip_var].values
 
     assert combined_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
     assert (
@@ -268,7 +308,8 @@ def test_pca_enkf_combination(
     ), "Wrong amount of output time steps in forecast output"
 
     # Transform the data back into mm/h
-    combined_forecast, _ = converter(combined_forecast, metadata)
+    combined_forecast_mmh_dataset = converter(combined_forecast_dataset)
+    combined_forecast = combined_forecast_mmh_dataset[radar_precip_var].values
 
     assert (
         combined_forecast.ndim == 4

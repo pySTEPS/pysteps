@@ -67,21 +67,21 @@ def test_linear_blending(
     # entirely constant
 
     # Assert that the control time step is in the range of the forecasted time steps
-    assert controltime <= (n_timesteps * timestep), (
-        "Control time needs to be within reach of forecasts, controltime = {} and n_timesteps = {}".format(
-            controltime, n_timesteps
-        )
+    assert controltime <= (
+        n_timesteps * timestep
+    ), "Control time needs to be within reach of forecasts, controltime = {} and n_timesteps = {}".format(
+        controltime, n_timesteps
     )
 
     # Assert that the start time of the blending comes before the end time of the blending
-    assert start_blending < end_blending, (
-        "Start time of blending needs to be smaller than end time of blending"
-    )
+    assert (
+        start_blending < end_blending
+    ), "Start time of blending needs to be smaller than end time of blending"
 
     # Assert that the control time is a multiple of the time step
-    assert not controltime % timestep, (
-        "Control time needs to be a multiple of the time step"
-    )
+    assert (
+        not controltime % timestep
+    ), "Control time needs to be a multiple of the time step"
 
     # Initialise dummy NWP data
     if n_models == 0:
@@ -184,20 +184,16 @@ def test_linear_blending(
             n_timesteps,
             200,
             200,
-        ), (
-            "The shape of the blended array does not have the expected value. The shape is {}".format(
-                r_blended.shape
-            )
+        ), "The shape of the blended array does not have the expected value. The shape is {}".format(
+            r_blended.shape
         )
     else:
         assert r_blended.shape == (
             n_timesteps,
             200,
             200,
-        ), (
-            "The shape of the blended array does not have the expected value. The shape is {}".format(
-                r_blended.shape
-            )
+        ), "The shape of the blended array does not have the expected value. The shape is {}".format(
+            r_blended.shape
         )
 
     # Assert that the blended field at the control time step is equal to
@@ -229,26 +225,62 @@ def test_linear_blending_ar_nowcast_3d_precip():
     timestep = 5
     n_timesteps = 5
 
+    metadata = dict(
+        unit="mm/h",
+        cartesian_unit="km",
+        accutime=timestep,
+        zerovalue=0.0,
+        threshold=0.01,
+        zr_a=200.0,
+        zr_b=1.6,
+        x1=0.0,
+        x2=32.0,
+        y1=0.0,
+        y2=32.0,
+        yorigin="lower",
+        institution="test",
+        projection=(
+            "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 "
+            "+lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+        ),
+    )
+
     r_input = np.random.rand(3, 32, 32) * 5.0
-    r_input, _ = transformation.dB_transform(
-        r_input, None, threshold=0.1, zerovalue=-15.0
+    radar_dataset = convert_input_to_xarray_dataset(
+        r_input,
+        None,
+        metadata,
+        datetime.fromisoformat("2021-07-04T11:50:00.000000000"),
+        300,
+    )
+    radar_dataset = transformation.dB_transform(
+        radar_dataset, threshold=0.1, zerovalue=-15.0
     )
     velocity = np.zeros((2, 32, 32))
-    r_nwp = np.random.rand(n_timesteps, 32, 32) * 5.0
+    radar_dataset["velocity_x"] = (["y", "x"], velocity[0])
+    radar_dataset["velocity_y"] = (["y", "x"], velocity[1])
 
-    r_blended = forecast(
-        r_input,
-        dict({"unit": "mm/h", "transform": "dB"}),
-        velocity,
+    r_nwp = np.random.rand(n_timesteps, 32, 32) * 5.0
+    model_dataset = convert_input_to_xarray_dataset(
+        r_nwp,
+        None,
+        metadata,
+        datetime.fromisoformat("2021-07-04T11:50:00.000000000"),
+        300,
+    )
+
+    blended_dataset = forecast(
+        radar_dataset,
         n_timesteps,
         timestep,
         "sprog",
-        r_nwp,
-        dict({"unit": "mm/h", "transform": None}),
+        model_dataset,
         start_blending=10,
         end_blending=20,
         nowcast_kwargs=dict(n_cascade_levels=4, precip_thr=-10.0),
     )
+    blended_precip_var = blended_dataset.attrs["precip_var"]
+    r_blended = blended_dataset[blended_precip_var].values
 
     assert r_blended.shape == (
         n_timesteps,
@@ -272,28 +304,65 @@ def test_linear_blending_timesteps_nowcast_clamp():
     timestep = 5
     n_timesteps = 5
 
-    r_input = np.random.rand(32, 32) * 5.0
-    r_input, _ = transformation.dB_transform(
-        r_input, None, threshold=0.1, zerovalue=-15.0
+    metadata = dict(
+        unit="mm/h",
+        cartesian_unit="km",
+        accutime=timestep,
+        zerovalue=0.0,
+        threshold=0.01,
+        zr_a=200.0,
+        zr_b=1.6,
+        x1=0.0,
+        x2=32.0,
+        y1=0.0,
+        y2=32.0,
+        yorigin="lower",
+        institution="test",
+        projection=(
+            "+proj=lcc +lon_0=4.55 +lat_1=50.8 +lat_2=50.8 +a=6371229 +es=0 "
+            "+lat_0=50.8 +x_0=365950 +y_0=-365950.000000001"
+        ),
     )
-    r_input[0, 0] = np.nan
+
+    r_input = np.random.rand(1, 32, 32) * 5.0
+    radar_dataset = convert_input_to_xarray_dataset(
+        r_input,
+        None,
+        metadata,
+        datetime.fromisoformat("2021-07-04T11:50:00.000000000"),
+        300,
+    )
+    radar_dataset = transformation.dB_transform(
+        radar_dataset, threshold=0.1, zerovalue=-15.0
+    )
+    radar_precip_var = radar_dataset.attrs["precip_var"]
+    radar_dataset[radar_precip_var].values[0, 0, 0] = np.nan
     velocity = np.zeros((2, 32, 32))
+    radar_dataset["velocity_x"] = (["y", "x"], velocity[0])
+    radar_dataset["velocity_y"] = (["y", "x"], velocity[1])
+
     r_nwp = np.random.rand(n_timesteps, 32, 32) * 5.0
+    model_dataset = convert_input_to_xarray_dataset(
+        r_nwp,
+        None,
+        metadata,
+        datetime.fromisoformat("2021-07-04T11:50:00.000000000"),
+        300,
+    )
 
     # end_blending / timestep = 10, which is larger than n_timesteps = 5
-    r_blended = forecast(
-        r_input,
-        dict({"unit": "mm/h", "transform": "dB"}),
-        velocity,
+    blended_dataset = forecast(
+        radar_dataset,
         n_timesteps,
         timestep,
         "eulerian",
-        r_nwp,
-        dict({"unit": "mm/h", "transform": None}),
+        model_dataset,
         start_blending=10,
         end_blending=50,
         fill_nwp=True,
     )
+    blended_precip_var = blended_dataset.attrs["precip_var"]
+    r_blended = blended_dataset[blended_precip_var].values
 
     assert r_blended.shape == (
         n_timesteps,
@@ -332,8 +401,6 @@ def test_salient_weight(
     assert ws.shape == (
         200,
         200,
-    ), (
-        "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
-            ws.shape
-        )
+    ), "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
+        ws.shape
     )
