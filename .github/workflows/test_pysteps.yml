@@ -79,8 +79,15 @@ jobs:
       - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
+        env:
+          CC: gcc-13
+          CXX: g++-13
+          CXX1X: g++-13
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
-          micromamba install -c conda-forge llvm-openmp compiler-rt
+          brew update-reset
+          brew update
+          gcc-13 --version || brew install gcc@13
           pip install .
 
       - name: Install pysteps
@@ -130,7 +137,9 @@ jobs:
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
           PYSTEPS_REPO_ROOT: ${{github.workspace}}
-        run: pytest -m example_regression --pyargs pysteps -ra --basetemp=${{github.workspace}}/pytest-tmp
+        run: |
+          pip install git+https://github.com/pySTEPS/pysteps-nwp-importers
+          pytest -m example_regression --pyargs pysteps -ra --basetemp=${{github.workspace}}/pytest-tmp
 
       - name: Upload example test images
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
