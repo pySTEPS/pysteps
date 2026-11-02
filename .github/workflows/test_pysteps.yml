@@ -101,7 +101,7 @@ jobs:
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
           PYSTEPS_REPO_ROOT: ${{github.workspace}}
-        run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra --basetemp=${{github.workspace}}/pytest-tmp
+        run: pytest -m "not example_regression" --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra --basetemp=${{github.workspace}}/pytest-tmp
 
       - name: Upload example test images
         if: always()

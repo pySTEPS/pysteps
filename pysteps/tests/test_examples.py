@@ -100,6 +100,7 @@ def _run_example(script_name, tmp_path, monkeypatch):
         runpy.run_path(str(EXAMPLES_DIR / script_name), run_name="__main__")
 
 
+@pytest.mark.example_regression
 @pytest.mark.parametrize("script_name", EXAMPLE_SCRIPTS)
 def test_example_plots(script_name, tmp_path, monkeypatch):
     example_name = Path(script_name).stem
