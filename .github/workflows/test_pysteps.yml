@@ -79,15 +79,8 @@ jobs:
       - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
-        env:
-          CC: gcc-13
-          CXX: g++-13
-          CXX1X: g++-13
-          HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
-          brew update-reset
-          brew update
-          gcc-13 --version || brew install gcc@13
+          micromamba install -c conda-forge llvm-openmp compiler-rt
           pip install .
 
       - name: Install pysteps
