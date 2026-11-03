@@ -10,7 +10,7 @@ pysteps - Python framework for short-term ensemble prediction systems
     * - docs
       - |stable| |colab| |gallery|
     * - status
-      - |test| |docs| |codecov| |codacy| |black|
+      - |test| |docs| |codecov| |codacy| |formatting|
     * - package
       - |github| |conda| |pypi| |zenodo|
     * - community
@@ -25,9 +25,9 @@ pysteps - Python framework for short-term ensemble prediction systems
     :alt: Test pysteps
     :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Test+Pysteps"
 
-.. |black| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20Black/badge.svg
-    :alt: Check Black
-    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+Black"
+.. |formatting| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20formatting/badge.svg
+    :alt: Check formatting
+    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+formatting"
 
 .. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
     :alt: Coverage
@@ -99,11 +99,7 @@ Installation
 
 PySTEPS can be installed using `uv <https://docs.astral.sh/uv/getting-started/installation/>`_::
 
-    $ uv sync
-
-To install the optional dependencies, use::
-
-    $ uv sync --extra optional
+    uv sync
 
 Usage
 =====
