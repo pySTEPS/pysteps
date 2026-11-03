@@ -92,7 +92,7 @@ precip_dataset_with_motion = oflow_method(precip_dataset)
 # Extrapolate the last radar observation
 extrapolate = nowcasts.get_method("extrapolation")
 precip_dataset_with_motion[precip_var] = precip_dataset_with_motion[precip_var].fillna(
-    precip_dataset_w_motion[precip_var].attrs["zerovalue"]
+    precip_dataset_with_motion[precip_var].attrs["zerovalue"]
 )
 precip_forecast = extrapolate(
     precip_dataset_w_motion.isel(time=slice(-1, None)), n_leadtimes
