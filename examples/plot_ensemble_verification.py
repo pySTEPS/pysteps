@@ -98,7 +98,7 @@ precip_dataset_with_motion = dense_lucaskanade(precip_dataset)
 # Perform the ensemble nowcast with STEPS
 nowcast_method = nowcasts.get_method("steps")
 ensemble_precip_forecast = nowcast_method(
-    precip_dataset_w_motion.isel(time=slice(-3, None)),
+    precip_dataset_with_motion.isel(time=slice(-3, None)),
     n_leadtimes,
     n_ens_members,
     n_cascade_levels=6,
