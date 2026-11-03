@@ -10,13 +10,15 @@ range of precipitation values.
 
 import os
 from datetime import datetime
+
 import matplotlib.pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams
+from pysteps.datasets import create_default_pystepsrc, download_pysteps_data
 from pysteps.utils import conversion
 from pysteps.visualization import plot_precip_field
-from pysteps.datasets import download_pysteps_data, create_default_pystepsrc
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ###############################################################################
 # Download the data if it is not available
@@ -62,15 +64,18 @@ fns = io.find_by_date(
 
 # Read the frame from the archive
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert the reflectivity data to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
+
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the first rainfall field from the loaded data
 plt.figure(figsize=(10, 5), dpi=300)
 plt.axis("off")
-plot_precip_field(R[0, :, :], geodata=metadata, axis="off")
+plot_precip_field(precip_dataset[precip_var][0], geodata=geodata, axis="off")
 
 plt.tight_layout()
 plt.show()
@@ -136,7 +141,9 @@ config = ColormapConfig()
 # Plot the precipitation field using the custom colormap
 plt.figure(figsize=(10, 5), dpi=300)
 plt.axis("off")
-plot_precip_field(R[0, :, :], geodata=metadata, axis="off", colormap_config=config)
+plot_precip_field(
+    precip_dataset[precip_var][0], geodata=geodata, axis="off", colormap_config=config
+)
 
 plt.tight_layout()
 plt.show()
