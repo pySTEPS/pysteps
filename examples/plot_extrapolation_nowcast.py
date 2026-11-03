@@ -107,7 +107,7 @@ precip_forecast = transformation.dB_transform(
 plot_precip_field(R_, geodata=geodata)
 velocity = np.stack(
     [
-        precip_dataset_w_motion["velocity_x"].values,
+        precip_dataset_with_motion["velocity_x"].values,
         precip_dataset_w_motion["velocity_y"].values,
     ]
 )
