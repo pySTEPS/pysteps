@@ -398,3 +398,10 @@ def convert_output_to_xarray_dataset(
     )
 
     return dataset
+
+
+def validate_dataset(dataset: xr.Dataset) -> xr.Dataset:
+    if "y" not in dataset.coords:
+        raise ValueError("The dataset requires a y-coordinate")
+    if "x" not in dataset.coords:
+        raise ValueError("The dataset requires a x-coordinate")
