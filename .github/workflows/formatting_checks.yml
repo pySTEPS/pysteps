@@ -1,12 +1,6 @@
-# This workflow will test the code base using the LATEST version of black
+# This workflow will test the code base for formatting issues
 
-# IMPORTANT: Black is under development. Hence, minor fommatting changes between
-# different version are expected.
-# If this test fails, install the latest version of black and then run black.
-# Preferably, run black only on the files that you have modified.
-# This will faciliate the revision of the proposed changes.
-
-name: Check Black
+name: Check formatting
 
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
