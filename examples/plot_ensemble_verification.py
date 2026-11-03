@@ -93,7 +93,7 @@ pprint(dict(precip_dataset[precip_var].attrs))
 # We use the STEPS approach to produce a ensemble nowcast of precipitation fields.
 
 # Estimate the motion field
-precip_dataset_w_motion = dense_lucaskanade(precip_dataset)
+precip_dataset_with_motion = dense_lucaskanade(precip_dataset)
 
 # Perform the ensemble nowcast with STEPS
 nowcast_method = nowcasts.get_method("steps")
