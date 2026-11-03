@@ -90,7 +90,7 @@ nowcast_linda = nowcast_linda_dataset[precip_var].values
 
 # Compute S-PROG nowcast for comparison
 precip_dataset_with_motion_db = transformation.dB_transform(
-    precip_dataset_w_motion, threshold=0.1, zerovalue=-15.0
+    precip_dataset_with_motion, threshold=0.1, zerovalue=-15.0
 )
 nowcast_sprog_dataset = sprog.forecast(
     precip_dataset_w_motion_db.isel(time=slice(-3, None)),
