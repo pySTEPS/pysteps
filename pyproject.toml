@@ -50,12 +50,14 @@ optional = [
     "geotiff",
     "h5py",
     "pandas",
-    "pygrib",
     "pyfftw",
     "pywavelets",
     "rasterio",
     "scikit-image",
     "scikit-learn",
+]
+pygrib = [
+    "pygrib"
 ]
 
 [dependency-groups]

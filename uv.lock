@@ -1545,13 +1545,15 @@ optional = [
     { name = "h5py" },
     { name = "pandas" },
     { name = "pyfftw" },
-    { name = "pygrib" },
     { name = "pywavelets", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "pywavelets", version = "1.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "rasterio", version = "1.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "rasterio", version = "1.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "scikit-image" },
     { name = "scikit-learn" },
+]
+pygrib = [
+    { name = "pygrib" },
 ]
 
 [package.dev-dependencies]
@@ -1581,7 +1583,7 @@ requires-dist = [
     { name = "pandas", marker = "extra == 'optional'" },
     { name = "pillow" },
     { name = "pyfftw", marker = "extra == 'optional'" },
-    { name = "pygrib", marker = "extra == 'optional'" },
+    { name = "pygrib", marker = "extra == 'pygrib'" },
     { name = "pyproj" },
     { name = "pywavelets", marker = "extra == 'optional'" },
     { name = "rasterio", marker = "extra == 'optional'" },
@@ -1590,7 +1592,7 @@ requires-dist = [
     { name = "scipy" },
     { name = "xarray" },
 ]
-provides-extras = ["optional"]
+provides-extras = ["optional", "pygrib"]
 
 [package.metadata.requires-dev]
 dev = [
