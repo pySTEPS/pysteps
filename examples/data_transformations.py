@@ -20,11 +20,13 @@ normal quantile transforms.
 """
 
 from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import skew
+
 from pysteps import io, rcparams
 from pysteps.utils import conversion, transformation
-from scipy.stats import skew
 
 ###############################################################################
 # Read the radar input images

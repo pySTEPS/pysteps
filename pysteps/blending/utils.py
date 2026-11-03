@@ -19,9 +19,9 @@ Module with common utilities used by the blending methods.
 """
 
 import datetime
-from typing import Any, Callable
 import warnings
 from pathlib import Path
+from typing import Any, Callable
 
 import numpy as np
 import xarray as xr

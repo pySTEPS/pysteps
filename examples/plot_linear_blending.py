@@ -15,7 +15,7 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 
 import pysteps
-from pysteps import io, rcparams, nowcasts, blending
+from pysteps import blending, io, nowcasts, rcparams
 from pysteps.utils import conversion
 from pysteps.visualization import plot_precip_field
 

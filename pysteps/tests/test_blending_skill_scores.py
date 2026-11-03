@@ -5,10 +5,10 @@ import pytest
 from numpy.testing import assert_array_almost_equal
 
 from pysteps.blending.skill_scores import (
-    spatial_correlation,
-    lt_dependent_cor_nwp,
-    lt_dependent_cor_extrapolation,
     clim_regr_values,
+    lt_dependent_cor_extrapolation,
+    lt_dependent_cor_nwp,
+    spatial_correlation,
 )
 
 # Set the climatological correlations values

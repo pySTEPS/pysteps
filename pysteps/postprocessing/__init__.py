@@ -3,5 +3,5 @@
 
 from . import ensemblestats
 from .diagnostics import *
-from .interface import *
 from .ensemblestats import *
+from .interface import *

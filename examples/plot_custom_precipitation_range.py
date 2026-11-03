@@ -10,13 +10,14 @@ range of precipitation values.
 
 import os
 from datetime import datetime
+
 import matplotlib.pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams
+from pysteps.datasets import create_default_pystepsrc, download_pysteps_data
 from pysteps.utils import conversion
 from pysteps.visualization import plot_precip_field
-from pysteps.datasets import download_pysteps_data, create_default_pystepsrc
 
 ###############################################################################
 # Download the data if it is not available

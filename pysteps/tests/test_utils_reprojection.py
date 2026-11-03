@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from pysteps.utils import reprojection as rpj
 from pysteps.tests.helpers import get_precipitation_fields
+from pysteps.utils import reprojection as rpj
 
 
 def build_precip_dataset(

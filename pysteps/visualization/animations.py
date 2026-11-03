@@ -15,6 +15,7 @@ import os
 import warnings
 
 import matplotlib.pylab as plt
+
 import pysteps as st
 
 PRECIP_VALID_TYPES = ("ensemble", "mean", "prob")

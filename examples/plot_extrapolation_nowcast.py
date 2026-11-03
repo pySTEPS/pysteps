@@ -9,9 +9,11 @@ Finnish radar data.
 """
 
 from datetime import datetime
+from pprint import pprint
+
 import matplotlib.pyplot as plt
 import numpy as np
-from pprint import pprint
+
 from pysteps import io, motion, nowcasts, rcparams, verification
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver

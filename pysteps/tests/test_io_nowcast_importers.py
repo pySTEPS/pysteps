@@ -1,10 +1,11 @@
+from tempfile import NamedTemporaryFile
+
 import numpy as np
 import pytest
+import xarray as xr
 
-from tempfile import NamedTemporaryFile
 from pysteps import io
 from pysteps.tests.helpers import get_precipitation_fields
-import xarray as xr
 
 precip_dataset = get_precipitation_fields(
     num_prev_files=1,

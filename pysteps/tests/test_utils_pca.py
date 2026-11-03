@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
+
 from pysteps.utils import pca
 
 pca_arg_values = (

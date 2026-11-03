@@ -11,14 +11,19 @@ nowcast in order to represent the uncertainty in the evolution of the rainfall
 field.
 """
 
-from matplotlib import cm, pyplot as plt
-import numpy as np
 import os
 from pprint import pprint
+
+import numpy as np
+from matplotlib import cm
+from matplotlib import pyplot as plt
+
 from pysteps import io, rcparams
-from pysteps.noise.fftgenerators import initialize_param_2d_fft_filter
-from pysteps.noise.fftgenerators import initialize_nonparam_2d_fft_filter
-from pysteps.noise.fftgenerators import generate_noise_2d_fft_filter
+from pysteps.noise.fftgenerators import (
+    generate_noise_2d_fft_filter,
+    initialize_nonparam_2d_fft_filter,
+    initialize_param_2d_fft_filter,
+)
 from pysteps.utils import conversion, rapsd, transformation
 from pysteps.visualization import plot_precip_field, plot_spectrum1d
 

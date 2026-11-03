@@ -8,12 +8,15 @@ a single radar precipitation field in pysteps.
 
 """
 
-from matplotlib import cm, pyplot as plt
-import numpy as np
 import os
 from pprint import pprint
-from pysteps.cascade.bandpass_filters import filter_gaussian
+
+import numpy as np
+from matplotlib import cm
+from matplotlib import pyplot as plt
+
 from pysteps import io, rcparams
+from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps.cascade.decomposition import decomposition_fft
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field

@@ -5,8 +5,8 @@ import tempfile
 from datetime import datetime
 
 import numpy as np
-import xarray as xr
 import pytest
+import xarray as xr
 from numpy.testing import assert_array_almost_equal
 
 from pysteps.io import import_netcdf_pysteps

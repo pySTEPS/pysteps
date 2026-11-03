@@ -40,8 +40,8 @@ the short-space Fourier transform (SSFT) methodology developed in
 import time
 import warnings
 
-from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 from pysteps.utils.check_norain import check_norain
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask

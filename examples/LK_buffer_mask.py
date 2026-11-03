@@ -15,10 +15,10 @@ detected nearby no-data areas.
 """
 
 from datetime import datetime
-from matplotlib import cm, colors
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import cm, colors
 
 from pysteps import io, motion, nowcasts, rcparams, verification
 from pysteps.utils import conversion, transformation

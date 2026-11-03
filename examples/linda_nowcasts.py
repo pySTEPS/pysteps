@@ -8,8 +8,8 @@ nowcasts using Swiss radar data.
 
 """
 
-from datetime import datetime
 import warnings
+from datetime import datetime
 
 warnings.simplefilter("ignore")
 

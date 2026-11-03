@@ -58,7 +58,7 @@ from datetime import datetime
 
 from pysteps import io, rcparams, utils
 from pysteps.motion.lucaskanade import dense_lucaskanade
-from pysteps.verification import reldiag_init, reldiag_accum, plot_reldiag
+from pysteps.verification import plot_reldiag, reldiag_accum, reldiag_init
 
 # data source
 source = rcparams.data_sources["mch"]

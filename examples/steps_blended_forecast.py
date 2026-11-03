@@ -16,7 +16,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import pysteps
-from pysteps import io, rcparams, blending, nowcasts
+from pysteps import blending, io, nowcasts, rcparams
 from pysteps.visualization import plot_precip_field
 
 ################################################################################

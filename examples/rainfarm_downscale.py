@@ -28,15 +28,16 @@ References:
     Stochastic rainfall downscaling of climate models. J. Hydrometeorol., 15(2):830–843.
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
+import logging
 import os
 from pprint import pprint
-import logging
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from pysteps import io, rcparams
-from pysteps.utils import aggregate_fields_space, square_domain, to_rainrate
 from pysteps.downscaling import rainfarm
+from pysteps.utils import aggregate_fields_space, square_domain, to_rainrate
 from pysteps.visualization import plot_precip_field
 
 # Configure logging

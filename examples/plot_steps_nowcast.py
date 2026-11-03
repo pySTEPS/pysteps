@@ -8,10 +8,11 @@ radar data.
 
 """
 
+from datetime import datetime
+
 import matplotlib.pyplot as plt
 import xarray as xr
 
-from datetime import datetime
 from pysteps import io, nowcasts, rcparams
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob

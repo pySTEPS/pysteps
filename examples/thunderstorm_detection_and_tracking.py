@@ -38,7 +38,7 @@ from pysteps import io, rcparams
 from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
 from pysteps.utils import to_reflectivity
-from pysteps.visualization import plot_precip_field, plot_track, plot_cart_contour
+from pysteps.visualization import plot_cart_contour, plot_precip_field, plot_track
 
 ################################################################################
 # Read the radar input images

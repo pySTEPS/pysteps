@@ -1,9 +1,9 @@
-import pytest
 import numpy as np
+import pytest
 import xarray as xr
 
-from pysteps.motion import farneback
 from pysteps.exceptions import MissingOptionalDependency
+from pysteps.motion import farneback
 from pysteps.tests.helpers import get_precipitation_fields
 
 fb_arg_names = (

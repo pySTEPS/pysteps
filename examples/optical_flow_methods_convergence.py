@@ -18,8 +18,8 @@ To test the convergence, using an example precipitation field we will:
 Let's first load the libraries that we will use.
 """
 
-from datetime import datetime
 import time
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +27,7 @@ from matplotlib.pyplot import get_cmap
 from scipy.ndimage import uniform_filter
 
 import pysteps as stp
-from pysteps import motion, io, rcparams
+from pysteps import io, motion, rcparams
 from pysteps.motion.vet import morph
 from pysteps.visualization import plot_precip_field, quiver
 

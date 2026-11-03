@@ -12,8 +12,7 @@ features.
     get_method
 """
 
-from pysteps.tracking import lucaskanade
-from pysteps.tracking import tdating
+from pysteps.tracking import lucaskanade, tdating
 
 _tracking_methods = dict()
 _tracking_methods["lucaskanade"] = lucaskanade.track_features
