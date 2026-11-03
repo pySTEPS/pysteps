@@ -95,7 +95,7 @@ precip_dataset_with_motion[precip_var] = precip_dataset_with_motion[precip_var].
     precip_dataset_with_motion[precip_var].attrs["zerovalue"]
 )
 precip_forecast = extrapolate(
-    precip_dataset_w_motion.isel(time=slice(-1, None)), n_leadtimes
+    precip_dataset_with_motion.isel(time=slice(-1, None)), n_leadtimes
 )
 
 # Back-transform to rain rate
