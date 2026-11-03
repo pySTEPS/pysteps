@@ -7,7 +7,16 @@ repos:
         language: system
         verbose: true
         pass_filenames: false
-        stages: [pre-commit]
+        stages: [ pre-commit ]
+  - repo: local
+    hooks:
+      - id: sort-imports
+        name: sort-imports
+        entry: uv run ruff check --fix
+        language: system
+        verbose: true
+        pass_filenames: false
+        stages: [ pre-commit ]
   - repo: local
     hooks:
       - id: run-ruff

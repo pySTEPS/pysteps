@@ -67,6 +67,11 @@ extend-exclude = [
     "*dist",
 ]
 
+[tool.ruff.lint]
+select = [
+    "I",  # sort imports!
+]
+
 [tool.ruff.format]
 # Use `\n` line endings for all files
 line-ending = "lf"
