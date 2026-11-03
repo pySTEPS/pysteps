@@ -46,7 +46,7 @@ optional = [
     "cartopy>=0.18",
     "cookiecutter",
     "dask",
-    "gdal==3.4.1",
+    "gdal[numpy]==3.4.1",
     "geotiff",
     "h5py",
     "pandas",

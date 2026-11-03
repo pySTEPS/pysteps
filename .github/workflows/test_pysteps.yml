@@ -50,6 +50,7 @@ jobs:
           brew update-reset
           brew update
           gcc-13 --version || brew install gcc@13
+          brew install gdal
           uv python install ${{ matrix.python-version }}
           uv sync --python ${{ matrix.python-version }} --extra optional --frozen
 

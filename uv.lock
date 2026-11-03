@@ -571,6 +571,12 @@ version = "3.4.1"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c5/f6/4fed0cacc8a6fb5d7659a05d300e01a1a13e2d9febf1911b05695057c662/GDAL-3.4.1.tar.gz", hash = "sha256:b19e8143bc2c0d3e222789a465d82b6874236eb78801aec608bf5c8c44d20fcf", size = 755854, upload-time = "2022-01-04T11:10:53.023Z" }
 
+[package.optional-dependencies]
+numpy = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+
 [[package]]
 name = "geotiff"
 version = "0.2.10"
@@ -1534,7 +1540,7 @@ optional = [
     { name = "cartopy" },
     { name = "cookiecutter" },
     { name = "dask" },
-    { name = "gdal" },
+    { name = "gdal", extra = ["numpy"] },
     { name = "geotiff" },
     { name = "h5py" },
     { name = "pandas" },
@@ -1562,7 +1568,7 @@ requires-dist = [
     { name = "cartopy", marker = "extra == 'optional'", specifier = ">=0.18" },
     { name = "cookiecutter", marker = "extra == 'optional'" },
     { name = "dask", marker = "extra == 'optional'" },
-    { name = "gdal", marker = "extra == 'optional'", specifier = "==3.4.1" },
+    { name = "gdal", extras = ["numpy"], marker = "extra == 'optional'", specifier = "==3.4.1" },
     { name = "geotiff", marker = "extra == 'optional'" },
     { name = "h5py", marker = "extra == 'optional'" },
     { name = "jsmin" },
