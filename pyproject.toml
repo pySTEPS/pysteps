@@ -1,28 +1,33 @@
 [build-system]
 requires = [
     "wheel",
-    "setuptools>=40.8.0",
-    "Cython>=0.29.2",
-    "numpy>=1.13"
+    "setuptools>=84",
+    "Cython>=3",
+    "numpy>=2",
 ]
-# setuptools 40.8.0 is the first version of setuptools that offers
-# a PEP 517 backend that closely mimics directly executing setup.py.
-build-backend = "setuptools.build_meta:__legacy__"
-#https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "PySTEPS"
-keywords = ["advention", "ensemble-prediction", "forecast-verification", "hydrology", "nowcasting", "optical-flow", "precipitation", "rainfall", "rainfall-prediction", "stochastic-processes", "weather", "weather-radar"]
-license = { text = "BSD-3-Clause" }
+description = "Python framework for short-term ensemble prediction systems"
+keywords = ["advention", "ensemble prediction", "forecast verification", "hydrology", "nowcasting", "optical flow", "precipitation", "rainfall", "rainfall prediction", "stochastic processes", "weather", "weather radar",]
+license = "BSD-3-Clause"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
 readme = "README.rst"
 version = "2.0.0"
 requires-python = ">=3.11.0,<3.14.0"
 dependencies = [
-    "cartopy>=0.18",
-    "dask",
-    "gdal==3.4.1",
-    "geotiff",
-    "h5py",
     "jsmin",
     "jsonschema",
     "matplotlib",
@@ -31,25 +36,43 @@ dependencies = [
     "opencv-python",
     "pandas",
     "pillow",
-    "pyfftw",
-    "pygrib",
     "pyproj",
+    "scipy",
+    "xarray",
+]
+
+[project.optional-dependencies]
+optional = [
+    "cartopy>=0.18",
+    "cookiecutter",
+    "dask",
+    "gdal==3.4.1",
+    "geotiff",
+    "h5py",
+    "pandas",
+    "pygrib",
+    "pyfftw",
     "pywavelets",
     "rasterio",
     "scikit-image",
     "scikit-learn",
-    "scipy",
-    "xarray",
 ]
 
 [dependency-groups]
 dev = [
     "bandit",
-    "cookiecutter",
     "pre-commit",
     "pytest",
     "ruff",
 ]
+
+[project.urls]
+Homepage = "https://github.com/you/my-package"
+Source = "https://github.com/pySTEPS/pysteps"
+Issues = "https://github.com/pySTEPS/pysteps/issues"
+CI = "https://github.com/pySTEPS/pysteps/actions"
+Changelog = "https://github.com/pySTEPS/pysteps/releases"
+Documentation = "https://pysteps.readthedocs.io"
 
 #########################################################################################
 # Style checking

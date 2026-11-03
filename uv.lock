@@ -1455,11 +1455,6 @@ name = "pysteps"
 version = "2.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "cartopy" },
-    { name = "dask" },
-    { name = "gdal" },
-    { name = "geotiff" },
-    { name = "h5py" },
     { name = "jsmin" },
     { name = "jsonschema" },
     { name = "matplotlib" },
@@ -1469,25 +1464,35 @@ dependencies = [
     { name = "opencv-python" },
     { name = "pandas" },
     { name = "pillow" },
-    { name = "pyfftw" },
-    { name = "pygrib" },
     { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "pyproj", version = "3.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "xarray" },
+]
+
+[package.optional-dependencies]
+optional = [
+    { name = "cartopy" },
+    { name = "cookiecutter" },
+    { name = "dask" },
+    { name = "gdal" },
+    { name = "geotiff" },
+    { name = "h5py" },
+    { name = "pandas" },
+    { name = "pyfftw" },
+    { name = "pygrib" },
     { name = "pywavelets", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "pywavelets", version = "1.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "rasterio", version = "1.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "rasterio", version = "1.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "scikit-image" },
     { name = "scikit-learn" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "xarray" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "bandit" },
-    { name = "cookiecutter" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
@@ -1495,11 +1500,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cartopy", specifier = ">=0.18" },
-    { name = "dask" },
-    { name = "gdal", specifier = "==3.4.1" },
-    { name = "geotiff" },
-    { name = "h5py" },
+    { name = "cartopy", marker = "extra == 'optional'", specifier = ">=0.18" },
+    { name = "cookiecutter", marker = "extra == 'optional'" },
+    { name = "dask", marker = "extra == 'optional'" },
+    { name = "gdal", marker = "extra == 'optional'", specifier = "==3.4.1" },
+    { name = "geotiff", marker = "extra == 'optional'" },
+    { name = "h5py", marker = "extra == 'optional'" },
     { name = "jsmin" },
     { name = "jsonschema" },
     { name = "matplotlib" },
@@ -1507,22 +1513,23 @@ requires-dist = [
     { name = "numpy" },
     { name = "opencv-python" },
     { name = "pandas" },
+    { name = "pandas", marker = "extra == 'optional'" },
     { name = "pillow" },
-    { name = "pyfftw" },
-    { name = "pygrib" },
+    { name = "pyfftw", marker = "extra == 'optional'" },
+    { name = "pygrib", marker = "extra == 'optional'" },
     { name = "pyproj" },
-    { name = "pywavelets" },
-    { name = "rasterio" },
-    { name = "scikit-image" },
-    { name = "scikit-learn" },
+    { name = "pywavelets", marker = "extra == 'optional'" },
+    { name = "rasterio", marker = "extra == 'optional'" },
+    { name = "scikit-image", marker = "extra == 'optional'" },
+    { name = "scikit-learn", marker = "extra == 'optional'" },
     { name = "scipy" },
     { name = "xarray" },
 ]
+provides-extras = ["optional"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "bandit" },
-    { name = "cookiecutter" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
