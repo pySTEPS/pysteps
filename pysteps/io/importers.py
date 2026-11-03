@@ -520,12 +520,12 @@ def import_mrms_grib(
     )
 
     precip_dataset = convert_input_to_xarray_dataset(precip, None, metadata)
+    precip_var = precip_dataset.attrs["precip_var"]
 
     if window_size != (1, 1):
         # Create a function with default arguments for aggregate_fields
         block_reduce = partial(aggregate_fields, method="mean", trim=True)
         # Downscale data
-        precip_var = precip_dataset.attrs["precip_var"]
         # block_reduce does not handle nan values
         no_data_mask = precip_dataset[precip_var].values == -3
         precip_dataset[precip_var].data[no_data_mask] = 0
