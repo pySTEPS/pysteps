@@ -97,11 +97,13 @@ Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab wi
 Installation
 ============
 
-The recommended way to install pysteps is with `conda <https://docs.conda.io/>`_ from the conda-forge channel::
+PySTEPS can be installed using `uv <https://docs.astral.sh/uv/getting-started/installation/>`_::
 
-    $ conda install -c conda-forge pysteps
+    $ uv sync
 
-More details can be found in the `installation guide <https://pysteps.readthedocs.io/en/stable/user_guide/install_pysteps.html>`_.
+To install the optional dependencies, use::
+
+    $ uv sync --extra optional
 
 Usage
 =====
