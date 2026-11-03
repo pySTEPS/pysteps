@@ -18,37 +18,37 @@ readme = "README.rst"
 version = "2.0.0"
 requires-python = ">=3.11.0,<3.14.0"
 dependencies = [
-    "numpy",
-    "opencv-python",
-    "pillow",
-    "pyproj",
-    "scipy",
-    "matplotlib",
+    "cartopy>=0.18",
+    "dask",
+    "gdal==3.4.1",
+    "geotiff",
+    "h5py",
     "jsmin",
     "jsonschema",
+    "matplotlib",
     "netCDF4",
+    "numpy",
+    "opencv-python",
+    "pandas",
+    "pillow",
+    "pyfftw",
+    "pygrib",
+    "pyproj",
+    "pywavelets",
+    "rasterio",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
     "xarray",
 ]
 
 [dependency-groups]
 dev = [
-    "dask",
-    "pyfftw",
-    "cartopy>=0.18",
-    "h5py",
-    "scikit-image",
-    "scikit-learn",
-    "pandas",
-    "rasterio",
-    "pygrib",
-    "pywavelets",
-    "geotiff",
-    "gdal==3.4.1",
+    "bandit",
     "cookiecutter",
+    "pre-commit",
     "pytest",
     "ruff",
-    "bandit",
-    "pre-commit",
 ]
 
 #########################################################################################
