@@ -108,7 +108,7 @@ plot_precip_field(R_, geodata=geodata)
 velocity = np.stack(
     [
         precip_dataset_with_motion["velocity_x"].values,
-        precip_dataset_w_motion["velocity_y"].values,
+        precip_dataset_with_motion["velocity_y"].values,
     ]
 )
 quiver(velocity, geodata=geodata, step=50)
