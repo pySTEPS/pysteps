@@ -134,7 +134,7 @@ plt.show()
 
 # Compute 30-minute LINDA nowcast ensemble with 40 members and 8 parallel workers
 nowcast_linda_dataset = linda.forecast(
-    precip_dataset_w_motion,
+    precip_dataset_with_motion,
     6,
     max_num_features=15,
     add_perturbations=True,
