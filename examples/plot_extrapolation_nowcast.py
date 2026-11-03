@@ -87,7 +87,7 @@ pprint(dict(precip_dataset[precip_var].attrs))
 
 # Estimate the motion field with Lucas-Kanade
 oflow_method = motion.get_method("LK")
-precip_dataset_w_motion = oflow_method(precip_dataset)
+precip_dataset_with_motion = oflow_method(precip_dataset)
 
 # Extrapolate the last radar observation
 extrapolate = nowcasts.get_method("extrapolation")
