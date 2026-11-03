@@ -101,7 +101,7 @@ if nwp_metadata.get("transform") is None:
 # model_dataset's time grid must line up exactly with the radar dataset's
 # timestep grid (blending.steps.forecast selects the model data with
 # `.sel(time=...)` using the radar timestep), which is the case here since
-# both the radar and NWP data have a native 10-minute cadence and index 0 of
+# both the radar and NWP data have a native 10-minute time step and index 0 of
 # the sliced nwp_precip array corresponds to date_radar.
 model_dataset = convert_input_to_xarray_dataset(
     nwp_precip,
