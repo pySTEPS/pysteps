@@ -70,7 +70,7 @@ plt.show()
 # ----------------------------
 
 # The advection field is estimated using the Lucas-Kanade optical flow
-precip_dataset_w_motion = dense_lucaskanade(precip_dataset, verbose=True)
+precip_dataset_with_motion = dense_lucaskanade(precip_dataset, verbose=True)
 
 ###############################################################################
 # Deterministic nowcast
