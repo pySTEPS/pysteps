@@ -9,3 +9,4 @@ pandas
 git+https://github.com/pySTEPS/pysteps-nwp-importers.git@main#egg=pysteps_nwp_importers
 pygrib
 h5py
+mlcast-datasets
