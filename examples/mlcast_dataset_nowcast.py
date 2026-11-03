@@ -9,23 +9,28 @@ nowcasting with the pysteps methods.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import xarray as xr
 
 from pysteps import motion, nowcasts
 from pysteps.utils import transformation
 from pysteps.visualization import get_colormap
 
-import mlcast_datasets
-
 ################################################################################
-# Load the RMI dataset from MLCast catalog
+# Load the RMI dataset from S3
 # ----------------------------------------
 #
 # We will use the RMI dataset for a specific event day and extract a
 # subset of the data for nowcasting.
 
-# Load dataset from catalog
-cat = mlcast_datasets.open_catalog()
-ds = cat.precipitation.be_rmi_radclim_mfb_5min.to_dask()
+# Load dataset with xarray
+ds = xr.open_dataset(
+    "s3://mlcast-source-datasets/radar_precipitation/BE-RMI-radclim-mfb/v0.1.1/5_minutes.zarr/",
+    engine="zarr",
+    storage_options={
+        "anon": True,
+        "client_kwargs": {"endpoint_url": "https://object-store.os-api.cci2.ecmwf.int"},
+    },
+)
 
 # Pick a day
 EVENT_DAY = "2021-06-19"
