@@ -93,7 +93,7 @@ precip_dataset_with_motion_db = transformation.dB_transform(
     precip_dataset_with_motion, threshold=0.1, zerovalue=-15.0
 )
 nowcast_sprog_dataset = sprog.forecast(
-    precip_dataset_w_motion_db.isel(time=slice(-3, None)),
+    precip_dataset_with_motion_db.isel(time=slice(-3, None)),
     6,
     n_cascade_levels=6,
     precip_thr=-10.0,
