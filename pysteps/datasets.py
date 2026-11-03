@@ -151,7 +151,7 @@ class ShowProgress(object):
 
             else:
                 progress_msg = (
-                    f"Progress: ({downloaded_size:.1f} Mb)" f" - Time left: unknown"
+                    f"Progress: ({downloaded_size:.1f} Mb) - Time left: unknown"
                 )
 
         self._print(progress_msg)
@@ -257,9 +257,7 @@ def download_mrms_data(dir_path, initial_date, final_date, timestep=2, nodelay=F
         )
 
         rel_url_fmt = (
-            "/%Y/%m/%d"
-            "/mrms/ncep/PrecipRate"
-            "/PrecipRate_00.00_%Y%m%d-%H%M%S.grib2.gz"
+            "/%Y/%m/%d/mrms/ncep/PrecipRate/PrecipRate_00.00_%Y%m%d-%H%M%S.grib2.gz"
         )
 
         file_url = archive_url + datetime.strftime(current_date, rel_url_fmt)

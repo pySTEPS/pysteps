@@ -167,14 +167,14 @@ for i in range(2):
     ax = plot_precip_field(
         nowcast_linda[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
     )
-    ax.set_title(f"LINDA Member {i+1}")
+    ax.set_title(f"LINDA Member {i + 1}")
 
 for i in range(2):
     ax = fig.add_subplot(2, 2, 3 + i)
     ax = plot_precip_field(
         nowcast_steps[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
     )
-    ax.set_title(f"STEPS Member {i+1}")
+    ax.set_title(f"STEPS Member {i + 1}")
 
 ###############################################################################
 # The above figure shows the main difference between LINDA and STEPS. In

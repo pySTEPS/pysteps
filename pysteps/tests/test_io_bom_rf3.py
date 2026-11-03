@@ -25,9 +25,7 @@ def test_io_import_bom_shape():
 
 
 # Test import_bom_rf3 function
-expected_proj = (
-    "+proj=aea  +lon_0=144.752 +lat_0=-37.852 " "+lat_1=-18.000 +lat_2=-36.000"
-)
+expected_proj = "+proj=aea  +lon_0=144.752 +lat_0=-37.852 +lat_1=-18.000 +lat_2=-36.000"
 
 test_metadata_bom = [
     (precip_dataset.attrs["projection"], expected_proj, None),

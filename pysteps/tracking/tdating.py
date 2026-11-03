@@ -26,6 +26,7 @@ References
     match
     couple_track
 """
+
 import numpy as np
 import xarray as xr
 
@@ -175,11 +176,11 @@ def dating(
     """
     if not SKIMAGE_IMPORTED:
         raise MissingOptionalDependency(
-            "skimage is required for thunderstorm DATing " "but it is not installed"
+            "skimage is required for thunderstorm DATing but it is not installed"
         )
     if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
-            "pandas is required for thunderstorm DATing " "but it is not installed"
+            "pandas is required for thunderstorm DATing but it is not installed"
         )
 
     # Check arguments

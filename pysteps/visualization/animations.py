@@ -171,8 +171,7 @@ def animate(
 
     if ptype not in PRECIP_VALID_TYPES:
         raise ValueError(
-            f"Invalid precipitation type '{ptype}'."
-            f"Supported: {str(PRECIP_VALID_TYPES)}"
+            f"Invalid precipitation type '{ptype}'.Supported: {str(PRECIP_VALID_TYPES)}"
         )
 
     if timestamps_obs is not None:

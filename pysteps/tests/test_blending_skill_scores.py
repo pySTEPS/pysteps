@@ -261,12 +261,12 @@ def test_blending_skill_scores(
 
     # Check if the field has the same number of cascade levels as the model
     # field and as the given n_cascade_levels
-    assert (
-        correlations_t0.shape[0] == mod.shape[0]
-    ), "Number of cascade levels should be the same as in the model field"
-    assert (
-        correlations_t0.shape[0] == n_cascade_levels
-    ), "Number of cascade levels should be the same as n_cascade_levels"
+    assert correlations_t0.shape[0] == mod.shape[0], (
+        "Number of cascade levels should be the same as in the model field"
+    )
+    assert correlations_t0.shape[0] == n_cascade_levels, (
+        "Number of cascade levels should be the same as n_cascade_levels"
+    )
 
     # Check if the returned values are as expected
     assert_array_almost_equal(
@@ -285,9 +285,9 @@ def test_blending_skill_scores(
         n_model=n_model,
         skill_kwargs=skill_kwargs,
     )
-    assert (
-        correlations_clim.shape[0] == n_cascade_levels
-    ), "Number of cascade levels should be the same as n_cascade_levels"
+    assert correlations_clim.shape[0] == n_cascade_levels, (
+        "Number of cascade levels should be the same as n_cascade_levels"
+    )
     assert_array_almost_equal(
         correlations_clim,
         clim_cor_values,
@@ -305,12 +305,12 @@ def test_blending_skill_scores(
     correlations_nwp_lt = lt_dependent_cor_nwp(
         lt=lt, correlations=correlations_t0, outdir_path="./tmp/"
     )
-    assert (
-        correlations_nwp_lt.shape[0] == mod.shape[0]
-    ), "Number of cascade levels should be the same as in the model field"
-    assert (
-        correlations_nwp_lt.shape[0] == n_cascade_levels
-    ), "Number of cascade levels should be the same as n_cascade_levels"
+    assert correlations_nwp_lt.shape[0] == mod.shape[0], (
+        "Number of cascade levels should be the same as in the model field"
+    )
+    assert correlations_nwp_lt.shape[0] == n_cascade_levels, (
+        "Number of cascade levels should be the same as n_cascade_levels"
+    )
     assert_array_almost_equal(
         correlations_nwp_lt,
         expected_cor_nwp_lt,
@@ -325,12 +325,12 @@ def test_blending_skill_scores(
     )
 
     print(correlations_nowcast_lt)
-    assert (
-        correlations_nowcast_lt.shape[0] == mod.shape[0]
-    ), "Number of cascade levels should be the same as in the model field"
-    assert (
-        correlations_nowcast_lt.shape[0] == n_cascade_levels
-    ), "Number of cascade levels should be the same as n_cascade_levels"
+    assert correlations_nowcast_lt.shape[0] == mod.shape[0], (
+        "Number of cascade levels should be the same as in the model field"
+    )
+    assert correlations_nowcast_lt.shape[0] == n_cascade_levels, (
+        "Number of cascade levels should be the same as n_cascade_levels"
+    )
     assert_array_almost_equal(
         correlations_nowcast_lt,
         expected_cor_nowcast_lt,

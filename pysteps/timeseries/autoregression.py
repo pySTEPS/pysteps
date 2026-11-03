@@ -217,7 +217,7 @@ def estimate_ar_params_ols(
     if check_stationarity:
         if not test_ar_stationarity(phi):
             raise RuntimeError(
-                "Error in estimate_ar_params_yw: " "nonstationary AR(p) process"
+                "Error in estimate_ar_params_yw: nonstationary AR(p) process"
             )
 
     if d == 1:
@@ -452,7 +452,7 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
     if check_stationarity:
         if not test_ar_stationarity(phi):
             raise RuntimeError(
-                "Error in estimate_ar_params_yw: " "nonstationary AR(p) process"
+                "Error in estimate_ar_params_yw: nonstationary AR(p) process"
             )
 
     # Estimate PHI_{j,0} as phi_pert. See Pulkkinen et al. (2019), eq. 6.
@@ -660,7 +660,7 @@ def estimate_var_params_ols(
 
         if np.any(np.abs(r) > 0.999):
             raise RuntimeError(
-                "Error in estimate_var_params_ols: " "nonstationary VAR(p) process"
+                "Error in estimate_var_params_ols: nonstationary VAR(p) process"
             )
 
     if d == 1:
@@ -925,7 +925,7 @@ def estimate_var_params_yw(gamma, d=0, check_stationarity=True):
     if check_stationarity:
         if not test_var_stationarity(phi):
             raise RuntimeError(
-                "Error in estimate_var_params_yw: " "nonstationary VAR(p) process"
+                "Error in estimate_var_params_yw: nonstationary VAR(p) process"
             )
 
     if d == 1:

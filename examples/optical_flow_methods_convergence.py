@@ -314,9 +314,7 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
     mse = ((ideal_motion - computed_motion)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
-    plt.suptitle(
-        f"{optflow_method_name} " f"Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%"
-    )
+    plt.suptitle(f"{optflow_method_name} Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%")
     plt.show()
 
 

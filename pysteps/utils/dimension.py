@@ -244,7 +244,7 @@ def aggregate_fields(
 
     if np.ndim(dim) > 1:
         raise TypeError(
-            "Only integers or integer 1D arrays can be used for the " "'axis' argument."
+            "Only integers or integer 1D arrays can be used for the 'axis' argument."
         )
 
     if np.ndim(dim) == 0:

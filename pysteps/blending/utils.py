@@ -405,8 +405,7 @@ def preprocess_nwp_data(
 
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
-            "netCDF4 package is required to save the NWP data, "
-            "but it is not installed"
+            "netCDF4 package is required to save the NWP data, but it is not installed"
         )
 
     if "ens_number" in precip_nwp_dataset.dims:

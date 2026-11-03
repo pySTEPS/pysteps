@@ -48,6 +48,7 @@ dev = [
     "pytest",
     "ruff",
     "bandit",
+    "pre-commit",
 ]
 
 #########################################################################################
@@ -65,3 +66,7 @@ extend-exclude = [
     "*build",
     "*dist",
 ]
+
+[tool.ruff.format]
+# Use `\n` line endings for all files
+line-ending = "lf"

@@ -68,5 +68,5 @@ def get_method(name):
         raise ValueError(
             f"Unknown blending method {name}."
             "The available methods are: "
-            f"{*list(_blending_methods.keys()),}"
+            f"{(*list(_blending_methods.keys()),)}"
         ) from None

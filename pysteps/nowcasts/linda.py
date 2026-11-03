@@ -447,8 +447,8 @@ def _compute_ellipse_bbox(phi, sigma1, sigma2, cutoff):
 
 def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=10):
     """Compute the inverse ACF mapping between two distributions."""
-    phi = (
-        lambda x1, x2, rho: 1.0
+    phi = lambda x1, x2, rho: (
+        1.0
         / (2 * np.pi * np.sqrt(1 - rho**2))
         * np.exp(-(x1**2 + x2**2 - 2 * rho * x1 * x2) / (2 * (1 - rho**2)))
     )
@@ -463,10 +463,8 @@ def _compute_inverse_acf_mapping(target_dist, target_dist_params, n_intervals=10
     int_range = (-6, 6)
 
     for i, rho_1_ in enumerate(rho_1):
-        f = (
-            lambda x1, x2: (cdf_trans(x1) - mu)
-            * (cdf_trans(x2) - mu)
-            * phi(x1, x2, rho_1_)
+        f = lambda x1, x2: (
+            (cdf_trans(x1) - mu) * (cdf_trans(x2) - mu) * phi(x1, x2, rho_1_)
         )
         opts = {"epsabs": 1e-8, "epsrel": 1e-8, "limit": 1}
         rho_2[i] = nquad(f, (int_range, int_range), opts=opts)[0] / (sigma * sigma)
