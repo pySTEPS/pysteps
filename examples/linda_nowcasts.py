@@ -148,7 +148,7 @@ nowcast_linda = nowcast_linda_dataset[precip_var].values
 
 # Compute 40-member STEPS nowcast for comparison
 nowcast_steps_dataset = steps.forecast(
-    precip_dataset_w_motion_db.isel(time=slice(-3, None)),
+    precip_dataset_with_motion_db.isel(time=slice(-3, None)),
     6,
     40,
     n_cascade_levels=6,
