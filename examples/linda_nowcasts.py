@@ -79,7 +79,7 @@ precip_dataset_with_motion = dense_lucaskanade(precip_dataset, verbose=True)
 # Compute 30-minute LINDA nowcast with 8 parallel workers
 # Restrict the number of features to 15 to reduce computation time
 nowcast_linda_dataset = linda.forecast(
-    precip_dataset_w_motion,
+    precip_dataset_with_motion,
     6,
     max_num_features=15,
     add_perturbations=False,
