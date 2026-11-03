@@ -60,8 +60,8 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           uv python install ${{ matrix.python-version }}
-          uv sync --python ${{ matrix.python-version }} --frozen
-          uv sync --python ${{ matrix.python-version }} --extra optional --extra pygrib --frozen
+          uv sync --python ${{ matrix.python-version }} --extra gdal --frozen
+          uv sync --python ${{ matrix.python-version }} --extra gdal --extra optional --extra pygrib --frozen
 
       - name: Install pysteps
         if: matrix.os == 'windows-latest'

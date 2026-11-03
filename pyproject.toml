@@ -42,6 +42,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+gdal = [
+    "setuptools",
+    "wheel"
+]
 optional = [
     "cartopy>=0.18",
     "cookiecutter",
