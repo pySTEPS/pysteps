@@ -65,4 +65,3 @@ def test_import_netcdf(precip_dataset):
         )
         assert precip_netcdf[precip_var].shape[1:] == field_shape, "Wrong field shape"
         assert np.allclose(precip_netcdf[precip_var].values, precip_dataarray.values)
-        os.remove(tempfile.name)
