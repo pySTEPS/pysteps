@@ -19,13 +19,8 @@ We welcome all kinds of contributions, like documentation updates, bug fixes, or
 The workflow for the contributions uses the usual
 `GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
 
-If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community on our
-`pysteps slack <https://pysteps.slack.com/>`__.
-To get access to it, you need to ask for an invitation or you can use the automatic invitation page
-`here <https://pysteps-slackin.herokuapp.com/>`__.
-Our slack channel is a great place for preliminary discussions about new features or functionalities.
-Another place where you can report bugs and suggest new enhancements is the
-`project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
+If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community 
+through the `project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
 
 
 First Time Contributors
@@ -38,13 +33,14 @@ the best way to get started is by looking for "Good First Issue" in the
 In a nutshell, the main steps to follow for contributing to pysteps are:
 
 * Setting up the development environment
-* Fork the repository
+* Fork and clone the repository
 * Install pre-commit hooks
 * Create a new branch for each contribution
 * Read the Code Style guide
 * Work on your changes
 * Test your changes
-* Push to your fork repository and create a new PR in GitHub.
+* Push to your fork repository
+* Create a new PR in GitHub.
 
 
 Setting up the Development environment
@@ -115,9 +111,6 @@ Create a new branch
 ~~~~~~~~~~~~~~~~~~~
 
 As a collaborator, all the new contributions you want should be made in a new branch under your forked repository.
-Working on the master branch is reserved for Core Contributors only.
-Core Contributors are developers that actively work and maintain the repository.
-They are the only ones who accept pull requests and push commits directly to the pysteps repository.
 
 For more information on how to create and work with branches, see
 `"Branches in a Nutshell" <https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`__ in the Git documentation
