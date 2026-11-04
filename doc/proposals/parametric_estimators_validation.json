@@ -1,0 +1,64 @@
+{
+  "source_sha256": "2fd6f0b622e88e143d8128f80cb5d0920f0111c1021c6c448222c90bff92c889",
+  "source_revision": "94bd4c1571637a8f246ac391470e1a820d6376a6",
+  "threshold_mm_per_hour": 1.0,
+  "lower_truncation_dbr": 1.25,
+  "scale_break_km": 15.0,
+  "pixel_size_km": 1.0,
+  "cases": [
+    {
+      "name": "auckland_flood",
+      "input_sha256": "f78b06cc1efeb8d9ee061426eac2f51ed82235e00f4941b1d47104d104f667bd",
+      "shape": [
+        256,
+        256
+      ],
+      "maximum_spectrum_error_db": 0.0,
+      "spectral_parameter_absolute_differences": {
+        "beta_1": 9.808779566355952e-09,
+        "beta_2": 5.952312864820897e-09,
+        "c1": 1.4661427982787245e-07,
+        "c2": 3.875054943591749e-08
+      },
+      "rain_fraction": 0.5553436279296875,
+      "marginal_fit_status": "ok",
+      "spectrum_fit_status": "ok"
+    },
+    {
+      "name": "isolated_convection",
+      "input_sha256": "89f2e91182e1d3e6ca25f72665c79bfbe21bb32b6e342820d009f00e5e4cd9cf",
+      "shape": [
+        256,
+        256
+      ],
+      "maximum_spectrum_error_db": 0.0,
+      "spectral_parameter_absolute_differences": {
+        "beta_1": 6.97985180764249e-09,
+        "beta_2": 3.0828113395386936e-09,
+        "c1": 9.989584270897467e-08,
+        "c2": 1.8450258210123138e-08
+      },
+      "rain_fraction": 0.0120086669921875,
+      "marginal_fit_status": "ok",
+      "spectrum_fit_status": "ok"
+    },
+    {
+      "name": "maximum_war",
+      "input_sha256": "c4b4056eb831909d7743ed843cafe5d8e2d07ee51aaaae48baf5b13bcd2e228f",
+      "shape": [
+        256,
+        256
+      ],
+      "maximum_spectrum_error_db": 0.0,
+      "spectral_parameter_absolute_differences": {
+        "beta_1": 1.841340635522215e-08,
+        "beta_2": 9.041391191288994e-09,
+        "c1": 2.6422485177590715e-07,
+        "c2": 5.8668618407864415e-08
+      },
+      "rain_fraction": 0.97393798828125,
+      "marginal_fit_status": "ok",
+      "spectrum_fit_status": "ok"
+    }
+  ]
+}

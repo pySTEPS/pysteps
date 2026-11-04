@@ -1,0 +1,221 @@
+{
+  "provenance": {
+    "source_revision": "94bd4c1571637a8f246ac391470e1a820d6376a6",
+    "source_sha256": {
+      "rain_stats_compute.py": "2fd6f0b622e88e143d8128f80cb5d0920f0111c1021c6c448222c90bff92c889",
+      "stochastic_generator.py": "94c491e4fd90da0c733ce65b48227b6b73dc31a8fc6a23a44e211ad36b3f9343",
+      "cascade_utils.py": "77c362a23aa46b214f1d7f613fe0e747a5f6e7f861c17f85094c5b91db13d403",
+      "shared_utils.py": "4e7346cda389b99971246e4cf060adeec9c51cc9444704446a071ccc44a5288f",
+      "model_config.py": "3504c8492f8158cd84b155753cb205e0a7810cd04c37d35f253c9d25fc374128",
+      "transformer.py": "8693d646602538cd75332cd4367170b4387c9844102b011b7090dae033482703",
+      "steps_params.py": "265c31239ac8647fd599648e0f00dbdbc8c963e4a7bdaadfa89edb177c4c6c28",
+      "cli/nowcast.py": "d892c72f8daa608669fce0e185397a9664644b53663eeb1d5cc3708ceb7bec26",
+      "config/low_war_fallback.json": "bf0b3e0c9c12d4ce0f1cf64d3fe997a8e3364f285666071c24835c3141c45e87"
+    },
+    "python_version": "3.12.13",
+    "numpy_version": "2.5.1",
+    "scipy_version": "1.18.0",
+    "native_pysteps_sha256": {
+      "cascade/decomposition.py": "2963be8c5399afa8c066ab6df93d199f8362f476a93d24add96a508aecb2b84e",
+      "cascade/bandpass_filters.py": "0527beb2aa67a620425479fa09fa18dbf8ef311109a1de72e9df6d436ee7403b",
+      "timeseries/autoregression.py": "08205f5de8d6dbe6fea0d3021c929d50990a6379098359a1aab6c4315808d851",
+      "extrapolation/semilagrangian.py": "5f870efe3b9152fefd417ecc61ffa188d8e9a306515f676b66890d9f1443e9c3"
+    }
+  },
+  "cases": [
+    {
+      "config": {
+        "n_rows": 128,
+        "n_cols": 96,
+        "n_cascade_levels": 6,
+        "n_forecasts": 3,
+        "n_ensembles": 2,
+        "p_size": 1000.0,
+        "ht": 0.81,
+        "alpha": 2.72,
+        "timestep": 300.0,
+        "ar_order": 2,
+        "rain_threshold": 1.0,
+        "scale_break_km": 20.0,
+        "transform": "dbr"
+      },
+      "seed": 20261015,
+      "parameters": {
+        "mean_db": 6.0028472842915725,
+        "stdev_db": 3.0012414749875695,
+        "rain_fraction": 0.19710286458333334,
+        "beta_1": -2.304747110331049,
+        "beta_2": -2.5631814182884716,
+        "corl_zero": 456.36535657886674,
+        "lag_1": [
+          0.9947989543385891,
+          0.9871752674307953,
+          0.9771449287175584,
+          0.9587433096366739,
+          0.9237438162041633,
+          0.7935185195767728
+        ],
+        "lag_2": [
+          0.9859163541951547,
+          0.9655002791814661,
+          0.9390493841270735,
+          0.89172384927532,
+          0.8059353402996958,
+          0.5395489647808457
+        ]
+      },
+      "moment_source": "latent",
+      "calibration": [
+        [
+          {
+            "estimated_beta_1": -2.97392072940944,
+            "estimated_beta_2": -2.483368847914942,
+            "distance": 2.58728403725768,
+            "attempts": 1,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -1.817123223192054,
+            "estimated_beta_2": -2.6302184889764453,
+            "distance": 1.8891966298004956,
+            "attempts": 1,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -2.9519417030723605,
+            "estimated_beta_2": -2.4530007388125172,
+            "distance": 2.518418223677037,
+            "attempts": 1,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          }
+        ],
+        [
+          {
+            "estimated_beta_1": -1.7058699586645432,
+            "estimated_beta_2": -2.9044931766578634,
+            "distance": 2.6113997297501057,
+            "attempts": 1,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -2.8656737433833874,
+            "estimated_beta_2": -2.5431414850604748,
+            "distance": 2.1564304711388225,
+            "attempts": 1,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -2.8926687128107043,
+            "estimated_beta_2": -2.625601365428789,
+            "distance": 2.270191677685425,
+            "attempts": 1,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          }
+        ]
+      ]
+    },
+    {
+      "config": {
+        "n_rows": 128,
+        "n_cols": 96,
+        "n_cascade_levels": 6,
+        "n_forecasts": 3,
+        "n_ensembles": 2,
+        "p_size": 1000.0,
+        "ht": 0.81,
+        "alpha": 2.72,
+        "timestep": 450.0,
+        "ar_order": 2,
+        "rain_threshold": 1.0,
+        "scale_break_km": 20.0,
+        "transform": "dbr"
+      },
+      "seed": 20261016,
+      "parameters": {
+        "mean_db": 6.0135757197788715,
+        "stdev_db": 3.0093428695820377,
+        "rain_fraction": 0.03955078125,
+        "beta_1": -1.45,
+        "beta_2": -3.253958088759979,
+        "corl_zero": 330.61752959848894,
+        "lag_1": [
+          0.9891292643911687,
+          0.9728202376077736,
+          0.9506635983379176,
+          0.9078567874780119,
+          0.816699134701302,
+          0.37407983990030463
+        ],
+        "lag_2": [
+          0.9707073074247313,
+          0.9277878117174473,
+          0.8714311340224543,
+          0.7687890306712478,
+          0.5776929978968777,
+          0.10753778774958642
+        ]
+      },
+      "moment_source": "latent",
+      "calibration": [
+        [
+          {
+            "estimated_beta_1": -1.523354904476627,
+            "estimated_beta_2": -2.8895547119152427,
+            "distance": 1.3481136783625316,
+            "attempts": 5,
+            "selected_attempt": 3,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -1.5548026590261312,
+            "estimated_beta_2": -2.975659648574481,
+            "distance": 1.0843549412999052,
+            "attempts": 5,
+            "selected_attempt": 3,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -0.6578986279771498,
+            "estimated_beta_2": -2.7596856788529567,
+            "distance": 3.5298757819809303,
+            "attempts": 5,
+            "selected_attempt": 2,
+            "tolerance_achieved": false
+          }
+        ],
+        [
+          {
+            "estimated_beta_1": -1.2562055284061402,
+            "estimated_beta_2": -2.827728216458951,
+            "distance": 1.7123619898017537,
+            "attempts": 5,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -2.054098896544064,
+            "estimated_beta_2": -2.944043379979809,
+            "distance": 2.577699519586813,
+            "attempts": 5,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          },
+          {
+            "estimated_beta_1": -1.1774689342257276,
+            "estimated_beta_2": -2.769690712172061,
+            "distance": 2.0410397132918026,
+            "attempts": 5,
+            "selected_attempt": 1,
+            "tolerance_achieved": false
+          }
+        ]
+      ]
+    }
+  ]
+}

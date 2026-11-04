@@ -5,24 +5,22 @@ pysteps.nowcasts.interface
 Interface for the nowcasts module. It returns a callable function for computing
 nowcasts.
 
-The methods in the nowcasts module implement the following interface:
+The v2 nowcasting interface takes an xarray dataset:
 
-    ``forecast(precip, velocity, timesteps, **keywords)``
+    ``forecast(dataset, timesteps, **keywords)``
 
-where precip is a (m,n) array with input precipitation field to be advected and
-velocity is a (2,m,n) array containing the x- and y-components of
-the m x n advection field.
-timesteps can be an integer or a list. An integer specifies the number of time
-steps to forecast, where the output time step is taken from the inputs.
-Irregular time steps can be given in a list.
-The interface accepts optional keyword arguments specific to the given method.
+The dataset contains precipitation, spatial coordinates, observation times,
+projection metadata and, when supplied, velocity_x and velocity_y variables.
+The global ``precip_var`` attribute identifies the precipitation variable.
+The output dataset contains dimensions (time, y, x) for deterministic methods
+or (ens_number, time, y, x) for ensemble methods. Method-specific forecast
+functions document their input history and optional settings.
 
-The output depends on the type of the method.
-For deterministic methods, the output is a three-dimensional array of shape
-(num_timesteps,m,n) containing a time series of nowcast precipitation fields.
-For stochastic methods that produce an ensemble, the output is a
-four-dimensional array of shape (num_ensemble_members,num_timesteps,m,n).
-The time step of the output is taken from the inputs.
+The ``parametric`` method requires exactly three complete, untransformed
+rain-rate observations in mm/h on a regular grid with square pixels. Pixel
+size and cadence are derived from coordinates; the time stepsize is in seconds.
+It estimates motion if velocity variables are absent and returns rain rates in
+mm/h. Its first release accepts integer timesteps only.
 
 .. autosummary::
     :toctree: ../generated/
@@ -37,6 +35,7 @@ from pysteps.nowcasts import (
     extrapolation,
     lagrangian_probability,
     linda,
+    parametric,
     sprog,
     sseps,
     steps,
@@ -51,6 +50,7 @@ _nowcast_methods["extrapolation"] = extrapolation.forecast
 _nowcast_methods["lagrangian"] = extrapolation.forecast
 _nowcast_methods["lagrangian_probability"] = lagrangian_probability.forecast
 _nowcast_methods["linda"] = linda.forecast
+_nowcast_methods["parametric"] = parametric.forecast
 _nowcast_methods["probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
@@ -80,6 +80,9 @@ def get_method(name):
     |  extrapolation  | using the motion field (Lagrangian persistence)       |
     +-----------------+-------------------------------------------------------+
     |  linda          | the LINDA method developed in :cite:`PCN2021`         |
+    +-----------------+-------------------------------------------------------+
+    |  parametric     | three rain-rate observations to a parametric ensemble |
+    |                 | with internal parameter and motion estimation         |
     +-----------------+-------------------------------------------------------+
     |  lagrangian\_   | this approach computes local lagrangian probability   |
     |  probability    | forecasts of threshold exceedences                    |
