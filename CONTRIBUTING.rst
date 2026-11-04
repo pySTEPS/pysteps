@@ -387,6 +387,21 @@ Core developers should follow the steps to prepare a new release (version):
    See `Packaging the pysteps project <https://pysteps.readthedocs.io/en/latest/developer_guide/pypi.html#pypi-relase>`__
    for a detailed description of this process.
 
+Owner and maintainer rules
+--------------------------
+
+* The pySTEPS organization should have exactly three owners, no more, no less.
+* Being a maintainer comes with responsibilities, i.e. regularly performing tasks such as:
+  - PR reviews
+  - issue triage
+  - organising hackathons and code sprints
+  - keeping documentation and examples up to date
+  - ...
+* After 12 months of inactivity:
+  - an owner is replaced by a more active maintainer that the community agrees upon
+  - a maintainer loses their role and becomes a regular member
+This role can of course be restored if needed (e.g. after a sabbatical or leave).
+
 Credits
 -------
 
