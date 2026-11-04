@@ -13,7 +13,8 @@ import xarray as xr
 
 from pysteps import motion, nowcasts
 from pysteps.utils import transformation
-from pysteps.visualization import get_colormap
+from pysteps.visualization import get_colormap, plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ################################################################################
 # Load the RMI dataset from S3
@@ -53,18 +54,28 @@ window
 # Add metadata required by pysteps
 # --------------------------------
 #
-
 # Name of the data_var containing the precipitation
-window.attrs["precip_var"] = "rain_rate"
+precip_var = "rain_rate"
+window.attrs["precip_var"] = precip_var
 # Data timestep in seconds
 window["time"].attrs["stepsize"] = 300
+
+# x, y intervals and units
+window["x"].attrs["stepsize"] = window.x.values[1] - window.x.values[0]
+window["y"].attrs["stepsize"] = window.y.values[1] - window.y.values[0]
+window["x"].attrs["units"] = "m"
+window["y"].attrs["units"] = "m"
+
+# Grid projection
+window.attrs["projection"] = window[window[precip_var].grid_mapping].proj4
+
+window
 
 
 ################################################################################
 # Pick intervals for input dataset
 # --------------------------------
 #
-
 # Create input and observation datasets
 input_ds = window.isel(time=slice(T0_INDEX - N_INPUT + 1, T0_INDEX + 1))
 obs_ds = window.isel(time=slice(T0_INDEX + 1, T0_INDEX + 1 + N_LEADTIMES))
@@ -88,7 +99,6 @@ input_ds_dBR
 # Create extrapolation nowcast
 # ----------------------------
 #
-
 # Extrapolate the last radar observation
 extrapolate = nowcasts.get_method("extrapolation")
 
@@ -102,21 +112,31 @@ ds_forecast_dBR
 ds_forecast = transformation.dB_transform(
     ds_forecast_dBR, threshold=-10.0, inverse=True
 )
-ds_forecast = ds_forecast.where(ds_forecast["rain_rate"] > 0.0)
+ds_forecast = ds_forecast.where(ds_forecast[precip_var] > 0.0)
 
 ################################################################################
 # Plot the nowcast
 # ----------------
 #
-
-fig, axs = plt.subplots(2, 6, figsize=(20, 6))
-
+fig = plt.figure(figsize=(20, 6))
 cmap, norm, clevs, clevs_str = get_colormap("intensity", colorscale="STEPS-NL")
 
+# Get geographical metadata required by the plotting functions
+geodata = geodata_from_dataset(ds_forecast)
+
 for i in range(N_LEADTIMES):
-    ax = axs.flatten()[i]
-    ds_forecast.isel(time=i)["rain_rate"].plot(
-        ax=ax, cmap=cmap, norm=norm, add_colorbar=False
+    ax = plt.subplot(2, 6, i + 1)
+
+    # Plot each field
+    plot_precip_field(
+        ds_forecast[precip_var].isel(time=i),
+        ax=ax,
+        geodata=geodata,
+        # Actual units in data is kg m^-2 h^-1, but
+        # pysteps doesn't accept this
+        units="mm/h",
+        colorscale="STEPS-NL",
+        colorbar=False,
     )
 
     ax.set_title(f"Lead time {(i+1)*5} min")
@@ -130,11 +150,12 @@ for i in range(N_LEADTIMES):
 cbar = fig.colorbar(
     plt.cm.ScalarMappable(norm=norm, cmap=cmap),
     ticks=clevs,
-    ax=axs,
+    ax=fig.axes,
     orientation="vertical",
     extend="max",
     fraction=0.02,
     pad=0.01,
 )
 cbar.set_label("Rain rate (mm/h)")
-plt.show()
+fig.savefig("nowcast.png", dpi=300, bbox_inches="tight")
+# plt.show()
