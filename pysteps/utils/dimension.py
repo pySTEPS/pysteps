@@ -329,6 +329,39 @@ def aggregate_fields(
         )
 
     for d, ws in zip(dim, window_size):
+        if d == "time":
+            # for accumulation we use last timestamp else first timestamp
+            if dataset[dataset.attrs["precip_var"]].attrs["units"] == "mm":
+                dataset[d] = dataset_ref[d].isel(
+                    {
+                        d: slice(
+                            ws - 1,
+                            dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws,
+                            ws,
+                        )
+                    }
+                )
+            else:
+                dataset[d] = dataset_ref[d].isel(
+                    {d: slice(0, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws)}
+                )
+        else:
+            dataset[d] = (
+                dataset_ref[d]
+                .rolling({d: ws})
+                .reduce(_aggregation_methods["mean"])
+                .isel(
+                    {
+                        d: slice(
+                            ws - 1,
+                            dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws,
+                            ws,
+                        )
+                    }
+                )
+            )
+
+    for d, ws in zip(dim, window_size):
         if "stepsize" in dataset[d].attrs:
             dataset[d].attrs["stepsize"] = dataset[d].attrs["stepsize"] * ws
 

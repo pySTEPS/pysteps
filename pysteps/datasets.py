@@ -23,7 +23,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from tempfile import TemporaryDirectory
 from urllib import request
 from urllib.error import HTTPError
 from zipfile import ZipFile

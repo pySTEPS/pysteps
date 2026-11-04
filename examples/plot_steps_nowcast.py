@@ -18,6 +18,7 @@ from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.postprocessing.ensemblestats import excprob
 from pysteps.utils import conversion, dimension, transformation
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 # Set nowcast parameters
 n_ens_members = 20
@@ -61,17 +62,16 @@ precip_var = precip_dataset.attrs["precip_var"]
 
 # Upscale data to 2 km to limit memory usage
 precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
+y1 = precip_dataset.y.values[0] - (
+    precip_dataset.y.values[1] - precip_dataset.y.values[0]
+)
+y2 = precip_dataset.y.values[-1] + (
+    precip_dataset.y.values[1] - precip_dataset.y.values[0]
+)
 
 # XR: change plot_precip_fields to take in an xarray and remove
 # geodata, derive geodata from xarray?
-geodata = {
-    "projection": precip_dataset.attrs["projection"],
-    "x1": precip_dataset.x.values[0],
-    "x2": precip_dataset.x.values[-1],
-    "y1": precip_dataset.y.values[0],
-    "y2": precip_dataset.y.values[-1],
-    "yorigin": "lower",  # is this always the case using xarray approach?
-}
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the rainfall field
 plot_precip_field(precip_dataset[precip_var][-1], geodata=geodata)
@@ -173,9 +173,13 @@ ensemble_precip_forecast = transformation.dB_transform(
 )
 
 # Plot the ensemble mean
-precip_forecast_mean = ensemble_precip_forecast[precip_var].mean(dim="ens_number")
+precip_forecast_mean = (
+    ensemble_precip_forecast[precip_var]
+    .isel(time=-1)
+    .mean(dim="ens_number", skipna=False)
+)
 plot_precip_field(
-    precip_forecast_mean[-1],
+    precip_forecast_mean.values,
     geodata=geodata,
     title="Ensemble mean (+ %i min)" % (n_leadtimes * timestep),
 )

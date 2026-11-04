@@ -496,6 +496,60 @@ def import_mrms_grib(
     precip = grib_msg.values
     no_data_mask = precip == -3  # Missing values
 
+    proj_params = _get_grib_projection(grib_msg)
+    proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
+
+    xsize = grib_msg["iDirectionIncrementInDegrees"] * window_size[0]
+    ysize = grib_msg["jDirectionIncrementInDegrees"] * window_size[1]
+
+    metadata = dict(
+        institution="NOAA National Severe Storms Laboratory",
+        xpixelsize=xsize,
+        ypixelsize=ysize,
+        unit="mm/h",
+        accutime=2.0,
+        zerovalue=0,
+        projection=proj_def.strip(),
+        yorigin="upper",
+        threshold=_get_threshold_value(precip),
+        x1=lons[0] - (lons[1] - lons[0]) / 2,
+        x2=lons[-1] + (lons[-1] - lons[-2]) / 2,
+        y1=lats[-1] - (lats[-2] - lats[-1]) / 2,
+        y2=lats[0] + (lats[0] - lats[1]) / 2,
+        cartesian_unit="degrees",
+    )
+
+    precip_dataset = convert_input_to_xarray_dataset(precip, None, metadata)
+    precip_var = precip_dataset.attrs["precip_var"]
+
+    if window_size != (1, 1):
+        # Create a function with default arguments for aggregate_fields
+        block_reduce = partial(aggregate_fields, method="mean", trim=True)
+        # Downscale data
+        # block_reduce does not handle nan values
+        no_data_mask = precip_dataset[precip_var].values == -3
+        precip_dataset[precip_var].data[no_data_mask] = 0
+        precip_dataset["no_data_mask"] = (("y", "x"), no_data_mask)
+        precip_dataset = block_reduce(precip_dataset, window_size, dim=("y", "x"))
+
+        # Consider that if a single invalid observation is located in the block,
+        # then mark that value as invalid.
+        no_data_mask = precip_dataset.no_data_mask.values > 0.0
+        precip_dataset = precip_dataset.drop_vars("no_data_mask")
+
+        # Downscale coords
+        lats = precip_dataset.y.values
+        lons = precip_dataset.x.values
+
+        # Update the limits
+        ul_lat, lr_lat = (
+            lats[0],
+            lats[-1],
+        )  # Lat from North to south!
+        ul_lon, lr_lon = lons[0], lons[-1]
+
+    precip = precip_dataset[precip_var].values
+
     lons, lats = np.meshgrid(lons, lats)
     precip[no_data_mask] = np.nan
 
@@ -550,23 +604,6 @@ def import_mrms_grib(
     precip = _postprocess_precip(precip, fillna, dtype)
 
     precip_dataset = convert_input_to_xarray_dataset(precip, None, metadata)
-
-    if window_size != (1, 1):
-        # Create a function with default arguments for aggregate_fields
-        block_reduce = partial(aggregate_fields, method="mean", trim=True)
-        # Downscale data
-        precip_var = precip_dataset.attrs["precip_var"]
-        # block_reduce does not handle nan values
-        no_data_mask = np.isnan(precip_dataset[precip_var].values)
-        precip_dataset[precip_var].data[no_data_mask] = 0
-        precip_dataset["no_data_mask"] = (("y", "x"), no_data_mask)
-        precip_dataset = block_reduce(precip_dataset, window_size, dim=("y", "x"))
-
-        # Consider that if a single invalid observation is located in the block,
-        # then mark that value as invalid.
-        no_data_mask = precip_dataset.no_data_mask.values == 1.0
-        precip_dataset = precip_dataset.drop_vars("no_data_mask")
-        precip_dataset[precip_var].data[no_data_mask] = fillna
 
     return precip_dataset
 
@@ -658,10 +695,10 @@ def _import_bom_rf3_geodata(ds_rainfall):
         if getattr(ds_rainfall.variables["x"], "units") == "km":
             factor_scale = 1000.0
 
-    geodata["x1"] = xmin * factor_scale
-    geodata["y1"] = ymin * factor_scale
-    geodata["x2"] = xmax * factor_scale
-    geodata["y2"] = ymax * factor_scale
+    geodata["x1"] = (xmin - xpixelsize * 0.5) * factor_scale
+    geodata["y1"] = (ymin - ypixelsize * 0.5) * factor_scale
+    geodata["x2"] = (xmax + xpixelsize * 0.5) * factor_scale
+    geodata["y2"] = (ymax + ypixelsize * 0.5) * factor_scale
     geodata["xpixelsize"] = xpixelsize * factor_scale
     geodata["ypixelsize"] = ypixelsize * factor_scale
     geodata["cartesian_unit"] = "m"
@@ -1868,75 +1905,66 @@ def _import_saf_crri_geodata(filename):
 
 def import_dwd_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwargs):
     """
-        Import a DWD precipitation product field (and optionally the quality
-        field) from an HDF5 file conforming to the ODIM specification.
+    Import a DWD precipitation product field (and optionally the quality
+    field) from an HDF5 file conforming to the ODIM specification.
 
-        Parameters
-        ----------
-        filename : str
-            Name of the file to import.
-    <<<<<<< HEAD
-        qty: {'RATE', 'ACRR', 'DBZH'}
-            The quantity to read from the file. The currently supported identitiers
-            are: 'RATE'=instantaneous rain rate (mm/h), 'ACRR'=hourly rainfall
-            accumulation (mm) and 'DBZH'=max-reflectivity (dBZ). The default value
-            is 'RATE'.
-        dtype: str, optional
-            Data-type to which the array is cast.
-            Valid values:  "float32", "float64", "single", and "double".
-        fillna: float or np.nan, optional
-            Value used to represent the missing data ("No Coverage").
-            By default, np.nan is used.
-    =======
-        qty : {'RATE', 'ACRR', 'DBZH'}, optional
-            Quantity to read from the file. The currently supported identifiers are:
+    Parameters
+    ----------
+    filename : str
+        Name of the file to import.
+    qty : {'RATE', 'ACRR', 'DBZH'}, optional
+        Quantity to read from the file. The currently supported identifiers are:
 
-            - 'RATE': instantaneous rain rate (mm/h)
-            - 'ACRR': hourly rainfall accumulation (mm)
-            - 'DBZH': maximum reflectivity (dBZ)
+        - 'RATE': instantaneous rain rate (mm/h)
+        - 'ACRR': hourly rainfall accumulation (mm)
+        - 'DBZH': maximum reflectivity (dBZ)
 
-            The default is 'RATE'.
+        The default is 'RATE'.
+    dtype: str, optional
+        Data-type to which the array is cast.
+        Valid values:  "float32", "float64", "single", and "double".
+    fillna: float or np.nan, optional
+        Value used to represent the missing data ("No Coverage").
+        By default, np.nan is used.
+    {extra_kwargs_doc}
 
-        {extra_kwargs_doc}
-    >>>>>>> origin/master
+    Returns
+    -------
+    data : np.ndarray
+        The requested precipitation product imported from the HDF5 file.
+    quality : None
+        Placeholder for quality field (not yet implemented).
+    metadata : dict
+        Dictionary containing geospatial metadata with the following keys:
 
-        Returns
-        -------
-        data : np.ndarray
-            The requested precipitation product imported from the HDF5 file.
-        quality : None
-            Placeholder for quality field (not yet implemented).
-        metadata : dict
-            Dictionary containing geospatial metadata with the following keys:
-
-            projection : str
-                PROJ.4 string defining the stereographic projection.
-            ll_lon, ll_lat : float
-                Coordinates of the lower-left corner.
-            ur_lon, ur_lat : float
-                Coordinates of the upper-right corner.
-            x1, y1 : float
-                Cartesian coordinates of the lower-left corner.
-            x2, y2 : float
-                Cartesian coordinates of the upper-right corner.
-            xpixelsize, ypixelsize : float
-                Pixel size in meters.
-            cartesian_unit : str
-                Unit of the coordinate system (meters).
-            yorigin : {'lower'}
-                Origin of the y-axis.
-            institution : {'DWD', 'DWD Radolan'}
-                Originating institution.
-            accutime : int
-                Accumulation period of the requested precipitation product.
-            unit : str
-                Unit of the data.
-            transform : str
-                Logarithmic transformation applied.
-            zerovalue : float
-                Value representing no echo.
-            threshold : float
-                Precipitation threshold.
+        projection : str
+            PROJ.4 string defining the stereographic projection.
+        ll_lon, ll_lat : float
+            Coordinates of the lower-left corner.
+        ur_lon, ur_lat : float
+            Coordinates of the upper-right corner.
+        x1, y1 : float
+            Cartesian coordinates of the lower-left corner.
+        x2, y2 : float
+            Cartesian coordinates of the upper-right corner.
+        xpixelsize, ypixelsize : float
+            Pixel size in meters.
+        cartesian_unit : str
+            Unit of the coordinate system (meters).
+        yorigin : {'lower'}
+            Origin of the y-axis.
+        institution : {'DWD', 'DWD Radolan'}
+            Originating institution.
+        accutime : int
+            Accumulation period of the requested precipitation product.
+        unit : str
+            Unit of the data.
+        transform : str
+            Logarithmic transformation applied.
+        zerovalue : float
+            Value representing no echo.
+        threshold : float
+            Precipitation threshold.
     """
     if not H5PY_IMPORTED:
         raise MissingOptionalDependency(
@@ -1998,37 +2026,6 @@ def import_dwd_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwarg
     if precip is None:
         raise IOError("requested quantity %s not found" % qty)
 
-    # Get the projection and grid information from the HDF5 file
-    pr = pyproj.Proj(file_content["where"]["projdef"])
-    ll_x, ll_y = pr(
-        file_content["where"]["LL_lon"],
-        file_content["where"]["LL_lat"],
-    )
-    ur_x, ur_y = pr(
-        file_content["where"]["UR_lon"],
-        file_content["where"]["UR_lat"],
-    )
-
-    # Determine domain corners in geographic and carthesian coordinates
-    if len([k for k in file_content["where"].keys() if "_lat" in k]) == 4:
-        lr_x, lr_y = pr(
-            file_content["where"]["LR_lon"],
-            file_content["where"]["LR_lat"],
-        )
-        ul_x, ul_y = pr(
-            file_content["where"]["UL_lon"],
-            file_content["where"]["UL_lat"],
-        )
-        x1 = min(ll_x, ul_x)
-        y1 = min(ll_y, lr_y)
-        x2 = max(lr_x, ur_x)
-        y2 = max(ul_y, ur_y)
-    else:
-        x1 = ll_x
-        y1 = ll_y
-        x2 = ur_x
-        y2 = ur_y
-
     # Get the grid cell size
     if (
         "where" in file_content["dataset1"].keys()
@@ -2040,8 +2037,12 @@ def import_dwd_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwarg
         xpixelsize = file_content["where"]["xscale"]
         ypixelsize = file_content["where"]["yscale"]
     else:
-        xpixelsize = None
-        ypixelsize = None
+        raise ValueError("No xscale found in ODIM hdf5 file")
+
+    x1 = -xpixelsize * 0.5
+    x2 = -xpixelsize * 0.5 + precip.shape[1] * xpixelsize
+    y1 = xpixelsize * 0.5 - precip.shape[0] * ypixelsize
+    y2 = ypixelsize * 0.5
 
     # Get the unit and transform
     if qty == "ACRR":

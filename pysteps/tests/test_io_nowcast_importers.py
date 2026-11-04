@@ -1,3 +1,4 @@
+import os
 from tempfile import NamedTemporaryFile
 
 import numpy as np
@@ -47,7 +48,7 @@ zero_dataset = xr.Dataset(
 )
 def test_import_netcdf(precip_dataset):
     # XR: this test might not make that much sense in the future
-    with NamedTemporaryFile() as tempfile:
+    with NamedTemporaryFile(delete=False) as tempfile:
         precip_var = precip_dataset.attrs["precip_var"]
         precip_dataarray = precip_dataset[precip_var]
         field_shape = (precip_dataarray.shape[1], precip_dataarray.shape[2])

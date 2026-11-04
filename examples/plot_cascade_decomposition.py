@@ -20,6 +20,7 @@ from pysteps.cascade.bandpass_filters import filter_gaussian
 from pysteps.cascade.decomposition import decomposition_fft
 from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ###############################################################################
 # Read precipitation field
@@ -33,20 +34,25 @@ root_path = rcparams.data_sources["fmi"]["root_path"]
 filename = os.path.join(
     root_path, "20160928", "201609281600_fmi.radar.composite.lowest_FIN_SUOMI1.pgm.gz"
 )
-R, _, metadata = io.import_fmi_pgm(filename, gzipped=True)
+precip_dataset = io.import_fmi_pgm(filename, gzipped=True)
 
 # Convert to rain rate
-R, metadata = conversion.to_rainrate(R, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
 
 # Nicely print the metadata
-pprint(metadata)
+pprint(precip_dataset[precip_var].attrs)
 
 # Plot the rainfall field
-plot_precip_field(R, geodata=metadata)
+geodata = geodata_from_dataset(precip_dataset)
+plot_precip_field(precip_dataset[precip_var], geodata=geodata)
 plt.show()
 
 # Log-transform the data
-R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=-15.0)
+precip_dataset = transformation.dB_transform(
+    precip_dataset, threshold=0.1, zerovalue=-15.0
+)
+R = precip_dataset[precip_var].values
 
 ###############################################################################
 # 2D Fourier spectrum
@@ -55,7 +61,7 @@ R, metadata = transformation.dB_transform(R, metadata, threshold=0.1, zerovalue=
 # Compute and plot the 2D Fourier power spectrum of the precipitaton field.
 
 # Set Nans as the fill value
-R[~np.isfinite(R)] = metadata["zerovalue"]
+R[~np.isfinite(R)] = precip_dataset[precip_var].attrs["zerovalue"]
 
 # Compute the Fourier transform of the input field
 F = abs(np.fft.fftshift(np.fft.fft2(R)))

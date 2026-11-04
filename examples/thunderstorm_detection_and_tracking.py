@@ -39,6 +39,7 @@ from pysteps.feature import tstorm as tstorm_detect
 from pysteps.tracking import tdating as tstorm_dating
 from pysteps.utils import to_reflectivity
 from pysteps.visualization import plot_cart_contour, plot_precip_field, plot_track
+from pysteps.xarray_helpers import geodata_from_dataset
 
 ################################################################################
 # Read the radar input images
@@ -66,16 +67,17 @@ fns = io.archive.find_by_date(
     date, root_path, path_fmt, fn_pattern, fn_ext, timestep, num_next_files=20
 )
 importer = io.get_method(importer_name, "importer")
-R, _, metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+precip_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Convert to reflectivity (it is possible to give the a- and b- parameters of the
 # Marshall-Palmer relationship here: zr_a = and zr_b =).
-Z, metadata = to_reflectivity(R, metadata)
+refl_dataset = to_reflectivity(precip_dataset)
+refl_var = refl_dataset.attrs["precip_var"]
 
 # Extract the list of timestamps
-timelist = metadata["timestamps"]
+timelist = refl_dataset.time.values
 
-pprint(metadata)
+pprint(refl_dataset[refl_var].attrs)
 
 ###############################################################################
 # Example of thunderstorm identification in a single timestep
@@ -83,7 +85,7 @@ pprint(metadata)
 # The function tstorm_detect.detection requires a 2-D input image, all further inputs are
 # optional.
 
-input_image = Z[2, :, :].copy()
+input_image = refl_dataset[refl_var].isel(time=2).values.copy()
 time = timelist[2]
 cells_id, labels = tstorm_detect.detection(input_image, time=time)
 
@@ -109,21 +111,25 @@ print(cells_id.iloc[0])
 # The first two timesteps are required to initialize the
 # flow prediction and are not used to compute tracks.
 
-track_list, cell_list, label_list = tstorm_dating.dating(
-    input_video=Z, timelist=timelist
-)
+track_list, cell_list, label_list = tstorm_dating.dating(refl_dataset)
 
 ###############################################################################
 # Plotting the results
 # ~~~~~~~~~~~~~~~~~~~~
 
+geodata = geodata_from_dataset(refl_dataset)
+
 # Plot precipitation field
-plot_precip_field(Z[2, :, :], geodata=metadata, units=metadata["unit"])
+plot_precip_field(
+    refl_dataset[refl_var].isel(time=2),
+    geodata=geodata,
+    units=refl_dataset[refl_var].attrs["units"],
+)
 plt.xlabel("Swiss easting [m]")
 plt.ylabel("Swiss northing [m]")
 
 # Add the identified cells
-plot_cart_contour(cells_id.cont, geodata=metadata)
+plot_cart_contour(cells_id.cont, geodata=geodata)
 
 # Filter the tracks to only contain cells existing in this timestep
 IDs = cells_id.ID.values
@@ -133,7 +139,7 @@ for track in track_list:
         track_filt.append(track)
 
 # Add their tracks
-plot_track(track_filt, geodata=metadata)
+plot_track(track_filt, geodata=geodata)
 plt.show()
 
 ################################################################################
