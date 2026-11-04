@@ -29,6 +29,7 @@ dependencies:
   - scikit-image
   - scikit-learn
   - rasterio
+  - rioxarray
   - gdal
   # Test dependencies
   - pytest
