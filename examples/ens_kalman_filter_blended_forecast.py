@@ -22,6 +22,7 @@ import os
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 from matplotlib import pyplot as plt
 
 import pysteps
@@ -76,7 +77,8 @@ fns = io.find_by_date(
 
 # Read the radar composites (which are already in mm/h)
 importer = io.get_method(importer_name, "importer")
-radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+# radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+radar_ds = io.read_timeseries(fns, importer, **importer_kwargs)
 
 # Import the NWP data
 filename = os.path.join(
@@ -215,23 +217,97 @@ timestamps_nwp = np.array(
     )
 )
 
-# Set the combination kwargs
-combination_kwargs = dict(
-    n_tapering=0,  # Tapering parameter: controls how many diagonals of the covariance matrix are kept (0 = no tapering)
-    non_precip_mask=True,  # Specifies whether the computation should be truncated on grid boxes where at least a minimum number of ens. members forecast precipitation.
-    n_ens_prec=1,  # Minimum number of ens. members that forecast precip for the above-mentioned mask.
-    lien_criterion=True,  # Specifies wheter the Lien criterion should be applied.
-    n_lien=5,  # Minimum number of ensemble members that forecast precipitation for the Lien criterion (equals half the ens. members here)
-    prob_matching="iterative",  # The type of probability matching used.
-    inflation_factor_bg=3.0,  # Inflation factor of the background (NWC) covariance matrix. (this value indicates a faster convergence towards the NWP ensemble)
-    inflation_factor_obs=1.0,  # Inflation factor of the observation (NWP) covariance matrix.
-    offset_bg=0.0,  # Offset of the background (NWC) covariance matrix.
-    offset_obs=0.0,  # Offset of the observation (NWP) covariance matrix.
-    nwp_hres_eff=14.0,  # Effective horizontal resolution of the utilized NWP model (in km here).
-    sampling_prob_source="ensemble",  # Computation method of the sampling probability for the probability matching. 'ensemble' computes this probability as the ratio between the ensemble differences.
-    use_accum_sampling_prob=False,  # Specifies whether the current sampling probability should be used for the probability matching or a probability integrated over the previous forecast time.
+# Set the combination kwargs for the masked enkf
+combination_kwargs_masked = dict(
+    # Tapering parameter: controls how many diagonals of the error covariance matrices
+    # are kept (0 = no tapering)
+    n_tapering=0,
+    # Specifies whether the computation should be truncated on grid boxes where at
+    # least a minimum number of ensemble members forecast precipitation.
+    non_precip_mask=True,
+    # Minimum number of ensemble members that forecast precipitation for the
+    # above-mentioned mask.
+    n_ens_prec=1,
+    # Specifies whether the Lien criterion should be applied.
+    lien_criterion=True,
+    # Minimum number of ensemble members that forecast precipitation for the Lien
+    # criterion (equals half the ensemble members here)
+    n_lien=5,
+    # The type of probability matching used.
+    prob_matching="iterative",
+    # Inflation factor of the background (NWC) covariance matrix. (This value indicates
+    # a faster convergence towards the NWP ensemble.)
+    inflation_factor_bg=3.0,
+    # Inflation factor of the observation (NWP) covariance matrix.
+    inflation_factor_obs=1.0,
+    # Offset of the background (NWC) covariance matrix.
+    offset_bg=0.0,
+    # Offset of the observation (NWP) covariance matrix.
+    offset_obs=0.0,
+    # Effective horizontal resolution of the utilized NWP model (in km here).
+    nwp_hres_eff=14.0,
+    # Computation method of the sampling probability for the probability matching.
+    # 'ensemble' computes this probability as the ratio between the ensemble
+    # differences.
+    sampling_prob_source="ensemble",
+    # Specifies whether the current sampling probability should be used for the
+    # probability matching or a probability integrated over the previous forecast time.
+    use_accum_sampling_prob=False,
+    # Specifies whether the end of the combination should represent the pure NWP
+    # forecast.
+    ensure_full_nwp_weight=True,
 )
 
+# Set the combination kwargs for the distances enkf
+combination_kwargs_distances = dict(
+    # Tapering parameter: controls how many diagonals of the error covariance matrices
+    # are kept (0 = no tapering)
+    n_tapering=0,
+    # Specifies whether the computation should be truncated on grid boxes where at
+    # least a minimum number of ensemble members forecast precipitation.
+    non_precip_mask=True,
+    # Minimum number of ensemble members that forecast precipitation for the
+    # above-mentioned mask.
+    n_ens_prec=1,
+    # Specifies whether the Lien criterion should be applied.
+    lien_criterion=False,
+    # The type of probability matching used.
+    prob_matching="none",
+    # Inflation factor of the background (NWC) covariance matrix. (This value indicates
+    # a faster convergence towards the NWP ensemble.)
+    inflation_factor_bg=1.0,
+    # Inflation factor of the observation (NWP) covariance matrix.
+    inflation_factor_obs=1.0,
+    # Offset of the background (NWC) covariance matrix.
+    offset_bg=0.0,
+    # Offset of the observation (NWP) covariance matrix.
+    offset_obs=0.0,
+    # Effective horizontal resolution of the utilized NWP model (in km here).
+    nwp_hres_eff=14.0,
+    # Computation method of the sampling probability for the probability matching.
+    # 'ensemble' computes this probability as the ratio between the ensemble
+    # differences.
+    sampling_prob_source="explained_var",
+    # Specifies whether the current sampling probability should be used for the
+    # probability matching or a probability integrated over the previous forecast time.
+    use_accum_sampling_prob=True,
+    # Specifies whether the end of the combination should be represent the pure NWP
+    # forecast.
+    ensure_full_nwp_weight=True,
+    # Specifies whether dry area transformation within distances enkf should be
+    # additionally backed by transforming precipitation values back into linear space.
+    use_linear_space=True,
+    # Specifies whether the ensemble variance should be additionally adjusted in
+    # regions of local precipitation maxima.
+    local_maxima_adjustment=True,
+    # Minimum ratio by what ensemble variance is adjusted if local maxima adjustment is
+    # used.
+    local_maxima_residual=0.1,
+    # Specifies whether that adjustment should only take place in already existing
+    # precipitation features or whether it should be used also in regions in that
+    # there's only NWP forecast precipitation.
+    use_only_exist_prec=False,
+)
 
 # Call the PCA EnKF method
 blending_method = blending.get_method("pca_enkf")
@@ -257,7 +333,7 @@ precip_forecast = blending_method(
     enable_combination=True,  # Enable combination
     noise_kwargs={"win_size": (512, 512), "win_fun": "hann", "overlap": 0.5},
     extrap_kwargs={"interp_order": 3, "map_coordinates_mode": "nearest"},
-    combination_kwargs=combination_kwargs,
+    combination_kwargs=combination_kwargs_distances,
     filter_kwargs={"include_mean": True},
     seed=42,  # Fixed seed for reproducible ensemble members
 )

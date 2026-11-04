@@ -62,7 +62,7 @@ from scipy.ndimage import (
 )
 
 from pysteps import blending, cascade, extrapolation, noise, utils
-from pysteps.blending.ens_kalman_filter_methods import MaskedEnKF
+from pysteps.blending.ens_kalman_filter_methods import MaskedEnKF, DistancesEnKF
 from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
@@ -103,14 +103,15 @@ class EnKFCombinationConfig:
         Number of grid boxes by which the precipitation mask should be extended per
         timestep.
     smooth_radar_mask_range: int, Default is 0.
-        Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
-        blend near the edge of the radar domain (radar mask), where the radar data is either
-        not present anymore or is not reliable. If set to 0 (grid cells), this generates a
-        normal forecast without smoothing. To create a smooth mask, this range should be a
-        positive value, representing a buffer band of a number of pixels by which the mask
-        is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
-        and radar in the final blended product. Typically, a value between 50 and 100 km
-        can be used. 80 km generally gives good results.
+        Method to smooth the transition between the radar-NWP-noise blend and the
+        NWP-noise blend near the edge of the radar domain (radar mask), where the radar
+        data is either not present anymore or is not reliable. If set to 0 (grid
+        cells), this generates a normal forecast without smoothing. To create a smooth
+        mask, this range should be a positive value, representing a buffer band of a
+        number of pixels by which the mask is cropped and smoothed. The smooth radar
+        mask removes the hard edges between NWP and radar in the final blended product.
+        Typically, a value between 50 and 100 km can be used. 80 km generally gives
+        good results.
     extrapolation_method: str
         Name of the extrapolation method to use. See the documentation of
         :py:mod:`pysteps.extrapolation.interface`.
@@ -124,10 +125,13 @@ class EnKFCombinationConfig:
         Name of the noise generator to use for perturbating the precipitation
         field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to
         None, no noise is generated.
-    enkf_method: str, {'masked_enkf'}
+    enkf_method: {'masked_enkf','distances_enkf'}, optional
         Name of the ensemble Kalman filter method to use for the correction step.
-        Currently, only 'masked_enkf' is implemented. This method corresponds to the
-        reduced-space ensemble Kalman filter method described by Nerini et al., 2019.
+        Currently, the methods 'masked_enkf' and 'distances_enkf' are implemented.
+        The first method corresponds to the reduced-space ensemble Kalman filter
+        technique described in Nerini et al. 2019. The second method corresponds to
+        an enhanced version of the former described in Rempel et al., 2026.
+        Defaults to 'masked_enkf'.
     enable_combination: bool
         Flag to specify whether the correction step or only the forecast steps should
         be processed.
@@ -179,13 +183,14 @@ class EnKFCombinationConfig:
     measure_time: bool
         If set to True, measure, print and return the computation time.
     verbose_output: bool
-        If set to True, return additionally the background ensemble of the EnKF for further statistics.
+        If set to True, return additionally the background ensemble of the EnKF for
+        further statistics.
     callback: function, optional
-      Optional function that is called after computation of each time step of
-      the nowcast. The function takes one argument: a three-dimensional array
-      of shape (n_ens_members,h,w), where h and w are the height and width
-      of the input field precip, respectively. This can be used, for instance,
-      writing the outputs into files.
+        Optional function that is called after computation of each time step of
+        the nowcast. The function takes one argument: a three-dimensional array
+        of shape (n_ens_members,h,w), where h and w are the height and width
+        of the input field precip, respectively. This can be used, for instance,
+        writing the outputs into files.
     return_output: bool
         Set to False to disable returning the outputs as numpy arrays. This can
         save memory if the intermediate results are written to output files using
@@ -1071,13 +1076,15 @@ class EnKFCombinationNowcaster:
             self.FC_Models[j] = FC
 
         # Initialize the combination model.
-        if self.__config.enkf_method == "masked_enkf":
-            kalman_filter_model = MaskedEnKF
-        else:
-            raise ValueError(
-                "Currently, only 'masked_enkf' is implemented as ensemble"
-                "Kalman filter method!"
-            )
+        match self.__config.enkf_method:
+            case "masked_enkf":
+                kalman_filter_model = MaskedEnKF
+            case "distances_enkf":
+                kalman_filter_model = DistancesEnKF
+            case _:
+                raise ValueError("Currently, only 'masked_enkf' and 'distances_enkf' are implemented as ensemble"
+                                 "Kalman filter method!")
+
         self.KalmanFilterModel = kalman_filter_model(self.__config, self.__params)
 
         # Start the main forecast loop.
@@ -1597,8 +1604,9 @@ def forecast(
     verbose_output=False,
 ):
     """
-    Generate a combined nowcast ensemble by using the reduced-space ensemble Kalman
-    filter method described in Nerini et al. 2019.
+    Generate combined nowcast ensembles by using different implementations of an
+    ensemble Kalman filter. All methods originate from the reduced-space ensemble
+    Kalman filter method described in Nerini et al. 2019.
 
     Parameters
     ----------
@@ -1627,14 +1635,15 @@ def forecast(
         Range by which the precipitation mask within the forecast step should be
         extended per time step. Defaults to 1.
     smooth_radar_mask_range: int, Default is 0.
-        Method to smooth the transition between the radar-NWP-noise blend and the NWP-noise
-        blend near the edge of the radar domain (radar mask), where the radar data is either
-        not present anymore or is not reliable. If set to 0 (grid cells), this generates a
-        normal forecast without smoothing. To create a smooth mask, this range should be a
-        positive value, representing a buffer band of a number of pixels by which the mask
-        is cropped and smoothed. The smooth radar mask removes the hard edges between NWP
-        and radar in the final blended product. Typically, a value between 50 and 100 km
-        can be used. 80 km generally gives good results.
+        Method to smooth the transition between the radar-NWP-noise blend and the
+        NWP-noise blend near the edge of the radar domain (radar mask), where the radar
+        data is either not present anymore or is not reliable. If set to 0 (grid
+        cells), this generates a normal forecast without smoothing. To create a smooth
+        mask, this range should be a positive value, representing a buffer band of a
+        number of pixels by which the mask is cropped and smoothed. The smooth radar
+        mask removes the hard edges between NWP and radar in the final blended product.
+        Typically, a value between 50 and 100 km can be used. 80 km generally gives
+        good results.
     n_cascade_levels: int, optional
         The number of cascade levels to use. Defaults to 6, see issue #385 on GitHub.
     precip_thr: float, optional
@@ -1659,10 +1668,12 @@ def forecast(
         Name of the noise generator to use for perturbating the precipitation
         field. See the documentation of :py:mod:`pysteps.noise.interface`. If set to
         None, no noise is generated. Defaults to 'nonparametric'.
-    enkf_method: {'masked_enkf}, optional
+    enkf_method: {'masked_enkf','distances_enkf'}, optional
         Name of the ensemble Kalman filter method to use for the correction step.
-        Currently, only 'masked_enkf' method is implemented that corresponds to the
-        reduced-space ensemble Kalman filter technique described in Nerini et al. 2019.
+        Currently, the methods 'masked_enkf' and 'distances_enkf' are implemented.
+        The first method corresponds to the reduced-space ensemble Kalman filter
+        technique described in Nerini et al. 2019. The second method corresponds to
+        an enhanced version of the former described in Rempel et al., 2026.
         Defaults to 'masked_enkf'.
     enable_combination: bool, optional
         Flag to specify whether the correction step should be applied or a pure
@@ -1699,7 +1710,7 @@ def forecast(
         :py:func:`pysteps.utils.interface.get_method`).
         Defaults to 'numpy' for compatibility reasons. If pyFFTW is installed,
         the recommended method is 'pyfftw'.
-    domain: {"spatial", "spectral"}
+    domain: {'spatial', 'spectral'}
         If "spatial", all computations are done in the spatial domain (the
         classical STEPS model). If "spectral", the AR(2) models and stochastic
         perturbations are applied directly in the spectral domain to reduce
@@ -1721,7 +1732,8 @@ def forecast(
     measure_time: bool
         If set to True, measure, print and return the computation time.
     verbose_output: bool
-        If set to True, return additionally the background ensemble of the EnKF for further statistics.
+        If set to True, return additionally the background ensemble of the EnKF for
+        further statistics.
 
     Returns
     -------
