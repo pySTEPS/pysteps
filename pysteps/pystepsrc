@@ -141,7 +141,7 @@
             "timestep": 5,
             "importer_kwargs": {
                 "varname": "lsprate",
-                "grid_file_path": "aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
+                "grid_file_path": "grid/icon/R19B07/icon_grid_0047_R19B07_L.nc"
             }
             
         },
