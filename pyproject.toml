@@ -59,7 +59,8 @@ pygrib = [
     "pygrib"
 ]
 gdal =[
-    # gdal must match what's installed locally -- see add_gdal.sh
+    "gdal[numpy]==3.13.3",
+    # gdal must match what's installed locally -- see add_gdal[_brew].sh
     "pip",
     "setuptools>=67",
     "wheel",
