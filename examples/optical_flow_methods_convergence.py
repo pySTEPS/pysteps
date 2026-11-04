@@ -18,18 +18,19 @@ To test the convergence, using an example precipitation field we will:
 Let's first load the libraries that we will use.
 """
 
-from datetime import datetime
 import time
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import get_cmap
 from scipy.ndimage import uniform_filter
 
-import pysteps as stp
-from pysteps import motion, io, rcparams
+from pysteps import io, motion, rcparams
 from pysteps.motion.vet import morph
+from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field, quiver
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset, geodata_from_dataset
 
 ################################################################################
 # Load the reference precipitation data
@@ -62,37 +63,44 @@ fns = io.archive.find_by_date(
 
 # Read the reference radar composite
 importer = io.get_method(importer_name, "importer")
-reference_field, quality, metadata = io.read_timeseries(
-    fns, importer, **importer_kwargs
-)
-
-del quality  # Not used
-
-reference_field = np.squeeze(reference_field)  # Remove time dimension
+reference_dataset = io.read_timeseries(fns, importer, timestep=300, **importer_kwargs)
 
 ###############################################################################
 # Preprocess the data
 # ~~~~~~~~~~~~~~~~~~~
 
 # Convert to mm/h
-reference_field, metadata = stp.utils.to_rainrate(reference_field, metadata)
-
-# Mask invalid values
-reference_field = np.ma.masked_invalid(reference_field)
+reference_dataset = conversion.to_rainrate(reference_dataset)
+precip_var = reference_dataset.attrs["precip_var"]
 
 # Plot the reference precipitation
-plot_precip_field(reference_field, title="Reference field")
+plot_precip_field(reference_dataset[precip_var].isel(time=0), title="Reference field")
 plt.show()
 
 # Log-transform the data [dBR]
-reference_field, metadata = stp.utils.dB_transform(
-    reference_field, metadata, threshold=0.1, zerovalue=-15.0
+reference_dataset = transformation.dB_transform(
+    reference_dataset, threshold=0.1, zerovalue=-15.0
 )
 
-print("Precip. pattern shape: " + str(reference_field.shape))
+print("Precip. pattern shape: " + str(reference_dataset[precip_var].isel(time=0).shape))
+
+# Extract the reference field as a plain masked array: everything from here on
+# (morph/create_observations) is low-level array manipulation, unaffected by
+# the xarray-based data model.
+reference_field = np.ma.masked_invalid(
+    reference_dataset[precip_var].isel(time=0).values
+)
 
 # This suppress nan conversion warnings in plot functions
 reference_field.data[reference_field.mask] = np.nan
+
+reference_metadata = {
+    **geodata_from_dataset(reference_dataset),
+    "unit": reference_dataset[precip_var].attrs["units"],
+    "institution": reference_dataset.attrs["institution"],
+    "threshold": reference_dataset[precip_var].attrs["threshold"],
+    "zerovalue": reference_dataset[precip_var].attrs["zerovalue"],
+}
 
 
 ################################################################################
@@ -237,12 +245,14 @@ def create_observations(input_precip, motion_type, num_times=9):
 
     synthetic_observations = np.ma.masked_invalid(synthetic_observations)
 
-    synthetic_observations.data[np.ma.getmaskarray(synthetic_observations)] = 0
+    synthetic_observations.data[np.ma.getmaskarray(synthetic_observations)] = np.nan
 
     return ideal_motion, synthetic_observations
 
 
-def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_type):
+def plot_optflow_method_convergence(
+    input_precip, optflow_method_name, motion_type, remove_nans=False
+):
     """
     Test the convergence to the actual solution of the optical flow method used.
 
@@ -272,18 +282,46 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
         input_precip, motion_type, num_times=num_times
     )
 
+    # Keep the per-frame invalid-data mask around: it is used below to
+    # restrict the RMSE evaluation to the "precipitation region", exactly as
+    # in the original masked-array-based version of this example.
+    obs_mask = np.ma.getmaskarray(precip_obs).copy()
+    precip_for_motion = precip_obs.data
+    if remove_nans:
+        precip_for_motion[precip_obs.mask] = np.nanmin(precip_for_motion)
+
+    # Wrap the synthetic observations into a minimal xarray dataset, since the
+    # optical flow methods require an xr.Dataset as input.
+    obs_dataset = convert_input_to_xarray_dataset(
+        precip_for_motion,
+        None,
+        reference_metadata,
+        startdate=date,
+        timestep=300,
+    )
+    obs_precip_var = obs_dataset.attrs["precip_var"]
+    # The synthetic data are already in dB units (inherited from the
+    # dB-transformed reference field): flag them as such so that the inverse
+    # dB transform below works correctly.
+    obs_dataset[obs_precip_var].attrs["transform"] = "dB"
+
     oflow_method = motion.get_method(optflow_method_name)
 
     elapsed_time = time.perf_counter()
 
-    computed_motion = oflow_method(precip_obs, verbose=False)
+    obs_dataset = oflow_method(obs_dataset, verbose=False)
 
     print(
         f"{optflow_method_name} computation time: "
         f"{(time.perf_counter() - elapsed_time):.1f} [s]"
     )
 
-    precip_obs, _ = stp.utils.dB_transform(precip_obs, inverse=True)
+    computed_motion = np.stack(
+        [obs_dataset["velocity_x"].values, obs_dataset["velocity_y"].values]
+    )
+
+    obs_dataset = transformation.dB_transform(obs_dataset, inverse=True)
+    precip_obs = np.ma.masked_array(obs_dataset[obs_precip_var].values, mask=obs_mask)
 
     precip_data = precip_obs.max(axis=0)
     precip_data.data[precip_data.mask] = 0
@@ -299,11 +337,13 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
     # Compare retrieved motion field with the ideal one
     plt.figure(figsize=(9, 4))
     plt.subplot(1, 2, 1)
-    ax = plot_precip_field(precip_obs[0], title="Reference motion")
+    precip_plot_data = precip_obs[0].data
+    precip_plot_data[precip_obs[0].mask] = np.nan
+    ax = plot_precip_field(precip_plot_data, title="Reference motion")
     quiver(ideal_motion, step=25, ax=ax)
 
     plt.subplot(1, 2, 2)
-    ax = plot_precip_field(precip_obs[0], title="Retrieved motion")
+    ax = plot_precip_field(precip_plot_data, title="Retrieved motion")
     quiver(computed_motion, step=25, ax=ax)
 
     # To evaluate the accuracy of the computed_motion vectors, we will use
@@ -314,9 +354,7 @@ def plot_optflow_method_convergence(input_precip, optflow_method_name, motion_ty
     mse = ((ideal_motion - computed_motion)[:, precip_mask] ** 2).mean()
 
     rel_mse = mse / (ideal_motion[:, precip_mask] ** 2).mean()
-    plt.suptitle(
-        f"{optflow_method_name} " f"Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%"
-    )
+    plt.suptitle(f"{optflow_method_name} Relative RMSE: {np.sqrt(rel_mse) * 100:.2f}%")
     plt.show()
 
 
@@ -362,17 +400,17 @@ plot_optflow_method_convergence(reference_field, "VET", "rotor")
 #
 # Constant motion x-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, "DARTS", "linear_x")
+plot_optflow_method_convergence(reference_field, "DARTS", "linear_x", remove_nans=True)
 
 ################################################################################
 # Constant motion y-direction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, "DARTS", "linear_y")
+plot_optflow_method_convergence(reference_field, "DARTS", "linear_y", remove_nans=True)
 
 ################################################################################
 # Rotational motion
 # ~~~~~~~~~~~~~~~~~
-plot_optflow_method_convergence(reference_field, "DARTS", "rotor")
+plot_optflow_method_convergence(reference_field, "DARTS", "rotor", remove_nans=True)
 
 ################################################################################
 # Farneback
