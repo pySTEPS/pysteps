@@ -87,8 +87,8 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           # install from kmuehlbauer branch for testing
-          # do a no-checkout single branch clone
-          git clone --filter=blob:none --no-checkout --single-branch --branch main-new https://github.com/kmuehlbauer/pysteps-data.git
+          # do a sparse single branch clone
+          git clone --filter=blob:none --sparse --single-branch --branch main-new https://github.com/kmuehlbauer/pysteps-data.git
           cd pysteps-data
           # setup sparse checkout without the data folder
           git sparse-checkout set --no-cone '/*' '!/data/'
