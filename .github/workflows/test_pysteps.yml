@@ -31,14 +31,14 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
 
-      - name: Install dependencies for Linux
+      - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         working-directory: ${{github.workspace}}
         run: |
           sudo apt update
           sudo apt install libgdal-dev libproj-dev libhdf5-dev libopencv-dev libeccodes-dev
 
-      - name: Install pysteps for MacOS
+      - name: Install pysteps (MacOS)
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
         env:
@@ -56,7 +56,7 @@ jobs:
           bash add_gdal_brew.sh
           uv sync --python ${{ matrix.python-version }} --all-extras --frozen
 
-      - name: Install pysteps
+      - name: Install pysteps (Linux)
         if: matrix.os == 'ubuntu-latest'
         working-directory: ${{github.workspace}}
         run: |
@@ -65,7 +65,7 @@ jobs:
           bash add_gdal.sh
           uv sync --python ${{ matrix.python-version }} --all-extras --frozen
 
-      - name: Install pysteps
+      - name: Install pysteps (Windows)
         if: matrix.os == 'windows-latest'
         working-directory: ${{github.workspace}}
         run: |
@@ -94,7 +94,7 @@ jobs:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
         run: uv run pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
 
-      - name: Upload coverage to Codecov (Linux only)
+      - name: Upload coverage to Codecov (Linux)
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         env:
