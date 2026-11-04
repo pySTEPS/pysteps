@@ -305,7 +305,8 @@ This approach has two main advantages:
   then merged into the main branch. Squashing the commits helps to keep a clean commit history in the main branch.
 
 Before you submit a contribution or fix, please open a new issue so the community can provide input. 
-The discussions will help clarify the best way to approach the suggested changes.
+The discussions will help clarify the best way to approach the suggested changes and frame it in the project roadmap,
+and associate it with a milestone.
 
 AI-generated code must clearly be indicated as co-authored by AI; only a human can take responsibility for a contribution.
 
@@ -392,20 +393,20 @@ Owner and maintainer rules
 
 * The pySTEPS organization should have exactly three owners, no more, no less.
 * Being a maintainer comes with responsibilities, i.e. regularly performing tasks such as:
-  - PR reviews
-  - issue triage
-  - organising hackathons and code sprints
-  - keeping documentation and examples up to date
-  - ...
+   - PR reviews
+   - issue triage
+   - organising hackathons and code sprints
+   - keeping documentation and examples up to date
+   - ...
 * After 12 months of inactivity:
-  - an owner is replaced by a more active maintainer that the community agrees upon
-  - a maintainer loses their role and becomes a regular member
+   - an owner is replaced by a more active maintainer that the community agrees upon
+   - a maintainer loses their role and becomes a regular member
 This role can of course be restored if needed (e.g. after a sabbatical or leave).
 
 Credits
 -------
 
-This document was based on contributors guides of two Python
+This document was based on https://opensource.guide/ and contributors guides of two Python
 open-source projects:
 
 * Py-Art_: Copyright (c) 2013, UChicago Argonne, LLC.
@@ -416,3 +417,4 @@ open-source projects:
 
 .. _Py-Art: https://github.com/ARM-DOE/pyart
 .. _mypy: https://github.com/python/mypy
+
