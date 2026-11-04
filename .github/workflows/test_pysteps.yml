@@ -95,7 +95,7 @@ jobs:
           # checkout
           git checkout main-new
           # install, finally
-          python -m pip install . --no-deps
+          python -m pip install .
 
       - name: Check imports
         working-directory: ${{github.workspace}}/pysteps_data
