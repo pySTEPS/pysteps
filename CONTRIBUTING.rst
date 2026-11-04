@@ -401,6 +401,7 @@ Owner and maintainer rules
 * After 12 months of inactivity:
    - an owner is replaced by a more active maintainer that the community agrees upon
    - a maintainer loses their role and becomes a regular member
+
 This role can of course be restored if needed (e.g. after a sabbatical or leave).
 
 Credits
