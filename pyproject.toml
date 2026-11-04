@@ -42,15 +42,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gdal = [
-    "setuptools",
-    "wheel"
-]
 optional = [
     "cartopy>=0.18",
     "cookiecutter",
     "dask",
-    "gdal[numpy]==3.4.1",
     "geotiff",
     "h5py",
     "pandas",
@@ -62,6 +57,9 @@ optional = [
 ]
 pygrib = [
     "pygrib"
+]
+gdal =[
+    "gdal==3.4.1",
 ]
 
 [dependency-groups]

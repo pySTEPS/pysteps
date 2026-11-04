@@ -36,7 +36,7 @@ jobs:
         working-directory: ${{github.workspace}}
         run: |
           sudo apt update
-          sudo apt install libgdal-dev libproj-dev libhdf5-dev libopencv-dev
+          sudo apt install libgdal-dev libproj-dev libhdf5-dev libopencv-dev libeccodes-dev
 
       - name: Install pysteps for MacOS
         if: matrix.os == 'macos-latest'
@@ -50,18 +50,18 @@ jobs:
           brew update-reset
           brew update
           gcc-13 --version || brew install gcc@13
-          brew install gdal
+          brew install gdal@3.4.1
           uv python install ${{ matrix.python-version }}
           uv sync --python ${{ matrix.python-version }} --frozen
-          uv sync --python ${{ matrix.python-version }} --extra optional --extra pygrib --frozen
+          uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal --extra pygrib --frozen
 
       - name: Install pysteps
         if: matrix.os == 'ubuntu-latest'
         working-directory: ${{github.workspace}}
         run: |
           uv python install ${{ matrix.python-version }}
-          uv sync --python ${{ matrix.python-version }} --extra gdal --frozen
-          uv sync --python ${{ matrix.python-version }} --extra gdal --extra optional --extra pygrib --frozen
+          uv sync --python ${{ matrix.python-version }} --frozen
+          uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal --extra pygrib --frozen
 
       - name: Install pysteps
         if: matrix.os == 'windows-latest'
@@ -69,7 +69,7 @@ jobs:
         run: |
           uv python install ${{ matrix.python-version }}
           uv sync --python ${{ matrix.python-version }} --frozen
-          uv sync --python ${{ matrix.python-version }} --extra optional --frozen
+          uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal --frozen
 
       - name: Download pysteps data
         env:

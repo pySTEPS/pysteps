@@ -571,12 +571,6 @@ version = "3.4.1"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c5/f6/4fed0cacc8a6fb5d7659a05d300e01a1a13e2d9febf1911b05695057c662/GDAL-3.4.1.tar.gz", hash = "sha256:b19e8143bc2c0d3e222789a465d82b6874236eb78801aec608bf5c8c44d20fcf", size = 755854, upload-time = "2022-01-04T11:10:53.023Z" }
 
-[package.optional-dependencies]
-numpy = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-
 [[package]]
 name = "geotiff"
 version = "0.2.10"
@@ -1537,14 +1531,12 @@ dependencies = [
 
 [package.optional-dependencies]
 gdal = [
-    { name = "setuptools" },
-    { name = "wheel" },
+    { name = "gdal" },
 ]
 optional = [
     { name = "cartopy" },
     { name = "cookiecutter" },
     { name = "dask" },
-    { name = "gdal", extra = ["numpy"] },
     { name = "geotiff" },
     { name = "h5py" },
     { name = "pandas" },
@@ -1574,7 +1566,7 @@ requires-dist = [
     { name = "cartopy", marker = "extra == 'optional'", specifier = ">=0.18" },
     { name = "cookiecutter", marker = "extra == 'optional'" },
     { name = "dask", marker = "extra == 'optional'" },
-    { name = "gdal", extras = ["numpy"], marker = "extra == 'optional'", specifier = "==3.4.1" },
+    { name = "gdal", marker = "extra == 'gdal'", specifier = "==3.4.1" },
     { name = "geotiff", marker = "extra == 'optional'" },
     { name = "h5py", marker = "extra == 'optional'" },
     { name = "jsmin" },
@@ -1594,11 +1586,9 @@ requires-dist = [
     { name = "scikit-image", marker = "extra == 'optional'" },
     { name = "scikit-learn", marker = "extra == 'optional'" },
     { name = "scipy" },
-    { name = "setuptools", marker = "extra == 'gdal'" },
-    { name = "wheel", marker = "extra == 'gdal'" },
     { name = "xarray" },
 ]
-provides-extras = ["gdal", "optional", "pygrib"]
+provides-extras = ["optional", "pygrib", "gdal"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2200,15 +2190,6 @@ wheels = [
 ]
 
 [[package]]
-name = "setuptools"
-version = "84.2.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/70/b3/c19426f783614d625699a4b247faf628ea9ab1db228674491767b417f9e1/setuptools-84.2.1.tar.gz", hash = "sha256:3ff8b3b5492a0aa66960f4419365a86b84e013070d4313e4d4a6894f5d64d6bc", size = 1230289, upload-time = "2026-10-20T19:01:37.742Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/55/6dc6d6bb953bdfc52519a0059592c52b6e3b8ad51cf8256dffceb55b0610/setuptools-84.2.1-py3-none-any.whl", hash = "sha256:ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2", size = 876263, upload-time = "2026-10-20T19:01:35.678Z" },
-]
-
-[[package]]
 name = "shapely"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2358,18 +2339,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/38/9e/40c7098240cedd3a2f32e42a74b35c4563c617fdd7e41ae6268d4fdd8915/virtualenv-21.15.2.tar.gz", hash = "sha256:dbd886e6e5689eb4dde6a9bbc478ad14b4fc8ed0852690d8273ccfb8c467f635", size = 5520597, upload-time = "2026-10-30T19:18:04.759Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f7/d8/09c9d6df253b2016312dd5ccbb962dfa86a5202f2452604b52e0a9844661/virtualenv-21.15.2-py3-none-any.whl", hash = "sha256:fb8c62c7c328e0238061c721068f06b7bc6bd10f7a0f5987195cef1008837ee6", size = 5559530, upload-time = "2026-10-30T19:18:01.134Z" },
-]
-
-[[package]]
-name = "wheel"
-version = "0.48.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d0/20/50ed6bdf27dec98b568a8ae25dc599f35baa3d9709f9e83fd1edb56b9a90/wheel-0.48.0.tar.gz", hash = "sha256:94800765601e9171bf5d58d066e640662842bcedcbab982b2c90787a2c987322", size = 66471, upload-time = "2026-08-11T22:02:27.327Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl", hash = "sha256:3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab", size = 33320, upload-time = "2026-08-11T22:02:26.1Z" },
 ]
 
 [[package]]
