@@ -20,5 +20,7 @@ jobs:
     steps:
     - uses: actions/stale@v11
       with:
+        stale-issue-message: "This issue is stale because it has had no activity for 12 months."
+        stale-pr-message: "This pull request is stale because it has had no activity for 12 months."
         days-before-stale: 365
         days-before-close: 21
