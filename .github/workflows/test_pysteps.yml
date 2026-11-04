@@ -83,6 +83,13 @@ jobs:
           pip install .
           mkdir pysteps_data
 
+      - name: Install pysteps_data
+        working-directory: ${{github.workspace}}
+        run: |
+          # install from kmuehlbauer branch for testing
+          python -m pip install git+https://github.com/kmuehlbauer/pysteps-data@main-new
+          mkdir pysteps_data
+
       - name: Check imports
         working-directory: ${{github.workspace}}/pysteps_data
         run: |
