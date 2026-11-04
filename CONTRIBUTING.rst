@@ -35,6 +35,7 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 * Setting up the development environment
 * Fork and clone the repository
 * Install pre-commit hooks
+* Create an issue for each contribution
 * Create a new branch for each contribution
 * Read the Code Style guide
 * Work on your changes
@@ -295,16 +296,31 @@ Collaborators guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 As a collaborator, all your new contributions should be made in a new branch under your forked repository, or
-if you are a member of the pySTEPS organisation, under a new branch in the pysteps repository.
+if you are a member of the pySTEPS organisation, under a new branch in the pysteps repository. 
+
+Nobody can push changes straight into the main branch; all development is done in a feature branch.
+This approach has two main advantages:
+
+- Every commit on the feature branch is tested via GitHub Actions.
+  If the tests fail, they do not affect the main branch.
+
+- Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
+  then merged into the main branch. Squashing the commits helps to keep a clean commit history in the main branch.
 
 Before you submit a contribution or fix, please open a new issue so the community can provide input. 
 The discussions will help clarify the best way to approach the suggested changes.
 
-Once your proposed changes are ready, you need to create a pull request (PR).
+AI-generated code must clearly be indicated as co-authored by AI; only a human can take responsibility for a contribution.
+
+Once your proposed changes are ready, you need to create a pull request (PR) linked to the associated issue.
 Afterward, other contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
 request changes to the code, in which case the PR will need to be reviewed again. 
 
+Copilot and other AI tools can be used as support but do not replace a review by a human.
+
 Once the PR and all changes are approved, the PR will be merged into the main branch.
+
+Stale PRs and issues that have had no activity for 12 months are first marked as stale and then closed.
 
 **Important:**
 Each PR should only address a single issue (e.g., fix a bug, improve documentation, etc.).
@@ -332,33 +348,6 @@ descriptive name.
 
 A quick way to get familiar with the pytest syntax and the testing procedures
 is checking the python scripts present in the pysteps test module.
-
-Core developer guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Working directly on the master branch is discouraged and is reserved only
-for small changes and updates that do not compromise the stability of the code.
-The *master* branch is a production branch that is ready to be deployed
-(cloned, installed, and ready to use).
-In consequence, this master branch is meant to be stable.
-
-The pysteps repository uses the GitHub Actions service to run tests every time you commit to GitHub.
-In that way, your modifications along with the entire library are tested.
-
-Pushing untested or work-in-progress changes to the master branch can potentially introduce bugs or break the stability of the package.
-Since the tests triggered by a commit to the master branch take around 20 minutes, any errors introduced there
-will be noticed after the stablility of the master branch was compromised.
-In addition, other developers start working on a new feature from master from a potentially broken state.
-
-Instead, it is recommended to work on each new feature in its own branch, which can be pushed to the central repository
-for backup/collaboration. When you’re done with the feature's development work, you can merge the feature branch into the
-master or submit a Pull Request. This approach has two main advantages:
-
-- Every commit on the feature branch is tested via GitHub Actions.
-  If the tests fail, they do not affect the **master** branch.
-
-- Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
-  then merged into the master branch. Squashing the commits helps to keep a clean commit history in the main branch.
 
 
 Processing pull requests
