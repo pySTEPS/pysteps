@@ -6,39 +6,93 @@ observations and returns an ensemble in mm/h. Transformation, motion estimation,
 cascade decomposition, statistical estimation, and forecast evolution happen
 inside the call. No intermediate files or database are needed.
 
-For observations stored in ``rain`` as a floating NumPy array ``(3, y, x)``,
-ordered oldest to newest::
+For observations stored in a v2 ``dataset`` with three time slices, ordered
+oldest to newest::
 
     from pysteps import nowcasts
 
     forecast = nowcasts.get_method("parametric")
     ensemble, diagnostics = forecast(
-        rain,
+        dataset,
         timesteps=12,
         n_ens_members=20,
-        kmperpixel=1.0,
-        timestep=5.0,
         seed=42,
         return_diagnostics=True,
     )
+    rain = ensemble[ensemble.attrs["precip_var"]]
 
-The result has shape ``(20, 12, y, x)``. Lead index zero is the first forecast,
-five minutes after the newest observation. ``timestep`` is in minutes and can
-be fractional, for example 7.5 for 450-second observations. ``kmperpixel`` is
-the isotropic pixel spacing. Both are required even when motion is supplied.
-Input must be finite, nonnegative rain rates with consistent geometry and
-cadence. Masked arrays and missing pixels are rejected.
+The precipitation variable must have dimensions ``(time, y, x)``, in any order,
+and its name must be stored in ``dataset.attrs["precip_var"]``. Its ``units``
+attribute must be ``mm/h`` and ``transform`` must be absent or ``None``.
+Observations must be floating point, finite, and nonnegative. Missing pixels
+are rejected, including when the latest observation is dry.
 
-A fixed velocity field can be supplied as the second argument or as
-``velocity=velocity``. Its shape is ``(2, y, x)`` with x/y components in pixels
-per observation timestep. Otherwise dense Lucas-Kanade motion is estimated
-from the latest two transformed observations. Statistical parameters and motion
-remain fixed throughout each forecast. See :ref:`sphx_glr_auto_examples_plot_parametric_nowcast.py`
-for a complete runnable synthetic example.
-For a radar-data walkthrough using the same Swiss sequence as the STEPS tutorial,
-see :ref:`sphx_glr_auto_examples_plot_parametric_nowcast_swiss.py`. It shows
-importing three observations, selecting a complete domain, generating the
-ensemble, and plotting means, members, and exceedance probabilities.
+The spatial coordinates must be regularly spaced with square pixels, ``units``
+of ``m`` or ``km``, and signed ``stepsize`` attributes matching the coordinates.
+Descending y coordinates are supported without reversing the data. The three
+observation timestamps must be increasing, regularly spaced datetime64 values.
+``time.attrs["stepsize"]`` must give their interval in seconds. Pixel size and
+cadence are derived from these coordinates. Optional ``kmperpixel`` (km) and
+``timestep`` (minutes) overrides must agree with the dataset. In particular,
+450-second observations retain their physical interval of 7.5 minutes.
+
+The result is an xarray dataset whose precipitation has dimensions
+``(ens_number, time, y, x)``, with ensemble members numbered from one. It
+preserves spatial coordinates and projection metadata and adds a scalar
+``forecast_reference_time`` equal to the newest observation time. Forecast
+valid times start one observation interval later. Outputs are thresholded
+linear rain rates in mm/h, with the occurrence threshold and zero dry value
+recorded in their attributes. Untransformed output omits the ``transform``
+attribute, allowing native xarray NetCDF serialization. The numerical engine
+loads arrays eagerly.
+
+Fixed motion can be supplied in ``velocity_x`` and ``velocity_y`` dataset
+variables, each with dimensions ``(y, x)`` in any order. Their values are x/y
+pixel displacements per observation interval. Velocity units can be omitted,
+as in the upstream motion methods, or recorded as ``pixels/timestep``.
+Both components must be present together and finite. Otherwise dense
+Lucas-Kanade motion is estimated from the latest two transformed observations.
+Statistical parameters and motion remain fixed throughout each forecast.
+
+See :ref:`sphx_glr_auto_examples_plot_parametric_nowcast.py` for a runnable
+synthetic dataset example. For the complete Swiss radar workflow, including
+clipping, aggregation, plotting, and a lossless NetCDF round trip, see
+:ref:`sphx_glr_auto_examples_plot_parametric_nowcast_swiss.py`. The common
+dataset model is described in :py:mod:`pysteps.io.importers`.
+
+The Swiss example also writes ``parametric_nowcast_swiss_member0.gif`` into
+``rcparams.outputs["path_outputs"]`` (the current directory by default). It
+plays the three QPE observations followed by the six forecasts of member index
+zero, which has ``ens_number=1``. All frames share a map and colour scale, and
+titles identify the data source and valid time. QPE retains measured rain
+rates, while forecasts apply the configured occurrence threshold. The frames
+show the actual five-minute fields, with no temporal interpolation.
+
+NetCDF export
+--------------
+
+The returned dataset can be exported directly with xarray::
+
+    import xarray as xr
+
+    precip_var = ensemble.attrs["precip_var"]
+    ensemble.to_netcdf(
+        "forecast.nc",
+        engine="netcdf4",
+        encoding={precip_var: {"zlib": True, "complevel": 1}},
+    )
+    with xr.open_dataset("forecast.nc", engine="netcdf4") as reopened:
+        xr.testing.assert_identical(ensemble, reopened.load())
+
+This uses lossless compression and retains float64 rainfall, member identifiers,
+valid times, forecast reference time, and available geographic metadata.
+Projection metadata are preserved as supplied; this does not add missing CF
+projection mappings. The older ``pysteps.io.exporters`` interface still expects
+arrays and a separate metadata dictionary.
+
+Callbacks continue to receive one NumPy array per lead. Native NetCDF export
+here writes the assembled dataset; incremental writing through the older
+exporter remains a separate interface.
 
 Reference settings and regional overrides
 -----------------------------------------

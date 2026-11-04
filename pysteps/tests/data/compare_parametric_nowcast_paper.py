@@ -12,6 +12,7 @@ from pathlib import Path
 import subprocess
 
 import numpy as np
+import xarray as xr
 from scipy.ndimage import gaussian_filter
 
 from pysteps import motion
@@ -143,9 +144,38 @@ def main():
         with np.load(path) as saved:
             rain = saved["rain"][[1, 0, 2]].astype(float)
         metadata = json.loads((folder / "input_metadata.json").read_text())
+        observation_times = np.array(
+            [metadata["rain"][i]["valid_time"] for i in (1, 0, 2)],
+            dtype="datetime64[ns]",
+        )
+        # The archives contain raster values, not georeferencing. A local 1 km
+        # Cartesian grid retains their array orientation for numerical comparison.
+        dataset = xr.Dataset(
+            {"precip_intensity": (("time", "y", "x"), rain, {"units": "mm/h"})},
+            coords={
+                "time": ("time", observation_times, {"stepsize": 300}),
+                "x": (
+                    "x",
+                    (np.arange(rain.shape[2]) + 0.5) * 1000,
+                    {"units": "m", "stepsize": 1000},
+                ),
+                "y": (
+                    "y",
+                    (np.arange(rain.shape[1]) + 0.5) * 1000,
+                    {"units": "m", "stepsize": 1000},
+                ),
+            },
+            attrs={"precip_var": "precip_intensity"},
+        )
         transformed = source["DBTransformer"](threshold=1).transform(rain)
-        velocity = motion.get_method("LK")(
-            transformed[-2:], **parametric._MOTION_DEFAULTS
+        motion_input = dataset.isel(time=slice(-2, None)).copy(deep=True)
+        motion_input["precip_intensity"].data = transformed[-2:]
+        motion_input["precip_intensity"].attrs["transform"] = "dB"
+        motion_output = motion.get_method("LK")(
+            motion_input, **parametric._MOTION_DEFAULTS
+        )
+        velocity = np.stack(
+            [motion_output["velocity_x"].values, motion_output["velocity_y"].values]
         )
         cfg = config(rain.shape[1:])
         cfg["n_forecasts"] = args.leads
@@ -165,8 +195,8 @@ def main():
                 rain, velocity, cfg, parameters, seed, 2, args.leads
             )
             # Exercise the public call including its internal motion estimation.
-            coupled, diagnostics = parametric.forecast(
-                rain,
+            coupled_dataset, diagnostics = parametric.forecast(
+                dataset,
                 timesteps=args.leads,
                 n_ens_members=2,
                 kmperpixel=1,
@@ -174,6 +204,7 @@ def main():
                 seed=seed,
                 return_diagnostics=True,
             )
+            coupled = coupled_dataset[coupled_dataset.attrs["precip_var"]].values
             np.testing.assert_array_equal(velocity, diagnostics["velocity"])
             for key in ("beta_1", "beta_2", "rain_fraction", "mean_db", "stdev_db"):
                 np.testing.assert_allclose(

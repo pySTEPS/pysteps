@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 
 import numpy as np
+import xarray as xr
 from scipy.ndimage import gaussian_filter
 
 from pysteps import motion
@@ -31,6 +32,7 @@ from pysteps.timeseries.parametric import (
 from pysteps.utils.spectral import fit_power_law_spectrum, rapsd_logarithmic
 from pysteps.utils.statistics import compute_field_statistics
 from pysteps.utils.transformation import dB_transform
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 from ._cascade_advection import advect_field, prepare_advection_coordinates
 
@@ -334,9 +336,120 @@ def _advance(
     return field, diagnostics
 
 
+def _velocity_from_dataset(dataset):
+    """Read fixed pixel displacements without xarray coordinate alignment."""
+    names = ("velocity_x", "velocity_y")
+    present = [name in dataset.data_vars for name in names]
+    if not any(present):
+        return None
+    if not all(present):
+        raise ValueError("Supply both velocity_x and velocity_y, or neither")
+    components = []
+    for name in names:
+        field = dataset[name]
+        if set(field.dims) != {"y", "x"} or field.ndim != 2:
+            raise ValueError(f"{name} must have dimensions (y, x)")
+        if field.attrs.get("units") not in (
+            None,
+            "pixels/timestep",
+            "pixels / timestep",
+        ):
+            raise ValueError(f"{name} must be in pixels per observation timestep")
+        values = field.transpose("y", "x").values
+        if not np.issubdtype(values.dtype, np.number) or np.iscomplexobj(values):
+            raise ValueError(f"{name} must contain finite real values")
+        if not np.isfinite(values).all():
+            raise ValueError(f"{name} must contain finite real values")
+        components.append(values)
+    return np.array(components, dtype=float, copy=True)
+
+
+def _prepare_dataset(dataset, kmperpixel, timestep):
+    """Validate the physical grid and copy observations into canonical order."""
+    if not isinstance(dataset, xr.Dataset):
+        raise ValueError("dataset must be an xarray.Dataset")
+    precip_var = dataset.attrs.get("precip_var")
+    if not isinstance(precip_var, str) or precip_var not in dataset.data_vars:
+        raise ValueError(
+            "dataset.attrs['precip_var'] must name a precipitation variable"
+        )
+    precip = dataset[precip_var]
+    if precip.ndim != 3 or set(precip.dims) != {"time", "y", "x"}:
+        raise ValueError("Precipitation must have dimensions (time, y, x)")
+    precip = precip.transpose("time", "y", "x")
+    if (
+        precip.shape[0] != 3
+        or min(precip.shape[1:]) < 2
+        or max(precip.shape[1:]) < 3
+        or not np.issubdtype(precip.dtype, np.floating)
+    ):
+        raise ValueError("Precipitation must be floating point with shape (3, y, x)")
+    if precip.attrs.get("units") != "mm/h" or precip.attrs.get("transform") is not None:
+        raise ValueError("Precipitation must be untransformed rain rates in mm/h")
+    rain = precip.values
+    if not np.isfinite(rain).all() or np.any(rain < 0):
+        raise ValueError(
+            "Precipitation must contain only finite nonnegative rain rates"
+        )
+
+    spacings = []
+    for axis in ("x", "y"):
+        if axis not in dataset.coords or dataset[axis].dims != (axis,):
+            raise ValueError(f"A one-dimensional {axis} coordinate is required")
+        coord = dataset[axis]
+        if not np.issubdtype(coord.dtype, np.number) or np.iscomplexobj(coord):
+            raise ValueError(f"{axis} coordinates must be finite real numbers")
+        values = np.asarray(coord.values, dtype=float)
+        differences = np.diff(values)
+        step = differences[0]
+        if (
+            not np.isfinite(values).all()
+            or step == 0
+            or not np.allclose(differences, step, rtol=1e-7, atol=abs(step) * 1e-10)
+        ):
+            raise ValueError(
+                f"{axis} coordinates must be regularly spaced and monotonic"
+            )
+        declared = _finite(f"{axis}.stepsize", coord.attrs.get("stepsize"))
+        if not np.isclose(declared, step, rtol=1e-7, atol=abs(step) * 1e-10):
+            raise ValueError(f"{axis}.stepsize disagrees with coordinate spacing")
+        units = coord.attrs.get("units")
+        if units not in ("m", "km"):
+            raise ValueError(f"{axis} coordinate units must be 'm' or 'km'")
+        spacings.append(abs(step) / (1000.0 if units == "m" else 1.0))
+    if not np.isclose(*spacings, rtol=1e-7, atol=0):
+        raise ValueError("The parametric forecast requires square pixels")
+
+    if "time" not in dataset.coords or dataset.time.dims != ("time",):
+        raise ValueError("A one-dimensional datetime time coordinate is required")
+    times = dataset.time.values
+    if not np.issubdtype(times.dtype, np.datetime64) or np.isnat(times).any():
+        raise ValueError("time must contain valid datetime64 observation times")
+    intervals = np.diff(times) / np.timedelta64(1, "s")
+    seconds = intervals[0]
+    if seconds <= 0 or not np.allclose(intervals, seconds, rtol=1e-9, atol=1e-9):
+        raise ValueError("Observation times must be increasing and regularly spaced")
+    declared = _positive("time.stepsize", dataset.time.attrs.get("stepsize"))
+    if not np.isclose(declared, seconds, rtol=1e-9, atol=1e-9):
+        raise ValueError("time.stepsize must match observation spacing in seconds")
+    derived_timestep = float(seconds / 60.0)
+    for name, supplied, derived in (
+        ("kmperpixel", kmperpixel, spacings[0]),
+        ("timestep", timestep, derived_timestep),
+    ):
+        if supplied is not None and not np.isclose(
+            _positive(name, supplied), derived, rtol=1e-7, atol=0
+        ):
+            raise ValueError(f"{name} disagrees with dataset coordinates")
+
+    velocity = _velocity_from_dataset(dataset)
+    prepared = dataset.copy(deep=True)
+    prepared[precip_var] = precip.copy(deep=True).astype(float)
+    return prepared, velocity, float(spacings[0]), derived_timestep
+
+
 def forecast(
-    precip,
-    velocity=None,
+    dataset,
     timesteps=1,
     *,
     n_ens_members=24,
@@ -361,19 +474,24 @@ def forecast(
 
     Parameters
     ----------
-    precip: numpy.ndarray
-        Floating-point, finite nonnegative rain rates in mm/h, shape (3, y, x),
-        ordered oldest first at a regular interval. Grids must be complete.
-    velocity: numpy.ndarray, optional
-        Fixed x/y motion, shape (2, y, x), in pixels per observation timestep.
-        If omitted, estimate Lucas-Kanade motion from the latest two dBR fields.
+    dataset: xarray.Dataset
+        Three complete, finite, nonnegative rain-rate observations in mm/h,
+        ordered oldest first. The precipitation variable is named by the global
+        ``precip_var`` attribute and has dimensions (time, y, x), in any order.
+        Time must be datetime64 and regularly spaced; its ``stepsize`` is in
+        seconds. Spatial coordinates must be regular with square pixels, units
+        'm' or 'km', and signed ``stepsize`` attributes. Optional velocity_x and
+        velocity_y variables have dimensions (y, x) and contain displacements
+        in pixels per observation timestep. If absent, estimate Lucas-Kanade
+        motion from the latest two dBR fields.
     timesteps: int, optional
         Positive number of leads at the observation interval. Lead zero omitted.
     n_ens_members, n_cascade_levels: int, optional
         Ensemble size (24) and Gaussian cascade levels (6, minimum 3).
-    kmperpixel, timestep: float
-        Required positive isotropic pixel size in km and interval in minutes.
-        Fractional minutes are preserved.
+    kmperpixel, timestep: float, optional
+        Pixel size in km and interval in minutes, derived from coordinates by
+        default. Explicit values must agree with the dataset. Fractional
+        minutes are preserved.
     rain_threshold, scale_break: float, optional
         Rain occurrence threshold in mm/h (1) and spectral break in km (20).
     zerovalue: float, optional
@@ -414,8 +532,11 @@ def forecast(
 
     Returns
     -------
-    ensemble: ndarray or None
-        Float64 mm/h array (member, lead, y, x), or None if return_output=False.
+    ensemble: xarray.Dataset or None
+        Float64 mm/h precipitation with dimensions (ens_number, time, y, x),
+        retaining spatial coordinates and projection metadata. Valid times
+        start one observation interval after forecast_reference_time.
+        None if return_output=False.
     diagnostics: dict, optional
         When requested, return (ensemble, diagnostics): raw estimates, selected
         and bounded generation parameters, settings, motion, seed information,
@@ -431,21 +552,14 @@ def forecast(
     by innovations. A newest field with no rain at the occurrence threshold
     gives a dry ensemble even if older fields were wet. Earlier dry fields use
     zero anomalies. Unavailable positive-rain moments raise rather than becoming
-    dry forecasts. No database, xarray, or additional runtime package is needed.
+    dry forecasts. Dataset data are loaded eagerly; the numerical engine uses
+    NumPy arrays. No database is needed.
     """
-    if (
-        not isinstance(precip, np.ndarray)
-        or np.ma.isMaskedArray(precip)
-        or not np.issubdtype(precip.dtype, np.floating)
-        or precip.ndim != 3
-        or precip.shape[0] != 3
-        or min(precip.shape[1:]) < 2
-        or max(precip.shape[1:]) < 3
-    ):
-        raise ValueError("precip must be a floating NumPy array with shape (3, y, x)")
-    if not np.isfinite(precip).all() or np.any(precip < 0):
-        raise ValueError("precip must contain only finite nonnegative rain rates")
-    rain = np.array(precip, dtype=float, copy=True)
+    dataset, velocity, kmperpixel, timestep = _prepare_dataset(
+        dataset, kmperpixel, timestep
+    )
+    precip_var = dataset.attrs["precip_var"]
+    rain = dataset[precip_var].values
     shape = rain.shape[1:]
     timesteps = _integer("timesteps", timesteps)
     n_ens_members = _integer("n_ens_members", n_ens_members)
@@ -543,7 +657,16 @@ def forecast(
         ),
         generation=[[] for _ in range(n_ens_members)] if return_diagnostics else None,
     )
-    transformed, _ = dB_transform(rain, threshold=rain_threshold, zerovalue=zerovalue)
+    transformed_dataset = dB_transform(
+        dataset, threshold=rain_threshold, zerovalue=zerovalue
+    )
+    transformed = transformed_dataset[precip_var].values
+    # Untransformed rates omit the transform attribute so native NetCDF export
+    # does not encounter a non-serializable None value.
+    dataset[precip_var].attrs.pop("transform", None)
+    dataset[precip_var].attrs.update(
+        units="mm/h", threshold=rain_threshold, zerovalue=0.0
+    )
     statistics = compute_field_statistics(
         transformed[-1], threshold, estimation["lower_truncation"]
     )
@@ -561,12 +684,22 @@ def forecast(
                 output[:, lead] = fields
             if callback is not None:
                 callback(fields)
+        if output is not None:
+            output = convert_output_to_xarray_dataset(dataset, timesteps, output)
         return (output, diagnostics) if return_diagnostics else output
     if velocity is None:
-        velocity = np.asarray(
-            motion.get_method("LK")(transformed[-2:], **motion_settings), dtype=float
+        motion_dataset = motion.get_method("LK")(
+            transformed_dataset.isel(time=slice(-2, None)), **motion_settings
         )
-        if velocity.shape != (2, *shape) or not np.isfinite(velocity).all():
+        try:
+            velocity = (
+                _velocity_from_dataset(motion_dataset)
+                if isinstance(motion_dataset, xr.Dataset)
+                else None
+            )
+        except ValueError as error:
+            raise ValueError("Motion estimator returned invalid velocity") from error
+        if velocity is None or velocity.shape != (2, *shape):
             raise ValueError("Motion estimator returned invalid velocity")
     diagnostics["velocity"] = velocity.copy()
     bp_filter = filter_gaussian(shape, n_cascade_levels)
@@ -683,4 +816,6 @@ def forecast(
             output[:, lead] = fields
         if callback is not None:
             callback(fields.copy())
+    if output is not None:
+        output = convert_output_to_xarray_dataset(dataset, timesteps, output)
     return (output, diagnostics) if return_diagnostics else output

@@ -58,9 +58,13 @@ def main():
     for path in paths:
         with np.load(path) as saved:
             rain = saved["rain"]
-        transformed, metadata = dB_transform(
-            rain.astype(float), threshold=1.0, zerovalue=-0.1
+        dataset = xr.Dataset(
+            {"precip_intensity": (("y", "x"), rain.astype(float), {"units": "mm/h"})},
+            attrs={"precip_var": "precip_intensity"},
         )
+        transformed_dataset = dB_transform(dataset, threshold=1.0, zerovalue=-0.1)
+        transformed = transformed_dataset["precip_intensity"].values
+        metadata = transformed_dataset["precip_intensity"].attrs
         source_spectrum, source_model = namespace["power_spectrum_1D"](transformed, 15)
         source_statistics = namespace["compute_field_stats"](
             transformed, metadata, fit_truncated=True, lower_truncation=1.25
