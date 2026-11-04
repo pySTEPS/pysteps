@@ -298,7 +298,7 @@ if you are a member of the pySTEPS organisation, under a new branch in the pyste
 Nobody can push changes straight into the main branch; all development is done in a feature branch.
 This approach has two main advantages:
 
-- Every commit on the feature branch is tested via GitHub Actions.
+- Every commit pushed to a pull request targeting ``main`` or ``v1.x`` is tested via GitHub Actions.
   If the tests fail, they do not affect the main branch.
 
 - Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
