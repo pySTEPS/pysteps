@@ -291,33 +291,25 @@ Here is an example of a docstring::
 Contributions guidelines
 ------------------------
 
-The collaborator guidelines used in pysteps were largely inspired by those of the
-`MyPy project <https://github.com/python/mypy>`__.
-
 Collaborators guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-As a collaborator, all your new contributions should be made in a new branch under your forked repository.
-Working on the master branch is reserved for Core Contributors only to submit small changes only.
-Core Contributors are developers that actively work and maintain the repository.
-They are the only ones who accept pull requests and push commits directly to
-the **pysteps** repository.
+As a collaborator, all your new contributions should be made in a new branch under your forked repository, or
+if you are a member of the pySTEPS organisation, under a new branch in the pysteps repository.
 
-**IMPORTANT**
-However, for contribution requires a significant amount of work, we strongly suggest opening a new issue with
-the **enhancement** or **discussion** tag to encourage discussions.
-The discussions will help clarify the best way to approach the suggested changes or raise potential concerns.
+Before you submit a contribution or fix, please open a new issue so the community can provide input. 
+The discussions will help clarify the best way to approach the suggested changes.
 
-For code contributions, collaboratos can use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`__.
-Once your proposed changes are ready, you need to create a pull request (PR) from your fork in your GitHub account.
-Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
-request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main branch.
+Once your proposed changes are ready, you need to create a pull request (PR).
+Afterward, other contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
+request changes to the code, in which case the PR will need to be reviewed again. 
+
+Once the PR and all changes are approved, the PR will be merged into the main branch.
 
 **Important:**
-It is strongly suggested that each PR only addresses a single objective (e.g., fix a bug, improve documentation, etc.).
-This will help to reduce the time needed to process the PR. For changes outside the PR's objectives, we highly
-recommend opening a new PR.
+Each PR should only address a single issue (e.g., fix a bug, improve documentation, etc.).
+This will help to reduce the time needed to review the PR. 
+For changes out of the scope of the issue, please open new issue and associated PR.
 
 
 Testing your changes
