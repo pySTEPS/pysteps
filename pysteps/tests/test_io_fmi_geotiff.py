@@ -21,7 +21,8 @@ def test_io_import_fmi_geotiff_shape():
 
 
 expected_proj = (
-    "+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+    # returned by pyproj from FMI GeoTiff spatial reference
+    "+proj=utm +zone=35 +ellps=GRS80 +units=m +no_defs +type=crs"
 )
 
 # test_geodata: list of (variable,expected,tolerance) tuples

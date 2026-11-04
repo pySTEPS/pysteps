@@ -15,9 +15,10 @@ pytest.importorskip("h5py")
 # NIMBUS rain rate composites
 
 # XR: since the pysteps.datasets module does not support all the OPERA data sources below, we dont use get_precipitation_fields
+from pysteps_data import DATASETS
 root_path = pysteps.rcparams.data_sources["opera"]["root_path"]
 
-filename = os.path.join(root_path, "20180824", "T_PAAH21_C_EUOC_20180824180000.hdf")
+filename = DATASETS.fetch("/".join([root_path, "20180824", "T_PAAH21_C_EUOC_20180824180000.hdf"]))
 precip_odyssey = pysteps.io.import_opera_hdf5(filename, qty="RATE")
 precip_var = precip_odyssey.attrs["precip_var"]
 precip_odyssey_dataarray = precip_odyssey[precip_var]
@@ -26,6 +27,7 @@ precip_odyssey_dataarray = precip_odyssey[precip_var]
 filename = os.path.join(
     root_path, "20241126", "CIRRUS", "T_PABV21_C_EUOC_20241126010000.hdf"
 )
+filename = DATASETS.fetch(filename)
 precip_cirrus = pysteps.io.import_opera_hdf5(filename, qty="DBZH")
 precip_var = precip_cirrus.attrs["precip_var"]
 precip_cirrus_dataarray = precip_cirrus[precip_var]
@@ -33,6 +35,7 @@ precip_cirrus_dataarray = precip_cirrus[precip_var]
 filename = os.path.join(
     root_path, "20241126", "NIMBUS", "T_PAAH22_C_EUOC_20241126010000.hdf"
 )
+filename = DATASETS.fetch(filename)
 precip_nimbus_rain_rate = pysteps.io.import_opera_hdf5(filename, qty="RATE")
 precip_var = precip_nimbus_rain_rate.attrs["precip_var"]
 precip_nimbus_rain_rate_dataarray = precip_nimbus_rain_rate[precip_var]
@@ -40,6 +43,7 @@ precip_nimbus_rain_rate_dataarray = precip_nimbus_rain_rate[precip_var]
 filename = os.path.join(
     root_path, "20241126", "NIMBUS", "T_PASH22_C_EUOC_20241126010000.hdf"
 )
+filename = DATASETS.fetch(filename)
 precip_nimbus_rain_accum = pysteps.io.import_opera_hdf5(filename, qty="ACRR")
 precip_var = precip_nimbus_rain_accum.attrs["precip_var"]
 precip_nimbus_rain_accum_dataarray = precip_nimbus_rain_accum[precip_var]
