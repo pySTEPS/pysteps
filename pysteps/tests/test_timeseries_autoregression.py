@@ -8,6 +8,8 @@ import pytest
 import pysteps
 from pysteps.timeseries import autoregression, correlation
 
+from pysteps_data import DATASETS
+
 pytest.importorskip("pyproj")
 
 
@@ -211,6 +213,7 @@ def _create_data_multivariate():
     R = []
     for fn in filenames:
         filename = os.path.join(root_path, "20160928", fn)
+        filename = DATASETS.fetch(filename)
         dataset = pysteps.io.import_fmi_pgm(filename, gzipped=True)
         precip_var = dataset.attrs["precip_var"]
         R_ = dataset[precip_var].values
@@ -237,6 +240,7 @@ def _create_data_univariate():
     R = []
     for fn in filenames:
         filename = os.path.join(root_path, "20160928", fn)
+        filename = DATASETS.fetch(filename)
         dataset = pysteps.io.import_fmi_pgm(filename, gzipped=True)
         precip_var = dataset.attrs["precip_var"]
         R_ = dataset[precip_var].values

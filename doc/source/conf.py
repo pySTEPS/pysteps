@@ -119,6 +119,7 @@ def set_root():
 
 
 if "READTHEDOCS" in os.environ:
+    # todo: fix this for new pooch scheme
     repourl = "https://github.com/pySTEPS/pysteps-data.git"
     dir = os.path.join(os.getcwd(), "..", "..", "pysteps-data")
     dir = os.path.abspath(dir)

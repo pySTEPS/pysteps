@@ -12,8 +12,10 @@ Utilities for finding archived files that match the given criteria.
 """
 
 from datetime import datetime, timedelta
-import fnmatch
+from fnmatch import fnmatchcase
 import os
+
+from pysteps_data import DATASETS
 
 
 def find_by_date(
@@ -77,6 +79,12 @@ def find_by_date(
         fn = _find_matching_filename(
             curdate, root_path, path_fmt, fn_pattern, fn_ext, silent
         )
+
+        # match wildcard with registry entry
+        if "?" in fn:
+            fn = next((item for item in DATASETS.registry_files if fnmatchcase(item, fn)), None)
+        # actual fetch and retrieve
+        fn = DATASETS.fetch(fn)
         filenames.append(fn)
 
         timestamps.append(curdate)
@@ -90,35 +98,10 @@ def find_by_date(
         return filenames, timestamps
 
 
-def _find_matching_filename(
-    date, root_path, path_fmt, fn_pattern, fn_ext, silent=False
+def _find_matching_filename(date, root_path, path_fmt, fn_pattern, fn_ext, silent=False
 ):
-    path = _generate_path(date, root_path, path_fmt)
-
-    if os.path.exists(path):
-        fn = datetime.strftime(date, fn_pattern) + "." + fn_ext
-
-        # test for wildcars
-        if "?" in fn:
-            filenames = os.listdir(path)
-            if len(filenames) > 0:
-                for filename in filenames:
-                    if fnmatch.fnmatch(filename, fn):
-                        fn = filename
-                        break
-
-        fn = os.path.join(path, fn)
-
-        if os.path.exists(fn):
-            return fn
-        else:
-            if not silent:
-                print(f"file not found: {fn}")
-            return None
-    else:
-        if not silent:
-            print(f"path not found: {path}")
-        return None
+    fn = datetime.strftime(date, fn_pattern) + "." + fn_ext
+    return os.path.join(_generate_path(date, root_path, path_fmt), fn)
 
 
 def _generate_path(date, root_path, path_format):
