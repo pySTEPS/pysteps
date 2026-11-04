@@ -20,6 +20,7 @@ scikit-image
 scikit-learn
 pandas
 rasterio
+rioxarray
 pygrib
 pywavelets
 geotiff
