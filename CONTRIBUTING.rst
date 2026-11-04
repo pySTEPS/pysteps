@@ -12,9 +12,6 @@ There are many ways to contribute to pysteps:
 * code contributions, new features, or bug fixes
 * contribute with usage examples
 
-Workflow for code contributions
--------------------------------
-
 We welcome all kinds of contributions, like documentation updates, bug fixes, or new features.
 The workflow for the contributions uses the usual
 `GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
