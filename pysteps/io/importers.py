@@ -214,6 +214,8 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib.pyplot import imread
 
+import xarray as xr
+
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
@@ -770,28 +772,22 @@ def import_fmi_geotiff(filename, fillna=np.nan, dtype="double"):
             "but it is not installed"
         )
 
-    f = gdal.Open(filename, gdalconst.GA_ReadOnly)
+    with xr.open_dataset(filename, engine="rasterio") as ds:
+        precip = ds["band_data"].squeeze("band").values
 
-    rb = f.GetRasterBand(1)
-    precip = rb.ReadAsArray().astype(float)
     mask = precip == 255
     precip = (precip - 64.0) / 2.0
     precip[mask] = np.nan
 
-    sr = osr.SpatialReference()
-    pr = f.GetProjection()
-    sr.ImportFromWkt(pr)
-
-    projdef = sr.ExportToProj4()
-
-    gt = f.GetGeoTransform()
+    projdef = pyproj.CRS.from_user_input(ds.spatial_ref.attrs["crs_wkt"]).to_proj4()
+    gt = [float(g) for g in ds.spatial_ref.attrs["GeoTransform"].split(" ")]
 
     metadata = {}
 
     metadata["projection"] = projdef
     metadata["x1"] = gt[0]
-    metadata["y1"] = gt[3] + gt[5] * f.RasterYSize
-    metadata["x2"] = metadata["x1"] + gt[1] * f.RasterXSize
+    metadata["y1"] = gt[3] + gt[5] * ds.y.size
+    metadata["x2"] = metadata["x1"] + gt[1] * ds.x.size
     metadata["y2"] = gt[3]
     metadata["xpixelsize"] = abs(gt[1])
     metadata["ypixelsize"] = abs(gt[5])
