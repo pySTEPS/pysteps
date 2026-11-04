@@ -85,7 +85,11 @@ Documentation = "https://pysteps.readthedocs.io"
 
 [tool.bandit]
 assert_used = { skips = ["*/test_*.py"] }
-exclude_dirs = [".venv"]
+exclude_dirs = [
+    ".venv",
+    "dist",
+    "pysteps/tests"
+]
 
 [tool.ruff]
 line-length = 88

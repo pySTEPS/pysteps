@@ -23,7 +23,7 @@ jobs:
         run: uv sync --only-dev --frozen
       - name: Run bandit
         working-directory: ${{github.workspace}}
-        run: uv run --no-sync bandit -c bandit.yaml .
+        run: bandit -c pyproject.toml -r .
       - name: Run import sorter
         working-directory: ${{github.workspace}}
         run: uv run --no-sync ruff check

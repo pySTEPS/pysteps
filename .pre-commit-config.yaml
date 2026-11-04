@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: run-bandit
         name: run-bandit
-        entry: uv run bandit -c bandit.yaml .
+        entry: bandit -c pyproject.toml -r .
         language: system
         verbose: true
         pass_filenames: false
