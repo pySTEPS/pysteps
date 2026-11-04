@@ -14,7 +14,7 @@
     },
     "data_sources": {
         "bom": {
-            "root_path": "./radar/bom",
+            "root_path": "radar/bom",
             "path_fmt": "prcp-cscn/2/%Y/%m/%d",
             "fn_pattern": "2_%Y%m%d_%H%M00.prcp-cscn",
             "fn_ext": "nc",
@@ -25,7 +25,7 @@
             }
         },
         "dwd": {
-            "root_path": "./radar/dwd/RY",
+            "root_path": "radar/dwd/RY",
             "path_fmt": "%Y/%m/%d",
             "fn_pattern": "%Y%m%d_%H%M_RY",
             "fn_ext": "h5",
@@ -36,7 +36,7 @@
             }
         },
         "fmi": {
-            "root_path": "./radar/fmi/pgm",
+            "root_path": "radar/fmi/pgm",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_SUOMI1",
             "fn_ext": "pgm.gz",
@@ -47,7 +47,7 @@
             }
         },
         "fmi_geotiff": {
-            "root_path": "./radar/fmi/geotiff",
+            "root_path": "radar/fmi/geotiff",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "%Y%m%d%H%M_FINUTM",
             "fn_ext": "tif",
@@ -56,7 +56,7 @@
             "importer_kwargs": {}
         },
         "mch": {
-            "root_path": "./radar/mch",
+            "root_path": "radar/mch",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "AQC%y%j%H%M?_00005.801",
             "fn_ext": "gif",
@@ -69,7 +69,7 @@
             }
         },
         "mrms": {
-            "root_path": "./mrms",
+            "root_path": "mrms",
             "path_fmt": "%Y/%m/%d",
             "fn_pattern": "PrecipRate_00.00_%Y%m%d-%H%M%S",
             "fn_ext": "grib2",
@@ -78,7 +78,7 @@
             "importer_kwargs": {}
         },
         "opera": {
-            "root_path": "./radar/OPERA",
+            "root_path": "radar/OPERA",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "T_PAAH21_C_EUOC_%Y%m%d%H%M%S",
             "fn_ext": "hdf",
@@ -87,7 +87,7 @@
             "importer_kwargs": {}
         },
         "knmi": {
-            "root_path": "./radar/KNMI",
+            "root_path": "radar/KNMI",
             "path_fmt": "%Y/%m",
             "fn_pattern": "RAD_NL25_RAP_5min_%Y%m%d%H%M",
             "fn_ext": "h5",
@@ -100,7 +100,7 @@
 			}
         },
 		"rmi": {
-            "root_path": "./radar/rmi/radqpe",
+            "root_path": "radar/rmi/radqpe",
             "path_fmt": "%Y%m%d",
             "fn_pattern": "%Y%m%d%H%M00.rad.best.comp.rate.qpe",
             "fn_ext": "hdf",
@@ -111,7 +111,7 @@
             }
         },
         "saf": {
-            "root_path": "./saf",
+            "root_path": "saf",
             "path_fmt": "%Y%m%d/CRR",
             "fn_pattern": "S_NWC_CRR_MSG4_Europe-VISIR_%Y%m%dT%H%M00Z",
             "fn_ext": "nc",
@@ -122,7 +122,7 @@
             }
         },
         "bom_nwp": {
-            "root_path": "./nwp/bom",
+            "root_path": "nwp/bom",
             "path_fmt": "%Y/%m/%d",
             "fn_pattern": "%Y%m%d_%H00_regrid_short",
             "fn_ext": "nc",
@@ -133,7 +133,7 @@
             }
         },
         "dwd_nwp": {
-            "root_path": "./nwp/dwd",
+            "root_path": "nwp/dwd",
             "path_fmt": "%Y/%m/%d",
             "fn_ext": "grib2",
             "fn_pattern": "%Y%m%d_%H%M_PR_GSP_060_120",
@@ -141,7 +141,7 @@
             "timestep": 5,
             "importer_kwargs": {
                 "varname": "lsprate",
-                "grid_file_path": "./aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
+                "grid_file_path": "aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
             }
             
         },
