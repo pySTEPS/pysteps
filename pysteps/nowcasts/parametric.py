@@ -37,24 +37,6 @@ from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 from ._cascade_advection import advect_field, prepare_advection_coordinates
 
-# Configurable estimation defaults. Low-rain-fraction replacements are regional
-# values from Auckland rainfall data; see the parametric nowcasting user guide.
-_ESTIMATION_DEFAULTS = dict(
-    lower_truncation=1.25,
-    temporal_exponent=0.81,
-    alpha=2.72,
-    reference_levels=(0,),
-    reference_time=None,
-    moment_distance_limit=0.5,
-    beta_1_bounds=(-3.9, float(np.nextafter(-1.25, -np.inf))),
-    beta_2_min=-4.0,
-    minimum_beta_gap=0.1,
-    correlation_time_bounds=(60.0, 720.0),
-    low_rain_fraction=0.05,
-    fallback_beta_1=-1.45,
-    fallback_beta_2=-3.253958088759979,
-    fallback_reference_time=330.61752959848894,
-)
 _MOTION_DEFAULTS = dict(
     lk_kwargs=dict(winsize=(31, 31), nr_levels=3, min_eig_thr=3e-5),
     fd_method="shitomasi",
@@ -122,9 +104,9 @@ def _options(name, supplied, defaults):
     return result
 
 
-def _estimation_settings(supplied, threshold, n_levels):
+def _estimation_settings(settings, threshold, n_levels):
     """Validate estimation settings against the threshold and cascade count."""
-    settings = _options("estimation_kwargs", supplied, _ESTIMATION_DEFAULTS)
+    settings = deepcopy(settings)
     for key in settings:
         if key not in (
             "reference_levels",
@@ -690,7 +672,20 @@ def forecast(
     min_rain_fraction=0.025,
     seed=None,
     motion_kwargs=None,
-    estimation_kwargs=None,
+    lower_truncation=1.25,
+    temporal_exponent=0.81,
+    alpha=2.72,
+    reference_levels=(0,),
+    reference_time=None,
+    moment_distance_limit=0.5,
+    beta_1_bounds=(-3.9, float(np.nextafter(-1.25, -np.inf))),
+    beta_2_min=-4.0,
+    minimum_beta_gap=0.1,
+    correlation_time_bounds=(60.0, 720.0),
+    low_rain_fraction=0.05,
+    fallback_beta_1=-1.45,
+    fallback_beta_2=-3.253958088759979,
+    fallback_reference_time=330.61752959848894,
     temporal_fallback=None,
     noise_kwargs=None,
     callback=None,
@@ -735,11 +730,43 @@ def forecast(
     motion_kwargs: dict, optional
         Overrides of the default dense Lucas-Kanade configuration. Ignored
         when velocity is supplied; diagnostics record that motion source.
-    estimation_kwargs: dict, optional
-        Override marginal fitting, temporal scaling, moment selection, bounds,
-        and regional low-coverage fallbacks. See
-        :doc:`/user_guide/parametric_nowcast` for all keys and defaults.
-        Reference time is in minutes.
+    lower_truncation: float, optional
+        Lower cutoff for fitting the parent Normal distribution, in dBR (1.25).
+        Must be at or above the transformed rain occurrence threshold.
+    temporal_exponent: float, optional
+        Exponent relating correlation time to cascade wavelength (0.81).
+    alpha: float, optional
+        Power controlling the model lag-1 and lag-2 correlations (2.72).
+    reference_levels: tuple of int, optional
+        Zero-based cascade levels used to estimate reference time, default (0,).
+        Every selected level must yield a valid estimate.
+    reference_time: float, optional
+        Reference correlation time in minutes. By default, estimate it from the
+        observations. A supplied value replaces that estimate before applying
+        low-coverage replacements and correlation-time bounds.
+    moment_distance_limit: float, optional
+        Maximum Euclidean distance between fitted and sample intensity moments,
+        normalized by the sample standard deviation (0.5). Use the fitted
+        moments only when valid and within this limit.
+    beta_1_bounds: tuple of float, optional
+        Lower and upper bounds for the large-scale spectral slope, default
+        (-3.9, just below -1.25).
+    beta_2_min: float, optional
+        Lower bound for the small-scale spectral slope (-4.0).
+    minimum_beta_gap: float, optional
+        Minimum separation enforcing beta_2 <= beta_1 - gap (0.1).
+    correlation_time_bounds: tuple of float, optional
+        Lower and upper reference-time bounds in minutes, default (60, 720).
+    low_rain_fraction: float, optional
+        Rain fraction below which both slopes and reference time are replaced
+        by the fallback values (0.05). Set to zero to disable replacement.
+    fallback_beta_1, fallback_beta_2: float, optional
+        Low-coverage spectral slope replacements, default -1.45 and
+        -3.253958088759979. The small-scale value is an Auckland rainfall
+        archive median; see :doc:`/user_guide/parametric_nowcast`.
+    fallback_reference_time: float, optional
+        Low-coverage reference-time replacement in minutes
+        (330.61752959848894), the Auckland rainfall archive median.
     temporal_fallback: dict, optional
         Configured temporal-only fallback with positive ``lzero`` (km) and
         ``tzero`` (minutes). If any observed AR(2) pair or the estimated
@@ -747,7 +774,7 @@ def forecast(
         to construct all model correlations. Complete input grids and valid
         marginal/spatial estimates remain required. This mode disables the
         combined low-rain-fraction slope and reference-time replacement. Cannot
-        be combined with an explicit estimation_kwargs reference_time override.
+        be combined with an explicit reference_time override.
     noise_kwargs: dict, optional
         Calibration controls for generate_calibrated_field; nbins and eps also
         control post-AR marginal mapping. Randomness is controlled by seed.
@@ -814,7 +841,26 @@ def forecast(
     rain_threshold = settings["rain_threshold"]
     threshold = settings["threshold_dbr"]
     zerovalue = settings["zerovalue_dbr"]
-    estimation = _estimation_settings(estimation_kwargs, threshold, n_cascade_levels)
+    estimation = _estimation_settings(
+        dict(
+            lower_truncation=lower_truncation,
+            temporal_exponent=temporal_exponent,
+            alpha=alpha,
+            reference_levels=reference_levels,
+            reference_time=reference_time,
+            moment_distance_limit=moment_distance_limit,
+            beta_1_bounds=beta_1_bounds,
+            beta_2_min=beta_2_min,
+            minimum_beta_gap=minimum_beta_gap,
+            correlation_time_bounds=correlation_time_bounds,
+            low_rain_fraction=low_rain_fraction,
+            fallback_beta_1=fallback_beta_1,
+            fallback_beta_2=fallback_beta_2,
+            fallback_reference_time=fallback_reference_time,
+        ),
+        threshold,
+        n_cascade_levels,
+    )
     if temporal_fallback is not None:
         if not isinstance(temporal_fallback, Mapping) or set(temporal_fallback) != {
             "lzero",

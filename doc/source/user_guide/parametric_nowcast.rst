@@ -143,7 +143,7 @@ Top-level settings:
      - 0.025
      - Return dry rainfall for target fractions strictly below this value
 
-``estimation_kwargs`` accepts these overrides (unknown keys raise):
+Estimation settings are keyword arguments to ``forecast()``:
 
 =========================== ======================== ==============================
 Key                         Default                  Meaning
@@ -210,7 +210,7 @@ its marginal. Failure raises a clear error. If spectral or temporal estimates
 are unavailable outside the configured low-coverage fallback, the engine raises
 instead of inventing estimates or reporting dry output. For example, partly dry
 histories can lack a persistence estimate; users with an investigated temporal
-prior can supply ``estimation_kwargs={"reference_time": 200.0}``. The raw failed
+prior can supply ``reference_time=200.0``. The raw failed
 estimate remains visible, and bounds still apply to the supplied prior.
 
 The post-AR fraction cutoff is separate: a valid positive target below 0.025
@@ -245,7 +245,7 @@ not activated. Spatial estimates must therefore be available. Missing input,
 invalid motion, and unavailable marginal estimates remain errors. An activated
 fallback uses its configured time without clipping to
 ``correlation_time_bounds``; spectral bounds still apply. This option cannot be
-combined with an explicit ``estimation_kwargs["reference_time"]`` override.
+combined with an explicit ``reference_time`` override.
 
 Simulation with prescribed parameters
 -------------------------------------

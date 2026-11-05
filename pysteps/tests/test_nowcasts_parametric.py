@@ -357,7 +357,7 @@ def test_partly_dry_history_requires_explicit_temporal_prior(reference):
         history,
         arrays["velocity_0"],
         2,
-        estimation_kwargs={"reference_time": 200},
+        reference_time=200,
         return_diagnostics=True,
         **kwargs,
     )
@@ -423,12 +423,11 @@ def test_unestimable_wet_input_is_not_dry(kind):
         {"callback": 4},
         {"return_output": "yes"},
         {"n_cascade_levels": 2},
-        {"estimation_kwargs": {"unknown": 1}},
-        {"estimation_kwargs": {"alpha": 0}},
-        {"estimation_kwargs": {"lower_truncation": -1}},
-        {"estimation_kwargs": {"reference_levels": (6,)}},
-        {"estimation_kwargs": {"reference_levels": (0, 0)}},
-        {"estimation_kwargs": {"reference_time": 0}},
+        {"alpha": 0},
+        {"lower_truncation": -1},
+        {"reference_levels": (6,)},
+        {"reference_levels": (0, 0)},
+        {"reference_time": 0},
         {"noise_kwargs": {"seed": 1}},
         {"noise_kwargs": {"eps": 0}},
         {"noise_kwargs": {"beta_variances": (0, 1)}},
@@ -470,6 +469,43 @@ def test_method_registration():
     assert nowcasts.get_method("parametric") is parametric.forecast
 
 
+def test_explicit_estimation_settings_are_retained():
+    options = dict(
+        lower_truncation=1.5,
+        temporal_exponent=0.9,
+        alpha=2.5,
+        reference_levels=(0, 1, 2),
+        reference_time=250,
+        moment_distance_limit=0.6,
+        beta_1_bounds=(-3.8, -1.3),
+        beta_2_min=-4.2,
+        minimum_beta_gap=0.2,
+        correlation_time_bounds=(50, 800),
+        low_rain_fraction=0.04,
+        fallback_beta_1=-1.5,
+        fallback_beta_2=-3.2,
+        fallback_reference_time=320,
+    )
+    original = deepcopy(options)
+    _, diagnostics = _forecast_array(
+        np.zeros((3, 8, 8)),
+        n_ens_members=1,
+        return_diagnostics=True,
+        **options,
+    )
+    assert diagnostics["settings"]["estimation"] == options
+    assert options == original
+
+
+def test_reference_time_conflicts_with_temporal_fallback(reference):
+    with pytest.raises(ValueError, match="cannot be combined with reference_time"):
+        _call(
+            reference,
+            reference_time=200,
+            temporal_fallback={"lzero": 256, "tzero": 420},
+        )
+
+
 def test_safeguards_moment_selection_and_joint_bounds():
     statistics = dict(
         ordinary_mean=6,
@@ -479,7 +515,10 @@ def test_safeguards_moment_selection_and_joint_bounds():
         rain_fraction=0.3,
     )
     spectrum = dict(beta_1=-1, beta_2=-1)
-    settings = parametric._estimation_settings(None, 0, 6)
+    _, diagnostics = _forecast_array(
+        np.zeros((3, 8, 8)), n_ens_members=1, return_diagnostics=True
+    )
+    settings = diagnostics["settings"]["estimation"]
     parameters, audit = parametric._generation_parameters(
         statistics, spectrum, 20, settings
     )
