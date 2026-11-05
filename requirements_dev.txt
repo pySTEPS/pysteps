@@ -9,7 +9,7 @@ matplotlib
 jsmin
 jsonschema
 netCDF4
-xarray
+xarray>=2025.1.2
 
 # Optional dependencies
 dask

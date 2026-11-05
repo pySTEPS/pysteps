@@ -135,6 +135,7 @@ def test_steps_callback(tmp_path):
         num_next_files=0,
         return_raw=False,
         upscale=2000,
+        log_transform=False,
     )
     precip_var = dataset_input.attrs["precip_var"]
     precip_attrs = dataset_input[precip_var].attrs
@@ -151,6 +152,8 @@ def test_steps_callback(tmp_path):
         "unit": precip_attrs["units"],
         "yorigin": "upper" if dataset_input.y.attrs["stepsize"] < 0 else "lower",
         "cartesian_unit": dataset_input.x.attrs["units"],
+        "cell_methods": precip_attrs["cell_methods"],
+        "accutime": precip_attrs.get("accutime"),
     }
 
     oflow_method = motion.get_method("LK")

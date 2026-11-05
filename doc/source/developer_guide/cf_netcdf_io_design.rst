@@ -5,9 +5,11 @@ CF NetCDF I/O design
 
 Status: agreed objective and acceptance criteria, recorded 5 November 2026.
 Stage 1 records the contract and reference evidence; stage 2 implements shared
-metadata and the affected numerical helpers. The new file importer, exporter
-and storage encodings remain to be developed. This document describes the
-complete intended behaviour; implemented scope is in :ref:`cf-netcdf-io-stage2`.
+metadata and the affected numerical helpers. Stages 3 and 4 implement the
+physical file importer/exporter and legacy callback adapters. Storage profiles
+and complete acceptance remain to be developed. This document describes the
+complete intended behaviour; implemented scope is recorded in
+:ref:`cf-netcdf-io-stage2` and :ref:`cf-netcdf-io-stage34`.
 
 Objective
 ---------
@@ -96,6 +98,7 @@ and verified examples as the basis for user and API documentation.
    cf_netcdf_io_acceptance
    cf_netcdf_io_baseline
    cf_netcdf_io_stage2
+   cf_netcdf_io_stage34
 
 References
 ----------

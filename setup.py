@@ -66,7 +66,7 @@ requirements = [
     "scipy",
     "matplotlib",
     "jsonschema",
-    "xarray",
+    "xarray>=2025.1.2",
     "pyproj>=3.0",
 ]
 

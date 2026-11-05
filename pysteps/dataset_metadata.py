@@ -195,7 +195,7 @@ def cadence_seconds(coordinate, *, require=False):
     return result
 
 
-def time_bounds(dataset, variable, *, legacy=False):
+def time_bounds(dataset, variable, *, legacy=False, validate_values=True):
     """Return validated bounds or None; only explicit legacy mode uses accutime."""
     time = temporal_axis(dataset, variable)
     values = checked_times(dataset[time])
@@ -226,8 +226,16 @@ def time_bounds(dataset, variable, *, legacy=False):
     duration = (bounds[:, 1] - bounds[:, 0]) / np.timedelta64(1, "s")
     zero = duration == 0
     if zero.any():
-        data = dataset[variable].isel({time: np.flatnonzero(zero)}).values
-        if zero.sum() != 1 or not zero[0] or np.any(np.isfinite(data) & (data != 0)):
+        data = (
+            dataset[variable].isel({time: np.flatnonzero(zero)}).values
+            if validate_values
+            else None
+        )
+        if (
+            zero.sum() != 1
+            or not zero[0]
+            or (validate_values and np.any(np.isfinite(data) & (data != 0)))
+        ):
             raise ValueError(
                 "Only an initial zero cumulative amount can have zero duration"
             )
@@ -355,6 +363,17 @@ def _check_mapping_attrs(attrs, crs):
 
 
 def _mapping_crs(attrs):
+    if (
+        "crs_wkt" not in attrs
+        and "earth_radius" not in attrs
+        and not (
+            "semi_major_axis" in attrs
+            and ("semi_minor_axis" in attrs or "inverse_flattening" in attrs)
+        )
+    ):
+        raise ValueError(
+            "CRS earth model is missing; supply full WKT or explicit ellipsoid/sphere metadata"
+        )
     crs = pyproj.CRS.from_cf(attrs)
     if "crs_wkt" in attrs:
         _check_mapping_attrs(attrs, crs)
@@ -562,6 +581,12 @@ def normalize_units(dataset, variable):
                 if attrs[key].ndim == 0:
                     attrs[key] = attrs[key].item()
         clear_packing(dataset[variable])
+        for key in _PACKING:
+            if key in attrs:
+                if key.startswith("valid_"):
+                    attrs[key] = np.asarray(attrs[key]) * scale
+                else:
+                    attrs.pop(key)
     attrs["units"] = canonical
     attrs["standard_name"] = STANDARD_NAMES[quantity]
     dataset[variable].attrs = attrs
@@ -704,10 +729,15 @@ def normalize_dataset(
                 )
             ):
                 raise ValueError("Grid bounds conflict with pixel centres or spacing")
+            bound_attrs = dataset[bound_name].attrs.copy()
+            if "units" in bound_attrs:
+                if bound_attrs["units"] != coord.attrs["units"]:
+                    raise ValueError("Grid bounds units conflict with their coordinate")
+                bound_attrs["units"] = "m"
             dataset[bound_name] = (
                 dataset[bound_name].dims,
                 limits,
-                dataset[bound_name].attrs,
+                bound_attrs,
             )
             dataset[bound_name].encoding = {"dtype": "float64", "_FillValue": None}
     for name in variables:
@@ -756,7 +786,12 @@ def normalize_dataset(
         cadence_seconds(dataset[axis])
         method = temporal_method(dataset, name, axis)
         had_bounds = linked(dataset[axis], "bounds") is not None
-        bounds = time_bounds(dataset, name, legacy=legacy and method != "point")
+        bounds = time_bounds(
+            dataset,
+            name,
+            legacy=legacy and method != "point",
+            validate_values=validate_values,
+        )
         if not had_bounds and bounds is not None:
             dataset.attrs["history"] = (
                 dataset.attrs.get("history", "")

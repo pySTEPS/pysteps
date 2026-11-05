@@ -188,6 +188,7 @@ Available Importers
 .. autosummary::
     :toctree: ../generated/
 
+    import_netcdf_cf
     import_bom_rf3
     import_fmi_geotiff
     import_fmi_pgm
@@ -209,6 +210,8 @@ import gzip
 import os
 from functools import partial
 from typing import Any
+
+from pysteps.io.netcdf_cf import import_netcdf_cf
 
 import numpy as np
 import numpy.typing as npt

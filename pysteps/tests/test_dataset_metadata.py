@@ -597,6 +597,9 @@ def test_legacy_exporter_accepts_normalized_wkt_and_keeps_full_crs(tmp_path):
     exporter = initialize_forecast_exporter_netcdf(
         str(tmp_path), "wkt", datetime(2023, 1, 1), 7.5, 1, (2, 3), metadata
     )
+    from pysteps.io.exporters import export_forecast_dataset
+
+    export_forecast_dataset(np.ones((1, 2, 3)), exporter)
     close_forecast_files(exporter)
     with netCDF4.Dataset(tmp_path / "wkt.nc") as raw:
         mapping = raw[raw["precip_intensity"].grid_mapping]

@@ -1,66 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-pysteps.io.nowcast_importers
-============================
+"""Compatibility reader for pySTEPS forecast NetCDF datasets.
 
-Methods for importing nowcast files.
-
-The methods in this module implement the following interface::
-
-  import_xxx(filename, optional arguments)
-
-where xxx is the name (or abbreviation) of the file format and filename is the
-name of the input file.
-
-The output of each method is a two-element tuple containing the nowcast array
-and a metadata dictionary.
-
-The metadata dictionary contains the following mandatory key-value pairs:
-
-.. tabularcolumns:: |p{2cm}|L|
-
-+------------------+----------------------------------------------------------+
-|       Key        |                Value                                     |
-+==================+==========================================================+
-|    projection    | PROJ.4-compatible projection definition                  |
-+------------------+----------------------------------------------------------+
-|    x1            | x-coordinate of the lower-left corner of the data raster |
-+------------------+----------------------------------------------------------+
-|    y1            | y-coordinate of the lower-left corner of the data raster |
-+------------------+----------------------------------------------------------+
-|    x2            | x-coordinate of the upper-right corner of the data raster|
-+------------------+----------------------------------------------------------+
-|    y2            | y-coordinate of the upper-right corner of the data raster|
-+------------------+----------------------------------------------------------+
-|    xpixelsize    | grid resolution in x-direction                           |
-+------------------+----------------------------------------------------------+
-|    ypixelsize    | grid resolution in y-direction                           |
-+------------------+----------------------------------------------------------+
-|    yorigin       | a string specifying the location of the first element in |
-|                  | the data raster w.r.t. y-axis:                           |
-|                  | 'upper' = upper border                                   |
-|                  | 'lower' = lower border                                   |
-+------------------+----------------------------------------------------------+
-|    institution   | name of the institution who provides the data            |
-+------------------+----------------------------------------------------------+
-|    timestep      | time step of the input data (minutes)                    |
-+------------------+----------------------------------------------------------+
-|    unit          | the physical unit of the data: 'mm/h', 'mm' or 'dBZ'     |
-+------------------+----------------------------------------------------------+
-|    transform     | the transformation of the data: None, 'dB', 'Box-Cox' or |
-|                  | others                                                   |
-+------------------+----------------------------------------------------------+
-|    accutime      | the accumulation time in minutes of the data, float      |
-+------------------+----------------------------------------------------------+
-|    threshold     | the rain/no rain threshold with the same unit,           |
-|                  | transformation and accutime of the data.                 |
-+------------------+----------------------------------------------------------+
-|    zerovalue     | it is the value assigned to the no rain pixels with the  |
-|                  | same unit, transformation and accutime of the data.      |
-+------------------+----------------------------------------------------------+
-
-Available Nowcast Importers
----------------------------
+New physical CF files use :func:`pysteps.io.import_netcdf_cf`. Both readers
+return an xarray Dataset. Only the compatibility reader offers a finite-fill
+view and the historical warn/return-None error policy.
 
 .. autosummary::
     :toctree: ../generated/
@@ -70,67 +12,78 @@ Available Nowcast Importers
 
 import numpy as np
 
-from pysteps.exceptions import MissingOptionalDependency
-import xarray as xr
-
-try:
-    import netCDF4
-
-    NETCDF4_IMPORTED = True
-except ImportError:
-    NETCDF4_IMPORTED = False
+__all__ = ["import_netcdf_pysteps"]
 
 
-# XR: need to implement dtype and fillna once exporter is fixed as we need to
-# apply those transformation on precip_var, which is not known set in the currently openend file
 def import_netcdf_pysteps(
     filename, dtype="double", fillna=np.nan, onerror="warn", **kwargs
 ):
+    """Compatibility entry point over :func:`import_netcdf_cf`.
+
+    Return a physical Dataset with the requested float32/64 dtype. Scientific
+    metadata missing from old files must be supplied through ``metadata``.
+    ``legacy=True`` is the default here. A finite ``fillna`` view carries a
+    linked validity mask; the CF exporter restores its missing values before
+    validation. ``onerror='warn'`` warns and returns ``(None, None)`` on errors;
+    ``onerror='raise'`` propagates the error. Eager/lazy ownership follows the
+    core importer, and lazy datasets must be closed by the caller.
     """
-    Read a nowcast or an ensemble of nowcasts from a NetCDF file conforming
-    to the CF 1.7 specification.
+    import warnings
+    from pysteps.dataset_metadata import physical_variables
+    from pysteps.io.netcdf_cf import import_netcdf_cf
 
-    If an error occurs during the import, the corresponding error message
-    is shown, and ( None, None ) is returned.
-
-    Parameters
-    ----------
-    filename: str
-        Name of the file to import.
-    dtype: str
-        Data-type to which the array is cast.
-        Valid values:  "float32", "float64", "single", and "double".
-    fillna:
-        TODO:
-    onerror: str
-        Define the behavior if an exception is raised during the import.
-        - "warn": Print an error message and return (None, None)
-        - "raise": Raise an exception
-
-    Returns
-    -------
-    precipitation: 2D array, float32
-        Precipitation field in mm/h. The dimensions are [latitude, longitude].
-        The first grid point (0,0) corresponds to the upper left corner of the
-        domain, while (last i, last j) denote the lower right corner.
-    metadata: dict
-        Associated metadata (pixel sizes, map projections, etc.).
-    """
-    if not NETCDF4_IMPORTED:
-        raise MissingOptionalDependency(
-            "netCDF4 package is required to import pysteps netcdf "
-            "nowcasts but it is not installed"
-        )
-
-    onerror = onerror.lower()
-    if onerror not in ["warn", "raise"]:
+    if not isinstance(onerror, str) or onerror.lower() not in ("warn", "raise"):
         raise ValueError("'onerror' keyword must be 'warn' or 'raise'.")
     try:
-        dataset = xr.open_dataset(filename)
-        return dataset
-    except Exception as er:
-        if onerror == "warn":
-            print("There was an error processing the file", er)
-            return None, None
-        else:
-            raise er
+        if not np.isscalar(fillna) or np.isinf(fillna):
+            raise ValueError("fillna must be a finite scalar or NaN")
+        kwargs.setdefault("legacy", True)
+        dataset = import_netcdf_cf(filename, dtype=dtype, **kwargs)
+        try:
+            if not np.isnan(fillna):
+                for name in physical_variables(dataset):
+                    with np.errstate(over="ignore", invalid="ignore"):
+                        replacement = np.asarray(
+                            fillna, dtype=dataset[name].dtype
+                        ).item()
+                    if not np.isfinite(replacement):
+                        raise ValueError(
+                            "fillna cannot be represented by the requested floating dtype"
+                        )
+                    mask_name = name + "_validity"
+                    if mask_name in dataset:
+                        raise ValueError(f"Validity mask name collision: {mask_name!r}")
+                    valid = dataset[name].notnull().astype("int8")
+                    dataset[mask_name] = (
+                        valid.dims,
+                        valid.data,
+                        {
+                            "long_name": "validity of " + name,
+                            "flag_values": np.array([0, 1], dtype="int8"),
+                            "flag_meanings": "missing valid",
+                            "units": "1",
+                        },
+                    )
+                    attrs = dataset[name].attrs.copy()
+                    values = dataset[name].fillna(fillna)
+                    dataset[name] = (values.dims, values.data, attrs)
+                    dataset[name].attrs.update(
+                        pysteps_validity_mask=mask_name,
+                        pysteps_fillna_value=float(fillna),
+                        ancillary_variables=" ".join(
+                            filter(None, [attrs.get("ancillary_variables"), mask_name])
+                        ),
+                    )
+            return dataset
+        except Exception:
+            dataset.close()
+            raise
+    except Exception as error:
+        if onerror.lower() == "raise":
+            raise
+        warnings.warn(
+            f"There was an error processing {filename}: {error}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None, None

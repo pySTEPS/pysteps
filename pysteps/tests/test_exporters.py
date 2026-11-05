@@ -163,13 +163,11 @@ def test_io_export_netcdf_one_member_one_time_step(
         # Test that the file can be read by the nowcast_importer
         output_file_path = os.path.join(outpath, f"{outfnprefix}.nc")
 
-        # FIX:
-        # XR: import_netcdf_pysteps does not apply conversion to correct dtype (decorator is not applied to function)
-        # Applying conversion requires dataset.attrs[precip_var] to be set in loaded dataset which is not the case at the moment.
-        # Related to the exporter which as not yet been updated
-        # Fix to pass to test is currently to hard cast it to correct dtype, rendering this test useless
-        precip_new = import_netcdf_pysteps(output_file_path, dtype="single")
-        precip_new = precip_new["reflectivity"].values.astype("single")
+        precip_new = import_netcdf_pysteps(
+            output_file_path, dtype="single", onerror="raise"
+        )
+        assert precip_new["reflectivity"].dtype == np.dtype("float32")
+        precip_new = precip_new["reflectivity"].values
 
         assert_array_almost_equal(precip.squeeze(), precip_new.data)
         assert precip_new.dtype == "single"

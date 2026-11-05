@@ -6,8 +6,9 @@ CF NetCDF dataset contract
 Status: stage 1 development proposal, 5 November 2026. The choices below are
 concrete defaults for this contribution, ready for review; they do not claim
 upstream approval. Shared metadata and numerical helpers are implemented in
-:ref:`cf-netcdf-io-stage2`; the complete importer/exporter and storage behaviour
-below remains the target of :ref:`cf-netcdf-io-work-plan`.
+:ref:`cf-netcdf-io-stage2`. File I/O and callback adapters are implemented in
+:ref:`cf-netcdf-io-stage34`; new storage profiles and full acceptance below
+remain the target of :ref:`cf-netcdf-io-work-plan`.
 
 Target and scope
 ----------------
@@ -292,7 +293,8 @@ plus an explicit floating-point tolerance.
 
 Use xarray, numpy, netCDF4 and pyproj already present in the v2 environment.
 Declare actual runtime dependencies in package metadata; CRS.cs_to_cf requires
-pyproj >=3.0. No regridding dependency is introduced. The independent checker
+pyproj >=3.0. Xarray >=2025.1.2 is required for explicit microsecond decoding
+through its public CFDatetimeCoder. No regridding dependency is introduced. The independent checker
 and documentation tools are development dependencies only. Verify compatible
 lower dependency versions during implementation rather than assuming the
 stage 1 environment is a supported minimum.
