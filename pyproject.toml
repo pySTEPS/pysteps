@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "PySTEPS"
 description = "Python framework for short-term ensemble prediction systems"
-keywords = ["advention", "ensemble prediction", "forecast verification", "hydrology", "nowcasting", "optical flow", "precipitation", "rainfall", "rainfall prediction", "stochastic processes", "weather", "weather radar",]
+keywords = ["advection", "ensemble prediction", "forecast verification", "hydrology", "nowcasting", "optical flow", "precipitation", "rainfall", "rainfall prediction", "stochastic processes", "weather", "weather radar",]
 license = "BSD-3-Clause"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
