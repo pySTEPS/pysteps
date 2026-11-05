@@ -10,8 +10,8 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
+  formatting_checks:
+    name: Check formatting
     runs-on: ubuntu-latest
 
     steps:

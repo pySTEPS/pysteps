@@ -13,7 +13,7 @@ jobs:
   unit_tests:
     name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    needs: formatting-checks
+    needs: formatting_checks
 
     strategy:
       fail-fast: false
