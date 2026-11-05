@@ -380,12 +380,12 @@ Core developers should follow the steps to prepare a new release (version):
 
 1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
 
-    * In the file setup.py, update the **version="X.X.X"** keyword in the setup
-      function.
-    * Update the version in PKG-INFO file.
-    * If new dependencies were added to pysteps since the last release, add
-      them to the **environment.yml, requirements.txt**, and
-      **requirements_dev.txt** files.
+  * In the file setup.py, update the **version="X.X.X"** keyword in the setup
+    function.
+  * Update the version in PKG-INFO file.
+  * If new dependencies were added to pysteps since the last release, add
+    them to the **environment.yml, requirements.txt**, and
+    **requirements_dev.txt** files.
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
@@ -407,16 +407,16 @@ Owner and maintainer rules
 
 * Being a maintainer comes with responsibilities, i.e. regularly performing tasks such as:
 
-   - preparing and tagging releases and updating release notes
-   - PR reviews
-   - issue triage
-   - organising hackathons and code sprints
-   - keeping documentation and examples up to date
+  - preparing and tagging releases and updating release notes
+  - PR reviews
+  - issue triage
+  - organising hackathons and code sprints
+  - keeping documentation and examples up to date
 
 * After 12 months of inactivity:
 
-   - an owner is replaced by a more active maintainer that the community agrees upon
-   - a maintainer loses their role and becomes a regular member
+  - an owner is replaced by a more active maintainer that the community agrees upon
+  - a maintainer loses their role and becomes a regular member
 
 This role can of course be restored if needed (e.g. after a sabbatical or leave).
 
