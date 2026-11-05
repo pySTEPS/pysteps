@@ -322,7 +322,7 @@ Copilot and other AI tools can be used as support but do not replace a review by
 
 Once the PR and all changes are approved, the PR will be merged into the main branch.
 
-Stale PRs and issues that have had no activity for 12 months are first marked as stale and then closed.
+Stale PRs and issues that have had no activity for 12 months are first marked as stale and then closed within a few weeks after the first marking as stale.
 
 **Important:**
 Each PR should only address a single issue (e.g., fix a bug, improve documentation, etc.).
