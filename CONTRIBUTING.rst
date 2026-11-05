@@ -397,9 +397,15 @@ Core developers should follow the steps to prepare a new release (version):
 Owner and maintainer rules
 --------------------------
 
-* The pySTEPS organization should have exactly three owners, no more, no less.
+* The pySTEPS organization should have exactly three owners, no more, no less. The owners
+  don't need to be the most active developers, but have the following responsibilities:
+  - managing members, roles and security settings (e.g. 2FA, branch protection)
+  - ensuring continued access to the project's external accounts (PyPI, Read the Docs, Zenodo)
+  - appointing maintainers and reviewing roles yearly
+  - taking the final decision when consensus cannot be reached
+
 * Being a maintainer comes with responsibilities, i.e. regularly performing tasks such as:
-   - preparing, tagging and documenting releases
+   - preparing and tagging releases and updating release notes
    - PR reviews
    - issue triage
    - organising hackathons and code sprints
