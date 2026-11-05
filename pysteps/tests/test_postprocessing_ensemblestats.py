@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
 
-from pysteps.postprocessing.ensemblestats import excprob, mean, banddepth
+from pysteps.postprocessing.ensemblestats import banddepth, excprob, mean
 
 # CREATE DATASETS TO TEST
 

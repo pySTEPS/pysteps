@@ -34,7 +34,8 @@ extrapolated fields of shape (num_timesteps, m, n).
 """
 
 import numpy as np
-from pysteps.extrapolation import semilagrangian, eulerian_persistence
+
+from pysteps.extrapolation import eulerian_persistence, semilagrangian
 
 
 def _do_nothing(precip, velocity, timesteps, outval=np.nan, **kwargs):

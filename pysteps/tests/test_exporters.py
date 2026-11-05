@@ -5,8 +5,8 @@ import tempfile
 from datetime import datetime
 
 import numpy as np
-import xarray as xr
 import pytest
+import xarray as xr
 from numpy.testing import assert_array_almost_equal
 
 from pysteps.io import import_netcdf_pysteps
@@ -56,9 +56,7 @@ def test_get_geotiff_filename():
         file_name = _get_geotiff_filename(
             "test/path", start_date, n_timesteps, timestep, timestep_index
         )
-        expected = (
-            f"test/path_201909082022_" f"{(timestep_index + 1) * timestep:03d}.tif"
-        )
+        expected = f"test/path_201909082022_{(timestep_index + 1) * timestep:03d}.tif"
         assert expected == file_name
 
 

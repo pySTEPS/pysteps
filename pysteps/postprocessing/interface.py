@@ -18,11 +18,11 @@ Support postprocessing types:
 """
 
 import importlib
+import warnings
 from importlib.metadata import entry_points
+from pprint import pprint
 
 from pysteps.postprocessing import diagnostics, ensemblestats
-from pprint import pprint
-import warnings
 
 _diagnostics_methods = dict()
 

@@ -1,27 +1,125 @@
 [build-system]
 requires = [
     "wheel",
-    "setuptools>=40.8.0",
-    "Cython>=0.29.2",
-    "numpy>=1.13"
+    "setuptools>=84",
+    "Cython>=3",
+    "numpy>=2",
 ]
-# setuptools 40.8.0 is the first version of setuptools that offers
-# a PEP 517 backend that closely mimics directly executing setup.py.
-build-backend = "setuptools.build_meta:__legacy__"
-#https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
+build-backend = "setuptools.build_meta"
 
+[project]
+name = "PySTEPS"
+description = "Python framework for short-term ensemble prediction systems"
+keywords = ["advection", "ensemble prediction", "forecast verification", "hydrology", "nowcasting", "optical flow", "precipitation", "rainfall", "rainfall prediction", "stochastic processes", "weather", "weather radar",]
+license = "BSD-3-Clause"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+readme = "README.rst"
+version = "2.0.0"
+requires-python = ">=3.11.0,<3.14.0"
+dependencies = [
+    "jsmin",
+    "jsonschema",
+    "matplotlib",
+    "netCDF4",
+    "numpy",
+    "opencv-python",
+    "pandas",
+    "pillow",
+    "pyproj",
+    "scipy",
+    "xarray",
+]
 
-# Define black parameters for the project
-# https://black.readthedocs.io/en/stable/pyproject_toml.html#configuration-format
-[tool.black]
-target-version = ['py36']
+[project.optional-dependencies]
+optional = [
+    "cartopy>=0.18",
+    "cookiecutter",
+    "dask",
+    "geotiff",
+    "h5py",
+    "pandas",
+    "pyfftw",
+    "pywavelets",
+    "rasterio",
+    "scikit-image",
+    "scikit-learn",
+]
+pygrib = [
+    "pygrib"
+]
+gdal =[
+    # gdal must match what's installed locally -- see add_gdal[_brew].sh
+    "pip",
+    "setuptools>=67",
+    "wheel",
+]
+
+[dependency-groups]
+dev = [
+    "bandit",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/you/my-package"
+Source = "https://github.com/pySTEPS/pysteps"
+Issues = "https://github.com/pySTEPS/pysteps/issues"
+CI = "https://github.com/pySTEPS/pysteps/actions"
+Changelog = "https://github.com/pySTEPS/pysteps/releases"
+Documentation = "https://pysteps.readthedocs.io"
+
+#########################################################################################
+# Style checking
+#########################################################################################
+
+[tool.bandit]
+assert_used = { skips = ["*/test_*.py"] }
+skips = [
+    # 2026-10-04: These are allowed so the tests can pass. Please check this list for unwanted issues.
+    'B101',  # allow asserts
+    'B301',  # allow pickles
+    'B403',  # allow pickle to be imported
+    'B603',  # allow subprocess
+    'B404',  # allow subprocess to be imported
+    'B607',  # allow process to start with partial path\
+    'B310',  # allow request.urlretrieve
+]
+exclude_dirs = [
+    ".venv",
+    "dist",
+    "pysteps/tests"
+]
+
+[tool.ruff]
 line-length = 88
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | _build
-  | build
-  | dist
-)/
-'''
+# In addition to the standard set of exclusions, omit build and dist
+extend-exclude = [
+    "*build",
+    "*dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "I",  # sort imports!
+]
+
+[tool.ruff.format]
+# Use `\n` line endings for all files
+line-ending = "lf"
+
+[tool.setuptools]
+py-modules = ["pysteps"]

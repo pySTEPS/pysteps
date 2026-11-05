@@ -69,9 +69,9 @@ Available Nowcast Importers
 """
 
 import numpy as np
+import xarray as xr
 
 from pysteps.exceptions import MissingOptionalDependency
-import xarray as xr
 
 try:
     import netCDF4

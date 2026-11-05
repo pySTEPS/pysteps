@@ -7,8 +7,8 @@ from _pytest.outcomes import Skipped
 
 import pysteps
 from pysteps.datasets import (
-    download_pysteps_data,
     create_default_pystepsrc,
+    download_pysteps_data,
     load_dataset,
 )
 from pysteps.exceptions import DirectoryNotEmpty

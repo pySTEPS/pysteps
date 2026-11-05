@@ -5,8 +5,9 @@ and optionally plots the results. For a description of the method, see
 
 import argparse
 import pickle
-from matplotlib import pyplot
+
 import numpy as np
+from matplotlib import pyplot
 from scipy.optimize import curve_fit
 
 description = (

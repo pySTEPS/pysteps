@@ -12,6 +12,7 @@ Principal component analysis for pysteps.
 """
 
 import numpy as np
+
 from pysteps.exceptions import MissingOptionalDependency
 
 try:

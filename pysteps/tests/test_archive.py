@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 from pysteps.io.archive import _generate_path
 
