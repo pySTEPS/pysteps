@@ -314,7 +314,10 @@ and associate it with a milestone.
 **AI statement**
 AI-generated code must clearly be indicated as co-authored by AI; only a human can take responsibility for a contribution.
 
-Once your proposed changes are ready, you need to create a pull request (PR) linked to the associated issue.
+**Creating a Pull Request**
+Once your proposed changes are ready, you need to create a pull request (PR) linked to the associated issue. 
+A link to an issue can be made by, for instance, mentioning that *This PR fixes issue #[issue number]*. 
+Github will then automatically link the issue to the PR. 
 Afterward, other contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
 request changes to the code, in which case the PR will need to be reviewed again. 
 
