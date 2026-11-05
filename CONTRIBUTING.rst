@@ -44,7 +44,7 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 * Create a new PR on the pysteps GitHub.
 
 
-Setting up the Development environment
+Setting up the pysteps environment
 --------------------------------------
 
 The recommended way to set up the developer environment is with :code:`uv`.
