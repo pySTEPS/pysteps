@@ -505,7 +505,6 @@ class ForecastInitialization:
                     self.__params.perturbation_generator,
                     self.__params.noise_generator,
                     20,
-                    conditional=True,
                     num_workers=self.__config.num_workers,
                     seed=self.__config.seed,
                 )
@@ -1639,7 +1638,7 @@ def forecast(
         The number of cascade levels to use. Defaults to 6, see issue #385 on GitHub.
     precip_thr: float, optional
         pecifies the threshold value for minimum observable precipitation
-        intensity. Required if mask_method is not None or conditional is True.
+        intensity. Required if mask_method is not None or noise_stddev_adj is 'auto'.
         Defaults to -10.0.
     norain_thr: float
         Specifies the threshold value for the fraction of rainy (see above) pixels

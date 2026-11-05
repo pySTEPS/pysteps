@@ -53,7 +53,7 @@ class StepsNowcasterConfig:
          on GitHub.
     precip_threshold: float, optional
         Specifies the threshold value for minimum observable precipitation
-        intensity. Required if mask_method is not None or conditional is True.
+        intensity. Required if mask_method is not None or noise_stddev_adj is 'auto'.
     norain_threshold: float
         Specifies the threshold value for the fraction of rainy (see above) pixels
         in the radar rainfall field below which we consider there to be no rain.
@@ -91,10 +91,6 @@ class StepsNowcasterConfig:
         Name of the noise generator to use for perturbing the advection field. See
         the documentation of pysteps.noise.interface. If set to None, the advection
         field is not perturbed.
-    conditional: bool, optional
-        If set to True, compute the statistics of the precipitation field
-        conditionally by excluding pixels where the values are below the
-        threshold precip_thr.
     mask_method: {'obs','sprog','incremental',None}, optional
         The method to use for masking no precipitation areas in the forecast
         field. The masked pixels are set to the minimum value of the observations.
@@ -220,7 +216,6 @@ class StepsNowcasterConfig:
     noise_stddev_adj: str | None = None
     ar_order: int = 2
     velocity_perturbation_method: str | None = "bps"
-    conditional: bool = False
     probmatching_method: str | None = "cdf"
     mask_method: str | None = "incremental"
     seed: int | None = None
@@ -494,8 +489,6 @@ class StepsNowcaster:
                 "Must be 'obs', 'sprog', 'incremental', or None."
             )
         if self.__config.precip_threshold is None:
-            if self.__config.conditional:
-                raise ValueError("conditional=True but precip_thr is not specified.")
             if self.__config.mask_method is not None:
                 raise ValueError("mask_method is set but precip_thr is not specified.")
             if self.__config.probmatching_method == "mean":
@@ -588,11 +581,6 @@ class StepsNowcaster:
             )
         )
         print(f"velocity perturbator:   {self.__config.velocity_perturbation_method}")
-        print(
-            "conditional statistics: {}".format(
-                ("yes" if self.__config.conditional else "no")
-            )
-        )
         print(f"precip. mask method:    {self.__config.mask_method}")
         print(f"probability matching:   {self.__config.probmatching_method}")
         print(f"FFT method:             {self.__config.fft_method}")
@@ -687,8 +675,8 @@ class StepsNowcaster:
         Extrapolate (advect) precipitation fields based on the velocity field to align
         them in time. This prepares the precipitation fields for autoregressive modeling.
         """
-        # Determine the precipitation threshold mask if conditional is set
-        if self.__config.conditional:
+        # Determine the precipitation threshold mask if precip_thr is given
+        if self.__config.precip_threshold:
             self.__state.mask_threshold = np.logical_and.reduce(
                 [
                     self.__state.precip[i, :, :] >= self.__config.precip_threshold
@@ -784,7 +772,6 @@ class StepsNowcaster:
                         self.__params.perturbation_generator,
                         self.__params.noise_generator,
                         20,
-                        conditional=self.__config.conditional,
                         num_workers=self.__config.num_workers,
                         seed=self.__config.seed,
                     )
@@ -1079,7 +1066,7 @@ class StepsNowcaster:
         """
         precip_forecast_out = [None] * params["n_ens_members"]
 
-        # Update the deterministic AR(p) model if noise or sprog mask is used
+        # Update the deterministic AR(p) model if no noise or sprog mask is used
         if params["noise_method"] is None or params["mask_method"] == "sprog":
             self.__update_deterministic_ar_model(state, params)
 
@@ -1304,7 +1291,6 @@ def forecast(
     noise_stddev_adj=None,
     ar_order=2,
     vel_pert_method="bps",
-    conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
     seed=None,
@@ -1344,7 +1330,7 @@ def forecast(
          on GitHub.
     precip_thr: float, optional
         Specifies the threshold value for minimum observable precipitation
-        intensity. Required if mask_method is not None or conditional is True.
+        intensity. Required if mask_method is not None or noise_stddev_adj is 'auto'.
     norain_thr: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
@@ -1382,10 +1368,6 @@ def forecast(
         Name of the noise generator to use for perturbing the advection field. See
         the documentation of pysteps.noise.interface. If set to None, the advection
         field is not perturbed.
-    conditional: bool, optional
-        If set to True, compute the statistics of the precipitation field
-        conditionally by excluding pixels where the values are below the
-        threshold precip_thr.
     mask_method: {'obs','sprog','incremental',None}, optional
         The method to use for masking no precipitation areas in the forecast
         field. The masked pixels are set to the minimum value of the observations.
@@ -1551,7 +1533,6 @@ def forecast(
         noise_stddev_adj=noise_stddev_adj,
         ar_order=ar_order,
         velocity_perturbation_method=vel_pert_method,
-        conditional=conditional,
         probmatching_method=probmatching_method,
         mask_method=mask_method,
         seed=seed,

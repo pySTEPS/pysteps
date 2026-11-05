@@ -82,7 +82,7 @@ class StepsBlendingConfig:
 
     precip_threshold: float, optional
       Specifies the threshold value for minimum observable precipitation
-      intensity. Required if mask_method is not None or conditional is True.
+      intensity. Required if mask_method is not None or noise_stddev_adj is 'auto'.
     norain_threshold: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
@@ -151,10 +151,6 @@ class StepsBlendingConfig:
       of the blending procedure. If not provided, the blending stick to the
       theoretical weights provided by the chosen weights_method for a given
       lead time and skill of each blending component.
-    conditional: bool, optional
-      If set to True, compute the statistics of the precipitation field
-      conditionally by excluding pixels where the values are below the threshold
-      precip_thr.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -305,7 +301,6 @@ class StepsBlendingConfig:
     velocity_perturbation_method: str | None
     weights_method: str
     timestep_start_full_nwp_weight: int | None
-    conditional: bool
     probmatching_method: str | None
     mask_method: str | None
     resample_distribution: bool
@@ -961,14 +956,20 @@ class StepsBlendingNowcaster:
                 % self.__config.mask_method
             )
 
-        if self.__config.conditional and self.__params.precip_threshold is None:
-            raise ValueError("conditional=True but precip_thr is not set")
-
-        if (
-            self.__config.mask_method is not None
-            and self.__params.precip_threshold is None
-        ):
-            raise ValueError("mask_method!=None but precip_thr=None")
+        if self.__config.precip_threshold is None:
+            if self.__config.mask_method is not None:
+                raise ValueError("mask_method is set but precip_thr is not specified.")
+            if self.__config.probmatching_method == "mean":
+                raise ValueError(
+                    "probmatching_method='mean' but precip_thr is not specified."
+                )
+            if (
+                self.__config.noise_method is not None
+                and self.__config.noise_stddev_adj == "auto"
+            ):
+                raise ValueError(
+                    "noise_stddev_adj='auto' but precip_thr is not specified."
+                )
 
         if self.__config.noise_stddev_adj not in ["auto", "fixed", None]:
             raise ValueError(
@@ -1051,9 +1052,6 @@ class StepsBlendingNowcaster:
             f"velocity perturbator:        {self.__config.velocity_perturbation_method}"
         )
         print(f"blending weights method:     {self.__config.weights_method}")
-        print(
-            f"conditional statistics:      {'yes' if self.__config.conditional else 'no'}"
-        )
         print(f"precip. mask method:         {self.__config.mask_method}")
         print(f"probability matching:        {self.__config.probmatching_method}")
         print(f"FFT method:                  {self.__config.fft_method}")
@@ -1093,7 +1091,10 @@ class StepsBlendingNowcaster:
                 self.__params.velocity_perturbations_perpendicular,
             ) = (None, None)
 
-        if self.__config.conditional or self.__config.mask_method is not None:
+        if (
+            self.__params.precip_threshold is not None
+            or self.__config.mask_method is not None
+        ):
             print(f"precip. intensity threshold: {self.__params.precip_threshold}")
         print(f"no-rain fraction threshold for radar: {self.__config.norain_threshold}")
         print("")
@@ -1153,7 +1154,7 @@ class StepsBlendingNowcaster:
         for zero-precip areas. The results are stored in class attributes.
         """
         # determine the precipitation threshold mask
-        if self.__config.conditional:
+        if self.__params.precip_threshold is not None:
             # TODO: is this logical_and correct here? Now only those places where precip is in all images is saved?
             self.__params.mask_threshold = np.logical_and.reduce(
                 [
@@ -1465,7 +1466,6 @@ class StepsBlendingNowcaster:
                     self.__params.perturbation_generator,
                     self.__params.noise_generator,
                     20,
-                    conditional=self.__config.conditional,
                     num_workers=self.__config.num_workers,
                     seed=self.__config.seed,
                 )
@@ -3454,7 +3454,6 @@ def forecast(
     vel_pert_method="bps",
     weights_method="bps",
     timestep_start_full_nwp_weight=None,
-    conditional=False,
     probmatching_method="cdf",
     mask_method="incremental",
     resample_distribution=True,
@@ -3563,7 +3562,7 @@ def forecast(
       false.
     precip_thr: float, optional
       Specifies the threshold value for minimum observable precipitation
-      intensity. Required if mask_method is not None or conditional is True.
+      intensity. Required if mask_method is not None or noise_stddev_adj is 'auto'.
     norain_thr: float
       Specifies the threshold value for the fraction of rainy (see above) pixels
       in the radar rainfall field below which we consider there to be no rain.
@@ -3618,10 +3617,6 @@ def forecast(
       of the blending procedure. If not provided, the blending stick to the
       theoretical weights provided by the chosen weights_method for a given
       lead time and skill of each blending component.
-    conditional: bool, optional
-      If set to True, compute the statistics of the precipitation field
-      conditionally by excluding pixels where the values are below the threshold
-      precip_thr.
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -3828,7 +3823,6 @@ def forecast(
         velocity_perturbation_method=vel_pert_method,
         weights_method=weights_method,
         timestep_start_full_nwp_weight=timestep_start_full_nwp_weight,
-        conditional=conditional,
         probmatching_method=probmatching_method,
         mask_method=mask_method,
         resample_distribution=resample_distribution,

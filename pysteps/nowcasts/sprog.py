@@ -41,7 +41,6 @@ def forecast(
     decomp_method="fft",
     bandpass_filter_method="gaussian",
     ar_order=2,
-    conditional=False,
     probmatching_method="cdf",
     num_workers=1,
     fft_method="numpy",
@@ -87,10 +86,6 @@ def forecast(
         See the documentation of pysteps.cascade.interface.
     ar_order: int, optional
         The order of the autoregressive model to use. Must be >= 1.
-    conditional: bool, optional
-        If set to True, compute the statistics of the precipitation field
-        conditionally by excluding pixels where the values are
-        below the threshold precip_thr.
     probmatching_method: {'cdf','mean',None}, optional
         Method for matching the conditional statistics of the forecast field
         (areas with precipitation intensity above the threshold precip_thr) with
@@ -174,7 +169,6 @@ def forecast(
     print(f"extrapolation:          {extrap_method}")
     print(f"bandpass filter:        {bandpass_filter_method}")
     print(f"decomposition:          {decomp_method}")
-    print("conditional statistics: {}".format("yes" if conditional else "no"))
     print(f"probability matching:   {probmatching_method}")
     print(f"FFT method:             {fft_method}")
     print(f"domain:                 {domain}")
@@ -222,7 +216,7 @@ def forecast(
         )
 
     # determine the precipitation threshold mask
-    if conditional:
+    if precip_thr is not None:
         mask_thr = np.logical_and.reduce(
             [precip[i, :, :] >= precip_thr for i in range(precip.shape[0])]
         )

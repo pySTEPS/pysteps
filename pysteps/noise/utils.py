@@ -30,7 +30,6 @@ def compute_noise_stddev_adjs(
     noise_filter,
     noise_generator,
     num_iter,
-    conditional=True,
     num_workers=1,
     seed=None,
 ):
@@ -64,9 +63,6 @@ def compute_noise_stddev_adjs(
         noise field into different spatial scales.
     num_iter: int
         The number of noise fields to generate.
-    conditional: bool
-        If set to True, compute the statistics conditionally by excluding areas
-        of no precipitation.
     num_workers: int
         The number of workers to use for parallel computation. Applicable if
         dask is installed.
@@ -85,14 +81,10 @@ def compute_noise_stddev_adjs(
     R = R.copy()
     R[~np.isfinite(R)] = R_thr_2
     R[~MASK] = R_thr_2
-    if not conditional:
-        mu, sigma = np.mean(R), np.std(R)
-    else:
-        mu, sigma = np.mean(R[MASK]), np.std(R[MASK])
+    mu, sigma = np.mean(R[MASK]), np.std(R[MASK])
     R -= mu
 
-    MASK_ = MASK if conditional else None
-    decomp_R = decomp_method(R, F, mask=MASK_)
+    decomp_R = decomp_method(R, F, mask=MASK)
 
     if dask_imported and num_workers > 1:
         res = []
@@ -116,7 +108,7 @@ def compute_noise_stddev_adjs(
         # subtract the mean and decompose the masked noise field into a
         # cascade
         N -= mu
-        decomp_N = decomp_method(N, F, mask=MASK_)
+        decomp_N = decomp_method(N, F, mask=MASK)
 
         N_stds[k] = decomp_N["stds"]
 
