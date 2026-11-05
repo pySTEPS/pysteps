@@ -2,11 +2,14 @@
 Calibrated stochastic rainfall fields
 =====================================
 
-This companion to :ref:`sphx_glr_auto_examples_plot_noise_generators.py`
-uses the new marginal and
-spectral estimators and calibrated generator on the same Swiss radar composite.
-It compares generated rainfall distributions and radial spectra, then shows
-how the raw fields become normalized cascade innovations.
+This example creates random rainfall patterns with statistics similar to a
+Swiss radar observation. It estimates the rainy area, rain-intensity
+distribution, and spatial structure, then uses them to generate three fields.
+The figures compare the generated fields with the observation.
+
+It uses the same radar image as
+:ref:`sphx_glr_auto_examples_plot_noise_generators.py`. The final section shows
+how to separate a generated field into spatial scales for use in a nowcast.
 
 Download the `pysteps example data <https://github.com/pySTEPS/pysteps-data>`_
 and configure the ``mch`` data source in ``pystepsrc``. MeteoSwiss provides the
@@ -31,6 +34,7 @@ from pysteps.utils import conversion, dimension, transformation
 from pysteps.utils.spectral import fit_power_law_spectrum, rapsd_logarithmic
 from pysteps.utils.statistics import compute_field_statistics
 from pysteps.visualization import basemaps, plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 rain_threshold = 1.0  # mm/h
 scale_break = 20.0  # km, prescribed rather than estimated
@@ -51,37 +55,41 @@ filename = (
     / "20160711"
     / "AQC161932100V_00005.801.gif"
 )
-rain, _, metadata = io.import_mch_gif(
-    str(filename), product="AQC", unit="mm", accutime=5.0
-)
-rain, metadata = conversion.to_rainrate(rain, metadata)
+dataset = io.import_mch_gif(str(filename), product="AQC", unit="mm", accutime=5.0)
+
+# Convert to mm/h, select the domain, and average to a 2 km grid.
+dataset = conversion.to_rainrate(dataset)
 extent = (450000, 750000, 0, 300000)
-rain, metadata = dimension.clip_domain(rain, metadata, extent)
-rain, metadata = dimension.aggregate_fields_space(rain, metadata, 2000)
+dataset = dimension.clip_domain(dataset, extent)
+dataset = dimension.aggregate_fields_space(dataset, 2000)
+precip_var = dataset.attrs["precip_var"]
+rain = dataset[precip_var].values
+geodata = geodata_from_dataset(dataset)
 if not np.isfinite(rain).all() or np.any(rain < 0):
     raise ValueError("The example requires complete nonnegative rain-rate data")
-kmperpixel = metadata["xpixelsize"] / 1000.0
-observed, transformed_metadata = transformation.dB_transform(
-    rain,
-    metadata,
+kmperpixel = abs(float(dataset.x.attrs["stepsize"])) / 1000.0
+
+# Work in dBR = 10*log10(rain rate in mm/h). Extract arrays for the estimators.
+transformed_dataset = transformation.dB_transform(
+    dataset,
     threshold=rain_threshold,
     zerovalue=10 * np.log10(rain_threshold) - 0.1,
 )
-threshold = transformed_metadata["threshold"]
-zerovalue = transformed_metadata["zerovalue"]
+observed = transformed_dataset[precip_var].values
+threshold = transformed_dataset[precip_var].attrs["threshold"]
+zerovalue = transformed_dataset[precip_var].attrs["zerovalue"]
 
 ###############################################################################
-# Estimate marginal parameters and prescribed-break spectral slopes
-# -----------------------------------------------------------------
+# Estimate rainfall statistics
+# ----------------------------
 #
-# Ordinary moments describe retained wet pixels; latent moments describe the
-# fitted parent Normal. The reference engine selects the latent pair when its
-# normalized distance from the ordinary pair is at most 0.5, otherwise the
-# ordinary pair. Make that caller decision explicit here: the generator itself
-# does not select moments or apply regional parameter bounds.
+# Calculate the fraction of rainy pixels and their mean and standard deviation.
+# Also fit a Normal distribution that accounts for the lower fitting cutoff.
+# Use its fitted parameters if they are close to the sample estimates;
+# otherwise, use the sample estimates. This is the selection used by the nowcast.
 #
-# Radial frequencies are in cycles per pixel, so convert the 20 km break to
-# pixels for fitting. Pass physical km units to the generator later.
+# Fit spectral slopes on either side of the prescribed 20 km break to describe
+# spatial structure. Convert the break to pixels for this estimator.
 
 statistics = compute_field_statistics(observed, threshold, lower_truncation)
 frequency, power = rapsd_logarithmic(observed)
@@ -92,6 +100,8 @@ ordinary = np.array([statistics["ordinary_mean"], statistics["ordinary_stdev"]])
 latent = np.array([statistics["latent_mean"], statistics["latent_stdev"]])
 if not np.isfinite(ordinary).all() or ordinary[1] <= 0:
     raise ValueError("Raining-pixel moments are unavailable")
+# Measure the difference between parameter pairs in units of the sample
+# standard deviation. The selection limit is configurable in the nowcast.
 valid_latent = np.isfinite(latent).all() and latent[1] > 0
 moment_distance = (
     np.linalg.norm(latent - ordinary) / ordinary[1] if valid_latent else np.inf
@@ -115,15 +125,14 @@ pprint(parameters)
 # Generate calibrated rainfall fields
 # -----------------------------------
 #
-# The outputs are float64 fields in dBR retaining a rainfall marginal, including
-# continuous dry anomalies. They are not globally standardized noise. Calibration
-# applies the reference -0.5 correction to both slopes, assesses realized slopes
-# on a thresholded copy, and reports whether its distance tolerance was met.
-# A best-available field can be returned without meeting that tolerance.
+# Generate three fields in dBR using separate seeds for repeatable results.
+# Matching rain intensities changes spatial structure, so the generator adjusts
+# the input spectral slopes and checks the resulting spectrum. Diagnostics
+# report whether each field is close enough to its target slopes.
 #
-# Use three reproducible local seeds and retain their diagnostics. Also generate
-# an uncorrected field for the spectrum comparison. Its seed matches the first
-# calibrated run's initial draw; retries can select a different candidate.
+# Also generate a field without the correction to compare the spectra later.
+# It uses the first calibrated run's initial seed, although retries may make
+# that run select a different random field.
 
 fields, diagnostics = [], []
 for member in range(num_realizations):
@@ -154,14 +163,18 @@ uncorrected = generate_stochastic_field(
     zerovalue=zerovalue,
 )
 
-# Convert copies for rainfall plots. Keep the raw dBR arrays for decomposition.
-rain_fields = [
-    transformation.dB_transform(f, metadata=transformed_metadata, inverse=True)[0]
-    for f in fields
-]
-observed_rain = transformation.dB_transform(
-    observed, metadata=transformed_metadata, inverse=True
-)[0]
+# Convert to mm/h for plotting. Keep the original dBR arrays for decomposition.
+rain_fields = []
+for field in fields:
+    generated = transformed_dataset.copy(deep=True)
+    generated[precip_var].data = field.copy()
+    generated = transformation.dB_transform(generated, inverse=True)
+    rain_fields.append(generated[precip_var].values)
+observed_rain = transformation.dB_transform(transformed_dataset, inverse=True)[
+    precip_var
+].values
+
+# Plot the observation and generated rainfall fields.
 fig = plt.figure(figsize=(10, 8))
 for index, (field, title) in enumerate(
     zip(
@@ -170,9 +183,9 @@ for index, (field, title) in enumerate(
     )
 ):
     ax = basemaps.plot_geography(
-        metadata["projection"], extent, scale="110m", subplot=(2, 2, index + 1)
+        dataset.attrs["projection"], extent, scale="110m", subplot=(2, 2, index + 1)
     )
-    plot_precip_field(field, ax=ax, geodata=metadata, axis="off", title=title)
+    plot_precip_field(field, ax=ax, geodata=geodata, axis="off", title=title)
 plt.tight_layout()
 plt.show()
 
@@ -180,11 +193,9 @@ plt.show()
 # Compare rainfall occurrence and intensity distributions
 # -------------------------------------------------------
 #
-# Unconditional exceedance curves include all pixels in their denominator.
-# Their value at 1 mm/h measures realized wet fraction. Histogram mapping and
-# threshold crossings mean that occurrence and marginal moments are approximate;
-# fitted parent-Normal moments are not the observed conditional moments.
-# The generator's Normal-quantile clipping also limits its extreme tails.
+# For each rain-rate threshold, plot the fraction of all pixels at or above it.
+# At 1 mm/h, this is the rainy fraction. Distribution matching is approximate,
+# so generated fractions and intensities can differ from their targets.
 
 colors = ["tab:blue", "tab:orange", "tab:green"]
 plotted_fields = [observed_rain, *rain_fields]
@@ -214,11 +225,10 @@ plt.show()
 # Compare the realized radial spectra
 # -----------------------------------
 #
-# Follow the calibration assessment: replace values <= the dBR threshold by
-# the dry value on a copy before estimating each generated spectrum. The radial
-# estimator standardizes its input internally; the plotted quantity is mean
-# squared unscaled FFT amplitude per mode, not a physical spectral density.
-# A radial spectrum does not preserve the observation's directional structure.
+# Compare how variability is distributed across spatial scales. As in the
+# calibration check, replace values at or below the rain threshold on a copy.
+# The estimator subtracts the mean and divides by the standard deviation before
+# averaging FFT power over directions; it does not describe rainfall orientation.
 
 fig, ax = plt.subplots()
 ax.loglog(kmperpixel / frequency, power, color="black", label="Observed")
@@ -248,12 +258,13 @@ ax.grid(True, alpha=0.25)
 plt.show()
 
 ###############################################################################
-# Decompose the raw field into normalized cascade innovations
-# -----------------------------------------------------------
+# Separate the generated field into spatial scales
+# ------------------------------------------------
 #
-# The nowcast engine decomposes the raw field, retaining its continuous dry
-# anomalies. Normalization happens at each cascade level, rather than treating
-# the rainfall-marginal field as globally standardized perturbation noise.
+# A cascade splits the field into bands of spatial scales. Each band is then
+# normalized to mean zero and standard deviation one. The nowcast uses these
+# normalized bands as random innovations in its autoregressive update.
+# Decompose the dBR field directly, retaining its values below the rain threshold.
 
 bandpass = filter_gaussian(fields[0].shape, 6)
 cascade = decomposition_fft(fields[0], bandpass, compute_stats=True, normalize=True)

@@ -2,7 +2,7 @@
 
 Requires the source project's dependencies, including xarray. Inputs and outputs
 are local files; no database is accessed. Raw estimates are passed to both
-generators without regional generation QA, which belongs to the engine stage.
+generators without the regional parameter selection used by the forecast.
 """
 
 import argparse
@@ -12,6 +12,7 @@ from pathlib import Path
 import subprocess
 
 import numpy as np
+import xarray as xr
 from scipy.optimize import minimize_scalar
 from scipy.special import log_ndtr
 
@@ -56,7 +57,13 @@ def main():
     for path in paths:
         with np.load(path) as stored:
             rain = stored["rain"].astype(float)
-        transformed, metadata = dB_transform(rain, threshold=1.0, zerovalue=-0.1)
+        dataset = xr.Dataset(
+            {"rain": (("y", "x"), rain, {"units": "mm/h"})},
+            attrs={"precip_var": "rain"},
+        )
+        transformed_dataset = dB_transform(dataset, threshold=1.0, zerovalue=-0.1)
+        transformed = transformed_dataset["rain"].values
+        metadata = transformed_dataset["rain"].attrs
         _, spectrum = source["power_spectrum_1D"](transformed, 15)
         marginal = source["compute_field_stats"](
             transformed, metadata, fit_truncated=True, lower_truncation=1.25

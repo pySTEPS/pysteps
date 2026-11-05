@@ -4,7 +4,7 @@ Parametric nowcast from three rain-rate fields
 
 This self-contained example builds three synthetic observations, then lets the
 parametric engine estimate motion and parameters and generate an ensemble.
-It needs no radar archive or database.
+It runs without downloading radar observations.
 """
 
 import matplotlib.pyplot as plt
@@ -24,8 +24,11 @@ transformed = generate_stochastic_field(
     threshold=0.0,
     seed=9,
 )
+# Convert the generated dBR values to rain rates for the forecast input.
 rain = 10 ** (transformed / 10)
 rain[rain < 1.0] = 0
+# Construct motion by shifting one pixel per interval. np.roll wraps at the
+# array edge to build this artificial history; the forecast has open boundaries.
 observations = np.stack(
     [
         np.roll(rain, -2, axis=1),
@@ -61,7 +64,8 @@ dataset = xr.Dataset(
 
 ###############################################################################
 # Forecast directly in mm/h. Motion is estimated internally from the latest
-# two fields; no transformed input or stored cascade/parameter state is needed.
+# two fields. Each member starts from these observations and evolves with
+# different random perturbations.
 forecast = nowcasts.get_method("parametric")
 ensemble, diagnostics = forecast(
     dataset,

@@ -19,7 +19,7 @@ __all__ = ["fit_lower_truncated_normal", "compute_field_statistics"]
 
 
 def fit_lower_truncated_normal(data, lower_truncation, return_diagnostics=False):
-    """Fit the latent parent Normal to samples above a lower cutoff.
+    """Fit a parent Normal distribution to samples at or above a lower cutoff.
 
     Parameters
     ----------
@@ -41,14 +41,15 @@ def fit_lower_truncated_normal(data, lower_truncation, return_diagnostics=False)
 
     Notes
     -----
-    Profiles scale analytically for a = (cutoff-location)/scale and minimizes
-    the conditional negative log likelihood over -12 <= a <= 12, preserving
-    the source ``pysteps_param`` method. Gaussian tail normalization uses log_ndtr.
+    Profile the scale analytically for a = (cutoff-location)/scale and minimize
+    the conditional negative log likelihood over -12 <= a <= 12. Use log_ndtr
+    to evaluate the retained Normal tail probability without underflow.
     A finite bounded solution is not proof of an unrestricted finite MLE:
     ``boundary_limited`` identifies proximity to the bound or shifted-sample
-    coefficient of variation >= 1. Its numerical solution is retained for
-    compatibility and reported explicitly. Pixels have equal marginal weights;
-    spatial dependence and parameter uncertainty are not estimated here.
+    coefficient of variation >= 1. The bounded numerical solution is returned
+    with this diagnostic so callers can decide whether to use it. Pixels have
+    equal marginal weights; spatial dependence and parameter uncertainty are
+    not estimated here.
     """
     if not np.isfinite(lower_truncation):
         raise ValueError("lower_truncation must be finite")
@@ -71,16 +72,20 @@ def fit_lower_truncated_normal(data, lower_truncation, return_diagnostics=False)
     if np.ptp(sample) <= 0:
         diagnostics["status"] = "constant_sample"
         return output()
+    # Express retained observations relative to the cutoff. For a fixed
+    # standardized cutoff a, the likelihood gives scale analytically.
     shifted = sample - lower_truncation
     mean_shifted = float(np.mean(shifted))
     second_moment = float(np.mean(shifted * shifted))
 
     def scale_for_cutoff(a):
+        """Return the positive profile-likelihood scale for a fixed cutoff a."""
         return 0.5 * (
             a * mean_shifted + np.sqrt(a**2 * mean_shifted**2 + 4 * second_moment)
         )
 
     def objective(a):
+        """Evaluate conditional negative log likelihood per retained sample."""
         scale = scale_for_cutoff(a)
         if not np.isfinite(scale) or scale <= 0:
             return np.inf
@@ -89,6 +94,7 @@ def fit_lower_truncated_normal(data, lower_truncation, return_diagnostics=False)
         )
         return float(np.log(scale) + 0.5 * standardized_second_moment + log_ndtr(-a))
 
+    # A bounded scalar search avoids fitting location and scale independently.
     result = minimize_scalar(
         objective,
         bounds=(-12.0, 12.0),
@@ -119,7 +125,7 @@ def compute_field_statistics(data, threshold, lower_truncation=None):
     ----------
     data: array_like
         Nonempty, finite two-dimensional field. Units may be transformed rainfall
-        (dBR for the reference parametric method). The input is not modified.
+        (dBR for parametric nowcasting). The input is not modified.
     threshold: float
         Finite rain-occurrence threshold in the same units as data. Values at
         or above the threshold are wet. The denominator is the whole valid grid.

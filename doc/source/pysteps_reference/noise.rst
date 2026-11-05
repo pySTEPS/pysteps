@@ -2,7 +2,7 @@
 pysteps.noise
 =============
 
-Implementation of deterministic and ensemble nowcasting methods.
+Methods for generating spatially correlated noise and velocity perturbations.
 
 
 .. automodule:: pysteps.noise.fftgenerators

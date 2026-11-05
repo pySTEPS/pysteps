@@ -28,12 +28,14 @@ BETA_VARIANCES = (0.067738, 0.076405)
 
 
 def _finite(name, value):
+    """Validate and return a finite real scalar."""
     if not np.isscalar(value) or np.iscomplexobj(value) or not np.isfinite(value):
         raise ValueError(f"{name} must be a finite real scalar")
     return float(value)
 
 
 def _shape(shape):
+    """Validate and return two positive grid dimensions in (y, x) order."""
     try:
         shape = tuple(shape)
     except TypeError:
@@ -48,6 +50,7 @@ def _shape(shape):
 
 
 def _parameters(parameters):
+    """Copy and validate the five rainfall-generation parameters."""
     if not isinstance(parameters, Mapping):
         raise ValueError("parameters must be a mapping")
     names = ("beta_1", "beta_2", "rain_fraction", "mean_db", "stdev_db")
@@ -62,6 +65,7 @@ def _parameters(parameters):
 
 
 def _random_generator(rng, seed):
+    """Return the supplied random stream or create a local seeded stream."""
     if rng is not None:
         if seed is not None:
             raise ValueError("supply rng or seed, not both")
@@ -101,6 +105,7 @@ def power_law_filter(shape, beta_1, beta_2=None, kmperpixel=1.0, scale_break=Non
         raise ValueError("kmperpixel must be positive")
     if (beta_2 is None) != (scale_break is None):
         raise ValueError("provide beta_2 and scale_break together")
+    # Power is squared amplitude, so the filter uses half the power exponent.
     fy = np.fft.fftfreq(shape[0], d=spacing)
     fx = np.fft.fftfreq(shape[1], d=spacing)
     radius = np.sqrt(fy[:, None] ** 2 + fx[None, :] ** 2)
@@ -130,6 +135,14 @@ def power_law_filter(shape, beta_1, beta_2=None, kmperpixel=1.0, scale_break=Non
 def _field_from_filter(
     spectrum_filter, parameters, threshold, rng, zerovalue, nbins, eps
 ):
+    """Generate a correlated field and match its rainfall distribution.
+
+    Apply the full-FFT amplitude filter to uniform white noise, then map the
+    result to the supplied rain fraction and Normal intensity parameters.
+    Return a (y, x) array in the same transformed units as threshold; values
+    below the threshold remain continuous for later cascade decomposition.
+    """
+    # Filtering introduces spatial correlation before intensity matching.
     white_noise = rng.uniform(low=0, high=1, size=spectrum_filter.shape)
     filtered = np.fft.ifft2(
         np.fft.fft2(white_noise, spectrum_filter.shape) * spectrum_filter
@@ -159,7 +172,7 @@ def generate_stochastic_field(
     nbins=500,
     eps=0.001,
 ):
-    """Generate a rainfall-marginal field without inverse spectral correction.
+    """Generate a random rainfall field without spectral bias correction.
 
     Parameters
     ----------
@@ -168,12 +181,12 @@ def generate_stochastic_field(
     parameters: mapping
         Finite beta_1, beta_2, rain_fraction, mean_db, and positive stdev_db.
         The last two are caller-selected parent-Normal generation moments.
-        The mapping is not modified; no regional QA or parameter clipping occurs.
+        The mapping is not modified; no regional parameter selection or clipping occurs.
     kmperpixel, scale_break: float
         Positive pixel spacing and spectral break wavelength, both in km.
     threshold: float
-        Finite rain/no-rain threshold in transformed units (dBR for the reference
-        method). The returned field has the same transformed units.
+        Finite rain/no-rain threshold in transformed units (dBR when used for
+        parametric nowcasting). The returned field has the same transformed units.
     rng: numpy.random.Generator or RandomState, optional
         Caller-owned random stream; advanced in place.
     seed: int or SeedSequence, optional
@@ -216,6 +229,12 @@ def generate_stochastic_field(
 
 
 def _estimate_beta(field, threshold, zerovalue, scale_break_pixels):
+    """Estimate two spectral slopes after replacing subthreshold values.
+
+    Use a copy for assessment so the generated field retains its continuous
+    values below threshold. The break wavelength is in pixels. Return two
+    NaNs if the spectrum cannot be estimated or fitted.
+    """
     truncated = field.copy()
     truncated[truncated <= threshold] = zerovalue
     try:
@@ -245,18 +264,28 @@ def generate_calibrated_field(
     eps=0.001,
     return_diagnostics=False,
 ):
-    """Generate a field with inverse calibration and assessed realised spectral slopes.
+    """Generate a random rainfall field with spectral bias correction.
 
     Parameters
     ----------
-    shape, parameters, kmperpixel, scale_break, threshold:
-        As in :func:`generate_stochastic_field`. Each dimension must contain at
-        least four pixels for spectral assessment. Parameters are not modified.
-    rng, seed, zerovalue, nbins, eps:
-        As in :func:`generate_stochastic_field`.
+    shape: tuple of int
+        Output shape (y, x), with at least four pixels along each axis.
+    parameters: mapping
+        Target beta_1, beta_2, rain_fraction, mean_db, and stdev_db, as in
+        :func:`generate_stochastic_field`. The mapping is not modified.
+    kmperpixel, scale_break: float
+        Positive pixel spacing and spectral break wavelength, both in km.
+    threshold: float
+        Rain/no-rain threshold in transformed units, also used for assessment.
+    rng: numpy.random.Generator or RandomState, optional
+        Caller-owned random stream, advanced in place. Supply rng or seed.
+    seed: int or SeedSequence, optional
+        Seed for a local random stream when rng is absent.
+    zerovalue: float, optional
+        Dry value below threshold, default threshold-0.1.
     spectral_bias: float, optional
-        Additive correction to both input power slopes (default -0.5). Location
-        and scale receive no inverse correction in this v2 method.
+        Additive correction to both input power slopes (default -0.5). The Normal
+        location and scale are used as supplied.
     low_war_threshold: float, optional
         Fractions at or below this value permit retries (default 0.1).
     max_attempts: int, optional
@@ -264,9 +293,13 @@ def generate_calibrated_field(
     distance_threshold: float, optional
         Accept when sqrt(sum((estimated_beta-target_beta)**2/beta_variances)) is
         at or below this nonnegative tolerance (default 1).
-    beta_variances: array_like
+    beta_variances: array_like, optional
         Two positive finite calibration error variances. Defaults are
         (0.067738, 0.076405); these weights are empirical, not universal errors.
+    nbins: int, optional
+        Number of distribution-matching histogram bins (default 500).
+    eps: float, optional
+        Normal-quantile probability clip (default 0.001).
     return_diagnostics: bool, optional
         Also return selected spectral estimates, distance, attempted/selected
         candidate indices, tolerance status, targets, effective calibration
@@ -284,11 +317,14 @@ def generate_calibrated_field(
 
     Notes
     -----
-    Preserves ``inverse_calibrated_v2`` defaults and selection policy. Calibration
-    need not meet its tolerance; the outcome is explicit. A confirmed zero target
-    returns dry output with zero attempts and no spectral-success claim. Invalid
-    parameters or an unavailable positive-fraction marginal mapping raise errors.
-    This function does not perform operational moment selection or slope clipping.
+    Distribution matching can change a filtered field's spectrum. The additive
+    slope correction compensates for this effect empirically; its default and
+    the error variances may need calibration for other rainfall data.
+    Calibration need not meet its tolerance; diagnostics report the outcome.
+    A confirmed zero target returns dry output with zero attempts and no
+    spectral-success claim. Invalid parameters or an unavailable
+    positive-fraction marginal mapping raise errors.
+    This function does not perform moment selection or slope clipping.
     """
     parameters = _parameters(parameters)
     shape = _shape(shape)
@@ -316,6 +352,7 @@ def generate_calibrated_field(
     zerovalue = (
         threshold - 0.1 if zerovalue is None else _finite("zerovalue", zerovalue)
     )
+    # Adjust input slopes before mapping, then assess against the original targets.
     calibrated = dict(
         parameters,
         beta_1=parameters["beta_1"] + spectral_bias,
@@ -371,6 +408,7 @@ def generate_calibrated_field(
             eps=eps,
         )
         return output((field, np.nan, np.nan, np.nan, 0), "dry", False)
+    # Retry sparse fields, whose realised spectra vary more between draws.
     best = last = None
     limit = max_attempts if parameters["rain_fraction"] <= low_war_threshold else 1
     for attempt in range(1, limit + 1):
@@ -393,6 +431,8 @@ def generate_calibrated_field(
             return output(last, "tolerance_achieved", True)
         if np.isfinite(distance) and (best is None or distance < best[3]):
             best = last
+    # If tolerance is missed, keep the closest measurable candidate. If none
+    # can be assessed, return the last field with an unavailable-spectrum status.
     return output(
         best if best is not None else last,
         "best_available" if best is not None else "unavailable_spectrum",

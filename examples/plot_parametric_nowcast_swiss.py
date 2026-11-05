@@ -27,10 +27,11 @@ from pysteps.utils import conversion, dimension
 from pysteps.visualization import basemaps, plot_precip_field
 from pysteps.xarray_helpers import geodata_from_dataset
 
+# Set ensemble size, forecast length, and a seed for repeatable results.
 n_ens_members = 20
 n_leadtimes = 6
 seed = 24
-rain_threshold = 1.0  # mm/h: reference occurrence threshold of the engine
+rain_threshold = 1.0  # mm/h
 date = datetime(2017, 1, 31, 12, 0)
 
 ###############################################################################
@@ -61,7 +62,7 @@ precip_var = observations.attrs["precip_var"]
 # ---------------------------------
 #
 # The full Swiss composite has missing coverage outside the radar footprint.
-# This first parametric engine requires complete finite grids. Select a 300 km
+# The parametric method requires complete finite grids. Select a 300 km
 # square subdomain with complete coverage at all three times, in Swiss LV03
 # coordinates (metres). Clip at the native resolution, then aggregate to 2 km
 # to limit computation and memory. Missing pixels are not replaced with zero.
@@ -88,6 +89,7 @@ def make_map(subplot=(1, 1, 1)):
     )
 
 
+# Inspect the newest observation.
 plt.figure()
 plot_precip_field(
     rain.isel(time=-1).values,
@@ -105,14 +107,14 @@ plt.show()
 # Pass linear rain rates directly: no external dBR transform or motion estimate
 # is needed. The returned dataset contains rain rates in mm/h with dimensions
 # (ens_number, time, y, x). Its first valid time is 12:05 and its last is 12:30.
-# Pixel size and cadence are derived from the observation coordinates.
-# Fixed motion and estimated statistical parameters are shared across leads;
-# each member has its own reproducible random stream.
+# Grid cell size and time step are derived from the observation coordinates.
+# Motion and rainfall statistics are estimated once and held fixed. Each member's
+# rainfall pattern evolves separately using its own random perturbations.
+# Setting the seed makes these results reproducible.
 #
-# This example uses the existing regional reference defaults, including the
-# 1 mm/h occurrence threshold and 20 km spectral break. Applying them to this
-# Swiss case illustrates the interface; it does not establish Swiss calibration
-# or forecast skill. The STEPS tutorial uses a different occurrence threshold.
+# The defaults include a 1 mm/h rain threshold and a 20 km spectral break.
+# This example demonstrates the workflow; regional calibration and forecast
+# skill require a separate assessment.
 
 forecast = nowcasts.get_method("parametric")
 ensemble, diagnostics = forecast(
@@ -148,7 +150,7 @@ plot_precip_field(
     ax=make_map(),
     geodata=geodata,
     axis="off",
-    title=f"Parametric ensemble mean (+{lead_minutes:g} min)",
+    title=f"Ensemble mean parametric nowcast (+{lead_minutes:g} min)",
 )
 plt.show()
 
@@ -174,9 +176,8 @@ plt.show()
 # Derive exceedance probabilities
 # -------------------------------
 #
-# Use a probability threshold consistent with the engine's occurrence threshold.
-# The ensemble fraction exceeding 1 mm/h is an estimated exceedance probability,
-# not an independently calibrated probability product.
+# Estimate the probability of rain at or above 1 mm/h as the fraction of members
+# meeting that threshold. Use the same threshold as the forecast.
 
 probability_threshold = 1.0  # mm/h
 probabilities = (forecast_rain.isel(time=-1) >= probability_threshold).mean(
@@ -199,12 +200,9 @@ plt.show()
 # Animate observations followed by the first ensemble member
 # ----------------------------------------------------------
 #
-# Keep the same grid and colour scale for the three QPE observations and six
-# forecast fields. Index zero selects the first member, whose ens_number
-# coordinate is one. The title distinguishes observations from forecasts and
-# displays actual valid times. QPE retains the measured rain rates; forecasts
-# apply the engine's 1 mm/h occurrence threshold. No intermediate fields are
-# interpolated. Pause briefly at the last observation and the last forecast.
+# Show the three radar observations followed by six forecasts on the same map
+# and colour scale. Array index zero selects ensemble member number one.
+# Display the valid times and pause at the last observation and forecast.
 
 animation_member_index = 0
 animation_fields = np.concatenate(
@@ -274,12 +272,10 @@ print("QPE and first-member animation:", animation_path.resolve())
 # Export the complete forecast dataset
 # -------------------------------------
 #
-# The native xarray NetCDF writer preserves the ensemble and time coordinates,
-# geographic information, and rainfall attributes. Lossless compression retains
-# the float64 values exactly. A temporary file makes the example repeatable;
-# replace output_path with a persistent location to keep the forecast.
-# This preserves the available projection metadata without adding a CF grid
-# mapping for projections that the upstream converter does not yet support.
+# Save the dataset with lossless compression and check that reopening preserves
+# its values, coordinates, and attributes. Choose a persistent output path to
+# keep the file. Projection metadata are retained as supplied; export does not
+# add missing CF projection mappings.
 
 with TemporaryDirectory(prefix="pysteps-parametric-swiss-") as output_directory:
     output_path = Path(output_directory) / "parametric_nowcast_swiss.nc"

@@ -11,7 +11,23 @@ from pysteps.extrapolation.semilagrangian import extrapolate
 
 
 def prepare_advection_coordinates(velocity, ar_order=2):
-    """Cache each lag using integer unit integration, in scipy (y, x) order."""
+    """Prepare backward trajectories for sampling previous cascade states.
+
+    Parameters
+    ----------
+    velocity: array_like
+        Fixed x and y displacements with shape (2, y, x), in pixels per
+        observation interval. All values must be finite.
+    ar_order: {1, 2}, optional
+        Number of previous states to advect (default 2).
+
+    Returns
+    -------
+    coordinates: dict
+        Read-only arrays of shape (2, y, x), keyed by integer lag. Components
+        are in (y, x) order for scipy.ndimage.map_coordinates. The two-step
+        trajectory uses two unit integration steps with the same velocity.
+    """
     velocity = np.asarray(velocity, dtype=float)
     if (
         velocity.ndim != 3
@@ -27,13 +43,29 @@ def prepare_advection_coordinates(velocity, ar_order=2):
     coordinates = {}
     for lag in range(1, ar_order + 1):
         _, displacement = extrapolate(None, velocity, lag, return_displacement=True)
+        # Extrapolation returns (x, y) displacements; SciPy samples in (y, x).
         coordinates[lag] = (xy + displacement)[::-1].copy()
         coordinates[lag].setflags(write=False)
     return coordinates
 
 
 def advect_field(field, coordinates):
-    """Sample a finite 2D anomaly with the reference constant-zero boundary."""
+    """Advect a normalized cascade field using backward sampling coordinates.
+
+    Parameters
+    ----------
+    field: ndarray
+        Finite two-dimensional normalized cascade field in (y, x) order.
+    coordinates: ndarray
+        Sampling positions with shape (2, y, x), in (y, x) component order.
+
+    Returns
+    -------
+    advected: ndarray
+        Linearly interpolated field. Samples outside the grid are zero,
+        representing the cascade level's mean. Random innovations are added
+        separately during forecasting, including at these inflow pixels.
+    """
     if not np.isfinite(field).all():
         raise ValueError("field contains non-finite values")
     return map_coordinates(

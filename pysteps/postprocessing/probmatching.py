@@ -53,10 +53,10 @@ def match_rainfall_distribution(
     zerovalue: float, optional
         Finite dry value below threshold, default threshold-0.1. Used for an
         explicit dry result; positive-fraction mapping retains continuous dry
-        anomalies below threshold, as in the source generator.
+        values below threshold for subsequent cascade decomposition.
     min_rain_fraction: float, optional
         Explicit dry-output policy for fractions below this value. Default 0
-        suppresses no positive fraction. The source post-AR adjustment uses 0.025.
+        suppresses no positive fraction. The parametric forecast uses 0.025.
     nbins: int, optional
         Number of histogram bins (default 500).
     eps: float, optional
@@ -70,7 +70,7 @@ def match_rainfall_distribution(
 
     Notes
     -----
-    Preserves the source ``normalize_stoch_field`` mapping: find the last bin
+    Find the last bin
     whose cumulative probability is <= 1-rain_fraction, shift its upper edge
     to threshold, and map the strictly-above-threshold sample's binned CDF to
     clipped Normal quantiles using bin-centre linear interpolation. Wet mapped
@@ -112,6 +112,8 @@ def match_rainfall_distribution(
     if rain_fraction == 0 or rain_fraction < min_rain_fraction:
         return np.full_like(field, zerovalue)
 
+    # Shift a histogram cutoff to the occurrence threshold to select wet pixels.
+    # Values below it remain continuous rather than being set to zerovalue.
     distribution = sstats.cumfreq(field, numbins=nbins)
     edges = distribution.lowerlimit + np.arange(nbins + 1) * distribution.binsize
     cdf = distribution.cumcount / distribution.cumcount[-1]
@@ -122,6 +124,8 @@ def match_rainfall_distribution(
     sample = mapped[wet]
     if sample.size < 2 or np.ptp(sample) == 0:
         raise ValueError("mapping produced too few distinct raining pixels")
+    # Map the wet sample through its conditional CDF to Normal quantiles.
+    # Clipping avoids infinite quantiles; mapped values may cross the threshold.
     distribution = sstats.cumfreq(sample, numbins=nbins)
     edges = distribution.lowerlimit + np.arange(nbins + 1) * distribution.binsize
     centres = 0.5 * (edges[:-1] + edges[1:])

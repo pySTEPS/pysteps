@@ -41,12 +41,13 @@ def rapsd_logarithmic(field, min_stdev=0.1):
 
     Notes
     -----
-    Preserves the ``pysteps_param.power_spectrum_1D`` binning convention:
-    min(shape)//2 logarithmic edges from 1/(min(shape)//2) to the historical
-    diagonal frequency limit. This differs from :func:`rapsd` and deliberately
-    omits the lowest frequencies. Empty bins are omitted. Power is the squared
-    unscaled FFT of a zero-mean, unit-variance field, not annulus-integrated
-    energy. Real-FFT multiplicities reproduce the full Fourier-plane mean.
+    Use min(shape)//2 logarithmic edges, starting at 1/(min(shape)//2)
+    cycles per pixel. The upper edge is the diagonal radius formed from the
+    largest absolute frequencies in the first half of each FFT frequency array.
+    This differs from :func:`rapsd` and omits the lowest frequencies. Empty bins
+    are omitted. Power is the squared unscaled FFT of a zero-mean, unit-variance
+    field, not annulus-integrated energy. Real-FFT multiplicities reproduce the
+    full Fourier-plane mean.
     """
     if np.iscomplexobj(field):
         raise ValueError("field must contain real values")
@@ -67,6 +68,8 @@ def rapsd_logarithmic(field, min_stdev=0.1):
     rows, cols = field.shape
     fx, fy = np.fft.rfftfreq(cols), np.fft.fftfreq(rows)
     radius = np.hypot(fy[:, None], fx[None, :])
+    # The real FFT omits conjugate modes. Count them twice, except in the
+    # zero-frequency and (for even widths) Nyquist columns.
     weights = np.full(power.shape, 2.0)
     weights[:, 0] = 1.0
     if cols % 2 == 0:
@@ -76,6 +79,8 @@ def rapsd_logarithmic(field, min_stdev=0.1):
         np.max(np.abs(np.fft.fftfreq(rows)[: rows // 2])),
         np.max(np.abs(np.fft.fftfreq(cols)[: cols // 2])),
     )
+    # Keep logarithmic endpoints explicit: roundoff can move a Fourier mode
+    # between bins when it falls exactly on an edge.
     edges = np.logspace(np.log10(1 / n_bins), np.log10(maximum), n_bins)
     frequency, radial_power = [], []
     for lower, upper in zip(edges[:-1], edges[1:]):
@@ -103,8 +108,8 @@ def fit_power_law_spectrum(
     skip_bins: int, optional
         Number of initial bins excluded from regression (default 2).
     max_frequency: float, optional
-        Exclusive upper fit limit. Defaults preserve the source estimator's
-        interval of 10*log10(frequency) < -4 for pixel frequencies.
+        Exclusive upper fit limit, default 10**(-0.4) cycles per pixel.
+        Set this in matching units if supplying physical frequencies.
 
     Returns
     -------
@@ -167,6 +172,8 @@ def fit_power_law_spectrum(
             c2 = (beta_1 - beta_2) * breakpoint + c1
             return np.where(x <= breakpoint, beta_1 * x + c1, beta_2 * x + c2)
 
+        # This basis fits both slopes and a shared intercept while enforcing
+        # continuity at the fixed breakpoint.
         design = np.column_stack(
             [np.minimum(x, breakpoint), np.maximum(x - breakpoint, 0), np.ones(x.size)]
         )

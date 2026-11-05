@@ -1,12 +1,15 @@
 Calibrated stochastic rainfall fields
 =====================================
 
-The calibrated generator creates a NumPy rainfall-marginal field from an explicit
-statistical parameter mapping. It implements the ``inverse_calibrated_v2`` method
-extracted from ``pysteps_param``. It is a component of the parametric
-nowcast engine; ensemble state evolution and observation preparation are separate
-stages. See :ref:`sphx_glr_auto_examples_plot_calibrated_noise_generator.py`
-for a radar-data example using the new estimators, explicit moment selection,
+The calibrated generator creates random rainfall patterns from a rain fraction,
+a rain-intensity distribution, and spectral slopes describing spatial structure.
+It returns a NumPy array in transformed rainfall units. In parametric nowcasting,
+these fields provide new spatial variability at each forecast step.
+
+Here, the marginal distribution means the distribution of values across pixels,
+without regard to their positions. Spectral slopes describe how variability is
+distributed across spatial scales. See :ref:`sphx_glr_auto_examples_plot_calibrated_noise_generator.py`
+for a radar-data example using rainfall statistics, parameter selection,
 calibration diagnostics, rainfall distributions, spectra, and normalized
 cascade innovations. It uses the same Swiss composite as the original
 stochastic-noise tutorial on a complete subdomain.
@@ -49,12 +52,14 @@ target and calibrated parameters, settings, and all candidate estimates and
 distances. A finite returned field does not imply that the requested spectral
 tolerance was met.
 
-Preserved reference behaviour
------------------------------
+Generation and spectral correction
+----------------------------------
 
 Independent ``U(0,1)`` samples are FFT-filtered using half the signed power slopes
-as amplitude exponents. Both supplied slopes receive the default additive
-correction -0.5; the location and scale receive no inverse correction.
+as amplitude exponents. The resulting correlated field is mapped to the target
+rain-intensity distribution. This mapping also changes its spectrum. To
+compensate, both filter slopes receive an additive correction, default -0.5,
+before generation; the Normal location and scale are used as supplied.
 
 The histogram marginal mapper uses 500 bins and clips probabilities to
 ``[0.001, 0.999]``. It selects a wet-area cutoff using a bin's upper edge and maps
@@ -65,7 +70,7 @@ marginal matching are approximate.
 
 Spectra are assessed on a copy with values at or below the transformed rain
 threshold replaced by the dry value. The distance is
-``sqrt(sum((estimated_beta-target_beta)**2/beta_variances))`` with reference
+``sqrt(sum((estimated_beta-target_beta)**2/beta_variances))`` with default
 variances ``(0.067738, 0.076405)``. These are empirical weights. Fractions at or
 below 0.1 permit at most five attempts; higher fractions use one. The first
 candidate with distance at or below 1 is accepted. Otherwise the closest finite
@@ -73,8 +78,8 @@ candidate is selected, retaining the first exact tie. If all spectral assessment
 are unavailable, the last field is returned with an explicit failure status.
 
 The correction, weights, acceptance threshold, retry settings, bin count, and
-quantile clip can all be overridden. No reference defaults were retuned during
-this port.
+quantile clip can all be overridden. The correction and error weights are
+empirical and may need calibration for other rainfall data.
 
 Random streams and dry cases
 ----------------------------
@@ -111,22 +116,6 @@ interface; the calibrated parametric engine consumes this helper directly.
 
 The shared :func:`pysteps.postprocessing.probmatching.match_rainfall_distribution`
 also supports the post-AR marginal adjustment. Its default suppresses no positive
-rain fraction. The source post-AR dry policy is reproduced by explicitly passing
-``min_rain_fraction=0.025``; that policy is distinct from stochastic generation.
-
-Validation
-----------
-
-Frozen complete fields and diagnostics compare the port with original functions
-on seeded square/rectangular configurations. Tests also exercise filter exponents,
-physical units, histogram cutoff semantics, random-stream independence, all
-candidate-selection outcomes, and the source post-AR mapping. Fixtures include
-source revisions and hashes and are included in wheel package data.
-
-Saved paper fields provide additional comparisons at two seeds. Identical target
-parameters reproduce the original fields exactly in the recorded run. When the
-ported estimators supply slightly different least-squares slopes, the complete
-estimator-to-generator chain shows small numerical differences from histogram
-interpolation. The revision-specific report under ``doc/proposals/`` records
-those differences separately from identical-target generator parity. These checks
-do not constitute a complete nowcast or forecast-skill evaluation.
+rain fraction. The forecast passes ``min_rain_fraction=0.025`` to suppress
+very small target fractions after an AR update. Stochastic generation itself
+does not apply that cutoff.

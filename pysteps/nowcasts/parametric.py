@@ -2,7 +2,7 @@
 pysteps.nowcasts.parametric
 ===========================
 
-Three-observation parametric ensemble nowcasting, derived from pysteps_param.
+Generate parametric ensemble nowcasts from three rainfall observations.
 
 .. autosummary::
     :toctree: ../generated/
@@ -36,7 +36,8 @@ from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 from ._cascade_advection import advect_field, prepare_advection_coordinates
 
-# Evaluated nowcast_v2 settings, not the later plotting-only timescale fit.
+# Configurable estimation defaults. Low-rain-fraction replacements are regional
+# values from Auckland rainfall data; see the parametric nowcasting user guide.
 _ESTIMATION_DEFAULTS = dict(
     lower_truncation=1.25,
     temporal_exponent=0.81,
@@ -75,6 +76,7 @@ _NOISE_DEFAULTS = dict(
 
 
 def _finite(name, value):
+    """Validate and return a finite real scalar."""
     if not np.isscalar(value) or np.iscomplexobj(value):
         raise ValueError(f"{name} must be a finite real scalar")
     try:
@@ -87,6 +89,7 @@ def _finite(name, value):
 
 
 def _positive(name, value):
+    """Validate and return a positive real scalar."""
     value = _finite(name, value)
     if value <= 0:
         raise ValueError(f"{name} must be positive")
@@ -94,6 +97,7 @@ def _positive(name, value):
 
 
 def _integer(name, value, minimum=1):
+    """Validate an integer at or above the specified minimum."""
     if (
         isinstance(value, (bool, np.bool_))
         or not isinstance(value, (int, np.integer))
@@ -104,6 +108,7 @@ def _integer(name, value, minimum=1):
 
 
 def _options(name, supplied, defaults):
+    """Copy defaults and apply overrides, rejecting unknown setting names."""
     if supplied is None:
         return deepcopy(defaults)
     if not isinstance(supplied, Mapping):
@@ -117,6 +122,7 @@ def _options(name, supplied, defaults):
 
 
 def _estimation_settings(supplied, threshold, n_levels):
+    """Validate estimation settings against the threshold and cascade count."""
     settings = _options("estimation_kwargs", supplied, _ESTIMATION_DEFAULTS)
     for key in settings:
         if key not in (
@@ -169,6 +175,7 @@ def _estimation_settings(supplied, threshold, n_levels):
 
 
 def _noise_settings(supplied):
+    """Validate spectral-calibration and distribution-matching settings."""
     settings = _options("noise_kwargs", supplied, _NOISE_DEFAULTS)
     for key in ("spectral_bias", "low_war_threshold", "distance_threshold", "eps"):
         settings[key] = _finite(key, settings[key])
@@ -195,7 +202,7 @@ def _noise_settings(supplied):
 
 
 def _decompose(field, bp_filter):
-    """Reference normalization, with zero anomalies for exactly constant levels."""
+    """Normalize each cascade level, using zero anomalies for constant levels."""
     result = decomposition_fft(field, bp_filter, compute_stats=True, normalize=False)
     levels = result["cascade_levels"]
     if np.ptp(field) == 0:
@@ -210,7 +217,13 @@ def _decompose(field, bp_filter):
 
 
 def _generation_parameters(statistics, spectrum, reference_time, settings):
-    """Select moments, replace low-coverage triplet, then apply joint bounds."""
+    """Select intensity parameters and constrain slopes and persistence.
+
+    Prefer fitted Normal parameters when close to the wet-pixel sample moments.
+    For low rain fractions, replace both spectral slopes and reference time
+    together. Apply the slope and time bounds afterwards, retaining the raw
+    estimates and each selection in the returned audit dictionary.
+    """
     mu, sigma = statistics["ordinary_mean"], statistics["ordinary_stdev"]
     if not np.isfinite(mu) or not np.isfinite(sigma) or sigma <= 0:
         raise ValueError(
@@ -290,6 +303,42 @@ def _advance(
     noise_settings,
     min_rain_fraction,
 ):
+    """Advance one member by one observation interval.
+
+    Parameters
+    ----------
+    histories: sequence of dict
+        Two normalized cascade decompositions, newest first. Each contains
+        cascade_levels with shape (level, y, x). Histories are not modified.
+    parameters: mapping
+        Selected rain fraction, Normal intensity parameters, and spectral slopes.
+    phi: ndarray
+        Array of shape (level, 3): lag-1 coefficient, lag-2 coefficient, and
+        innovation coefficient returned by estimate_ar_params_yw.
+    bp_filter: dict
+        Gaussian cascade filter used for both histories and random fields.
+    coordinates: dict
+        Backward sampling coordinates for lags 1 and 2, in (y, x) order.
+    rng: numpy.random.Generator
+        Member-specific random stream, advanced in place.
+    threshold, zerovalue: float
+        Rain occurrence threshold and dry value in dBR.
+    kmperpixel, scale_break: float
+        Pixel spacing and spectral break wavelength in km.
+    noise_settings: dict
+        Calibration and histogram-mapping options.
+    min_rain_fraction: float
+        Target fraction below which distribution matching returns dry output.
+
+    Returns
+    -------
+    field: ndarray
+        Forecast field in dBR with shape (y, x), before boundary tapering.
+    diagnostics: dict
+        Calibration results for the random field used in this update.
+    """
+    # Generate rainfall variability, then normalize its cascade levels to obtain
+    # the innovations used in the autoregressive update.
     noise, diagnostics = generate_calibrated_field(
         bp_filter["shape"],
         parameters,
@@ -303,6 +352,8 @@ def _advance(
     )
     innovation = _decompose(noise, bp_filter)
     levels = np.empty_like(innovation["cascade_levels"])
+    # Bring both previous states to the forecast time before the AR(2) update.
+    # Zero anomalies outside the grid allow innovations to populate inflow.
     for k in range(len(levels)):
         levels[k] = (
             phi[k, 0] * advect_field(histories[0]["cascade_levels"][k], coordinates[1])
@@ -310,7 +361,8 @@ def _advance(
             * advect_field(histories[1]["cascade_levels"][k], coordinates[2])
             + phi[k, 2] * innovation["cascade_levels"][k]
         )
-    # Preserve source global normalization over levels AND space.
+    # Normalize over all levels and spatial pixels together. This couples the
+    # levels and differs from normalizing each updated level separately.
     stdev = np.std(levels)
     if stdev > 0.1:
         levels = (levels - np.mean(levels)) / stdev
@@ -322,6 +374,8 @@ def _advance(
         means=innovation["means"],
         stds=innovation["stds"],
     )
+    # Recompose with the innovation moments and restore the target rainfall
+    # distribution. The caller feeds this adjusted field into the next update.
     field = match_rainfall_distribution(
         recompose_fft(updated),
         parameters["rain_fraction"],
@@ -337,7 +391,13 @@ def _advance(
 
 
 def _velocity_from_dataset(dataset):
-    """Read fixed pixel displacements without xarray coordinate alignment."""
+    """Read fixed x/y displacements as an array with shape (2, y, x).
+
+    Return None if both velocity variables are absent. Otherwise require both
+    components, finite values, and dimensions (y, x) in either order. Values
+    are displacements in pixels per observation interval. Extract arrays before
+    stacking to avoid automatic xarray coordinate alignment.
+    """
     names = ("velocity_x", "velocity_y")
     present = [name in dataset.data_vars for name in names]
     if not any(present):
@@ -365,7 +425,14 @@ def _velocity_from_dataset(dataset):
 
 
 def _prepare_dataset(dataset, kmperpixel, timestep):
-    """Validate the physical grid and copy observations into canonical order."""
+    """Validate the grid and copy observations into (time, y, x) order.
+
+    Require three finite rain-rate fields, regularly spaced observation times,
+    and a regular grid with square pixels. Coordinate stepsize attributes must
+    match the actual spacing. Return the copied dataset, optional velocity,
+    pixel size in km, and observation interval in minutes. Explicit pixel-size
+    or interval overrides must agree with the coordinates.
+    """
     if not isinstance(dataset, xr.Dataset):
         raise ValueError("dataset must be an xarray.Dataset")
     precip_var = dataset.attrs.get("precip_var")
@@ -506,20 +573,21 @@ def forecast(
         Seed for independent member streams. Global RNG and supplied SeedSequence
         are not mutated. Prefix members agree when ensemble size is increased.
     motion_kwargs: dict, optional
-        Overrides of the reference dense Lucas-Kanade configuration. Ignored
+        Overrides of the default dense Lucas-Kanade configuration. Ignored
         when velocity is supplied; diagnostics record that motion source.
     estimation_kwargs: dict, optional
         Override marginal fitting, temporal scaling, moment selection, bounds,
-        and regional low-coverage fallbacks. See the parametric-nowcast user
-        guide for all keys and defaults. Reference time is in minutes.
+        and regional low-coverage fallbacks. See
+        :doc:`/user_guide/parametric_nowcast` for all keys and defaults.
+        Reference time is in minutes.
     temporal_fallback: dict, optional
         Configured temporal-only fallback with positive ``lzero`` (km) and
         ``tzero`` (minutes). If any observed AR(2) pair or the estimated
         reference time is invalid, use tzero*(wavelength/lzero)**temporal_exponent
         to construct all model correlations. Complete input grids and valid
         marginal/spatial estimates remain required. This mode disables the
-        legacy low-coverage spectral/persistence replacement. Cannot be combined
-        with an explicit estimation_kwargs reference_time override.
+        combined low-rain-fraction slope and reference-time replacement. Cannot
+        be combined with an explicit estimation_kwargs reference_time override.
     noise_kwargs: dict, optional
         Calibration controls for generate_calibrated_field; nbins and eps also
         control post-AR marginal mapping. Randomness is controlled by seed.
@@ -545,16 +613,18 @@ def forecast(
     Notes
     -----
     Fixed statistical parameters and motion are used throughout the forecast.
-    Eulerian histories are advected by their respective one/two-step maps before
-    adding normalized innovations. Marginal correction, boundary taper, and
-    re-decomposition feed back into the state; this is not native STEPS with a
-    different noise option. Zero normalized anomalies at inflow are supplemented
-    by innovations. A newest field with no rain at the occurrence threshold
-    gives a dry ensemble even if older fields were wet. Earlier dry fields use
+    The two previous cascade states are advected to the forecast time before
+    adding normalized random innovations. Distribution matching, boundary taper,
+    and re-decomposition feed back into the next state. In STEPS, output
+    probability matching is separate from the autoregressive state. Zero
+    normalized anomalies at inflow are supplemented by innovations. A newest
+    field with no rain at the occurrence threshold gives a dry ensemble even
+    if older fields were wet. Earlier dry fields use
     zero anomalies. Unavailable positive-rain moments raise rather than becoming
     dry forecasts. Dataset data are loaded eagerly; the numerical engine uses
-    NumPy arrays. No database is needed.
+    NumPy arrays.
     """
+    # Resolve grid geometry and cadence before working with NumPy arrays.
     dataset, velocity, kmperpixel, timestep = _prepare_dataset(
         dataset, kmperpixel, timestep
     )
@@ -617,6 +687,8 @@ def forecast(
         velocity = np.array(velocity, dtype=float, copy=True)
         if velocity.shape != (2, *shape) or not np.isfinite(velocity).all():
             raise ValueError("velocity must be finite with shape (2, y, x)")
+    # Give each member a separate stream; increasing ensemble size leaves the
+    # existing member streams unchanged. Copy a supplied SeedSequence first.
     if isinstance(seed, np.random.SeedSequence):
         root_seed = np.random.SeedSequence(
             seed.entropy, spawn_key=seed.spawn_key, pool_size=seed.pool_size
@@ -667,6 +739,8 @@ def forecast(
     dataset[precip_var].attrs.update(
         units="mm/h", threshold=rain_threshold, zerovalue=0.0
     )
+    # Estimate occurrence and intensity from the newest observation. A dry
+    # newest field has a defined result without estimating motion or spectra.
     statistics = compute_field_statistics(
         transformed[-1], threshold, estimation["lower_truncation"]
     )
@@ -702,6 +776,7 @@ def forecast(
         if velocity is None or velocity.shape != (2, *shape):
             raise ValueError("Motion estimator returned invalid velocity")
     diagnostics["velocity"] = velocity.copy()
+    # Estimate scale-dependent persistence from the three aligned observations.
     bp_filter = filter_gaussian(shape, n_cascade_levels)
     observed = [_decompose(field, bp_filter) for field in transformed]
     wavelengths = kmperpixel / bp_filter["central_freqs"]
@@ -741,6 +816,7 @@ def forecast(
             configuration=deepcopy(temporal_fallback),
         )
     temporal_selection["selected_reference_time_minutes"] = reference_time
+    # Fit spatial structure and select the parameters held fixed for all leads.
     frequency, power = rapsd_logarithmic(transformed[-1])
     spectrum = fit_power_law_spectrum(frequency, power, scale_break / kmperpixel)
     parameters, safeguards = _generation_parameters(
@@ -760,6 +836,7 @@ def forecast(
         timestep,
         return_diagnostics=True,
     )
+    # Convert model lag correlations to AR coefficients and innovation weights.
     phi = np.array([estimate_ar_params_yw(pair) for pair in model_lags])
     diagnostics.update(
         status="ok",
@@ -805,6 +882,8 @@ def forecast(
             physical[physical < rain_threshold] = 0
             if not np.isfinite(physical).all():
                 raise ValueError("Generated rainfall contains nonfinite values")
+            # Return physical rainfall before tapering. Only the feedback state
+            # is tapered and decomposed for the next forecast step.
             fields[member] = physical
             histories[member] = [
                 _decompose(field * taper, bp_filter),

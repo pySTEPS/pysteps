@@ -4,7 +4,16 @@ Parametric ensemble nowcasting
 ``pysteps.nowcasts.parametric.forecast`` takes three consecutive rain-rate
 observations and returns an ensemble in mm/h. Transformation, motion estimation,
 cascade decomposition, statistical estimation, and forecast evolution happen
-inside the call. No intermediate files or database are needed.
+inside the call. Each ensemble member represents one possible evolution of the
+rainfall field.
+
+The method describes rainfall using the fraction of rainy pixels, the
+rain-intensity distribution, spectral slopes describing spatial structure, and
+correlation times describing persistence at different spatial scales. It holds
+these statistics and motion fixed while individual rainfall patterns evolve.
+Rain intensity is modelled in dBR, defined as ``10*log10(R)`` for rain rate R in
+mm/h. A cascade separates this transformed field into bands of spatial scales;
+each band evolves with a second-order autoregressive, or AR(2), model.
 
 For observations stored in a v2 ``dataset`` with three time slices, ordered
 oldest to newest::
@@ -94,15 +103,14 @@ Callbacks continue to receive one NumPy array per lead. Native NetCDF export
 here writes the assembled dataset; incremental writing through the older
 exporter remains a separate interface.
 
-Reference settings and regional overrides
------------------------------------------
+Settings and regional calibration
+---------------------------------
 
-These defaults preserve the evaluated ``nowcast_v2`` engine configuration from
-``psteps_param_paper/config/db/config.json`` and the WRNZ acceptance configuration,
-combined with the identified numerical implementation and generation safeguards.
-They are a configurable regional reference, not universal calibration constants.
-The contribution record in ``doc/proposals/parametric_engine.md`` identifies
-source revisions and validation limits.
+The defaults provide a starting configuration. Rainfall thresholds, spectral
+corrections, temporal scaling, and parameter bounds may need adjustment for the
+region, spatial resolution, and observation interval. The low-rain-fraction
+replacement values below were derived from Auckland rainfall data; they are
+regional estimates rather than universal constants.
 
 Top-level settings:
 
@@ -129,7 +137,7 @@ Top-level settings:
      - Boundary-mask Gaussian width, pixels
    * - ``min_rain_fraction``
      - 0.025
-     - Post-AR suppression, strictly below
+     - Return dry rainfall for target fractions strictly below this value
 
 ``estimation_kwargs`` accepts these overrides (unknown keys raise):
 
@@ -158,15 +166,14 @@ positive scale, and within the configured normalized Euclidean distance of
 the ordinary pair. Otherwise the ordinary pair is used. Rain fraction and
 marginal moments are not clipped to a climatology. Below the low-coverage
 threshold, both slopes and reference time are replaced together before joint
-bounds are applied. These regional fallback medians were saved in the source
-``config/low_war_fallback.json`` from the Auckland archive; they can be replaced.
+bounds are applied. The replacement small-scale slope and reference time are
+medians from the Auckland archive; all three replacement values are configurable.
 
-The default reference time uses the largest cascade only, as in the evaluated
-engine. The standalone estimator defaults to three levels, reflecting the later
-selected paper analysis. To investigate that configuration, explicitly set
-``reference_levels=(0, 1, 2)`` and ``temporal_exponent=0.7718612877`` together.
-That later configuration has component support but does not inherit the forecast
-validation of the evaluated default. No automatic fallback drops failed levels.
+The forecast estimates reference time from the largest cascade level by default.
+The standalone estimator averages scale-adjusted times from three levels by
+default. Set ``reference_levels=(0, 1, 2)`` to use that approach in a forecast,
+and choose a temporal scaling exponent appropriate to the data. Every selected
+level must have a valid estimate; failed levels are not dropped automatically.
 Timescales use the one-sided discrete AR(2) ACF sum including lag zero; they are
 persistence summaries rather than forecast-skill horizons. Nominal wavelengths
 come from the actual Gaussian filter. Scale-specific times at or below one
@@ -179,8 +186,8 @@ The last two also control the post-AR marginal mapping. See
 :doc:`calibrated_generator` for calibration and finite-grid limitations.
 
 ``motion_kwargs`` overrides dense Lucas-Kanade settings. Mapping values such
-as ``lk_kwargs`` or ``fd_kwargs`` update the corresponding reference submapping.
-The reference has window (31,31), three pyramid levels, minimum eigenvalue
+as ``lk_kwargs`` or ``fd_kwargs`` update the corresponding default submapping.
+The defaults use window (31,31), three pyramid levels, minimum eigenvalue
 3e-5, Shi-Tomasi corners (400, quality 0.025, separation 5), IDW interpolation
 (8 neighbors, power 1.25), outlier settings 3.5 and 20, and declustering scale 8.
 It is estimated from two images, once, with no velocity perturbations.
@@ -203,9 +210,38 @@ prior can supply ``estimation_kwargs={"reference_time": 200.0}``. The raw failed
 estimate remains visible, and bounds still apply to the supplied prior.
 
 The post-AR fraction cutoff is separate: a valid positive target below 0.025
-produces dry output by the reference policy. Set ``min_rain_fraction=0.0`` to
-disable that suppression. The operational source's forecast-eligibility gate
-at 0.03 is outside this computational engine. Missing data is always an error.
+produces dry output. Set ``min_rain_fraction=0.0`` to disable that suppression.
+Missing data is always an error.
+
+Configured temporal fallback
+----------------------------
+
+A supplied temporal scaling model can replace unavailable persistence estimates::
+
+    ensemble, diagnostics = forecast(
+        dataset,
+        timesteps=12,
+        temporal_fallback={"lzero": 100.0, "tzero": 200.0},
+        seed=42,
+        return_diagnostics=True,
+    )
+
+These example values are illustrative. ``lzero`` is a positive reference
+wavelength in km, and ``tzero`` is its positive correlation time in minutes.
+If any observed AR(2) correlation time or the estimated reference time is invalid,
+the method constructs correlation times for all levels from
+``tzero * (wavelength / lzero)**temporal_exponent``. Requested times at or below
+one observation interval resolve to white noise, as in the ordinary temporal
+model. Diagnostics under ``temporal_selection`` record the selected source,
+reason, and configuration.
+
+Supplying ``temporal_fallback`` disables the combined low-rain-fraction
+replacement of both slopes and reference time, even when temporal fallback is
+not activated. Spatial estimates must therefore be available. Missing input,
+invalid motion, and unavailable marginal estimates remain errors. An activated
+fallback uses its configured time without clipping to
+``correlation_time_bounds``; spectral bounds still apply. This option cannot be
+combined with an explicit ``estimation_kwargs["reference_time"]`` override.
 
 State evolution and boundaries
 ------------------------------
@@ -217,7 +253,7 @@ with linear interpolation and zero normalized anomalies outside the domain.
 Normalized stochastic innovations are then added everywhere, including inflow.
 There is no second output-advection pass or periodic wrap of rainfall.
 
-After the reference global normalization across cascade levels and space,
+After normalization across all cascade levels and spatial pixels together,
 recomposition uses the innovation cascade's moments. Histogram-based marginal
 mapping is applied to the recomposed field. The engine returns its inverse dBR
 transform, then multiplies the transformed field by the smoothed one-step
@@ -226,9 +262,8 @@ feedback differs from native STEPS, which keeps its AR state separate from
 output probability matching. Raw calibrated fields retain a rainfall marginal;
 their cascade decomposition supplies normalized innovations.
 
-All calculations and results are float64. They precede the source workflow's
-NetCDF packing and storage. Outputs have no regional 200 mm/h cap; finite
-generated values are required. No input arrays or settings are modified.
+All calculations and results are float64, and generated values must be finite.
+Input observations and settings are not modified.
 
 Randomness, diagnostics, and incremental output
 -----------------------------------------------
@@ -251,6 +286,6 @@ Its copy can be modified without affecting state or retained output. Set
 histories and current fields rather than the full forecast horizon. Diagnostics
 can still be requested. Callback exceptions propagate to the caller.
 
-This first engine supports integer lead counts at the observation cadence,
+The method supports integer lead counts at the observation cadence,
 fixed motion and parameters, complete grids, and AR(2). Irregular output times,
 motion perturbations, and lead-dependent parameter blending remain extensions.

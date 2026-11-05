@@ -23,17 +23,20 @@ CORRELATION_TIME_DEFINITION = "ar_acf_sum_including_zero_v2"
 
 
 def _finite(name, value):
+    """Require a finite scalar."""
     if not np.isscalar(value) or not np.isfinite(value):
         raise ValueError(f"{name} must be finite")
 
 
 def _positive(name, value):
+    """Require a positive finite scalar."""
     _finite(name, value)
     if value <= 0:
         raise ValueError(f"{name} must be positive and finite")
 
 
 def _wavelengths(values):
+    """Return a nonempty one-dimensional array of positive wavelengths."""
     values = np.asarray(values, dtype=float)
     if (
         values.ndim != 1
@@ -81,6 +84,8 @@ def ar2_correlation_time(lag1, lag2, timestep, tol=1e-5):
         phi1 = lag1 * (1 - lag2) / denominator
         phi2 = (lag2 - lag1**2) / denominator
         total_denominator = 1 - phi1 - phi2
+        # Require stationary AR coefficients and denominators separated from
+        # zero; near-unit roots make the infinite correlation sum unstable.
         valid = (
             np.isfinite(lag1)
             & np.isfinite(lag2)
@@ -97,7 +102,9 @@ def ar2_correlation_time(lag1, lag2, timestep, tol=1e-5):
 
 
 def _adjust_nonperiodic_lag2(lag1, lag2):
-    # Rationalized equivalent of adjust_lag2_corrcoef2, stable also at lag1=0.
+    """Raise the lag-2 correlation to the nonperiodic AR(2) lower bound."""
+    # Algebraically equivalent to adjust_lag2_corrcoef2, but avoids division
+    # by lag1**2 and cancellation near zero.
     root = np.sqrt(1 - lag1**2)
     lower = lag1**2 * (1 + 2 * root) / (1 + root) ** 2
     return float(max(lag2, 2 * lag1 * lag2 - 1, lower))
@@ -138,6 +145,8 @@ def fit_ar2_correlations(correlation_time, alpha, timestep, return_diagnostics=F
 
     rho1 = rho2 = 0.0
     if correlation_time > timestep:
+        # Find a finite sign-changing bracket below the stationarity limit.
+        # Nonfinite residuals lower the upper search bound.
         lower, upper, candidate = 0.0, 1.0, 0.5
         bracket = None
         for _ in range(80):
@@ -188,8 +197,8 @@ def estimate_reference_correlation_time(
     exponent: float
         Fixed finite temporal scaling exponent, not estimated here.
     levels: sequence of int, optional
-        Zero-based contributing levels; defaults to (0, 1, 2), the selected
-        paper method. (0,) reproduces the production largest-level convention.
+        Zero-based contributing levels; defaults to (0, 1, 2). Use (0,) to
+        estimate the reference time from the largest cascade level alone.
     reference_wavelength: float, optional
         Reference length, default wavelengths[0].
 
@@ -312,10 +321,10 @@ def lagrangian_autocorrelation(
     min_stdev: float, optional
         Both aligned fields must exceed this population standard deviation.
     boundary: {'zero', 'mask'}, optional
-        'zero' preserves the evaluated production estimator: fill out-of-domain
-        pixels with zero after each unit step and correlate the whole grid.
-        'mask' preserves NaNs through advection and uses common finite support
-        across all lags. It changes the estimator and is an explicit alternative.
+        'zero' fills out-of-domain pixels with zero after each unit step and
+        correlates the whole grid. For normalized cascades, zero represents
+        the level mean. 'mask' preserves NaNs through advection and correlates
+        only pixels that are finite across all aligned lags.
 
     Returns
     -------
@@ -345,6 +354,7 @@ def lagrangian_autocorrelation(
     result = np.full((cascades.shape[1], ar_order), np.nan)
     for level in range(cascades.shape[1]):
         aligned = [cascades[-1, level]]
+        # Apply unit steps successively; a two-step field is interpolated twice.
         for lag in range(1, ar_order + 1):
             field = cascades[-(lag + 1), level]
             for _ in range(lag):

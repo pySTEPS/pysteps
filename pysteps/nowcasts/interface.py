@@ -12,15 +12,16 @@ The v2 nowcasting interface takes an xarray dataset:
 The dataset contains precipitation, spatial coordinates, observation times,
 projection metadata and, when supplied, velocity_x and velocity_y variables.
 The global ``precip_var`` attribute identifies the precipitation variable.
-The output dataset contains dimensions (time, y, x) for deterministic methods
+The output is an xarray.Dataset with dimensions (time, y, x) for deterministic methods
 or (ens_number, time, y, x) for ensemble methods. Method-specific forecast
 functions document their input history and optional settings.
 
 The ``parametric`` method requires exactly three complete, untransformed
 rain-rate observations in mm/h on a regular grid with square pixels. Pixel
-size and cadence are derived from coordinates; the time stepsize is in seconds.
+size and time step are derived from coordinates; the time coordinate's
+``stepsize`` attribute is in seconds.
 It estimates motion if velocity variables are absent and returns rain rates in
-mm/h. Its first release accepts integer timesteps only.
+mm/h. It accepts integer lead counts at the observation interval.
 
 .. autosummary::
     :toctree: ../generated/
