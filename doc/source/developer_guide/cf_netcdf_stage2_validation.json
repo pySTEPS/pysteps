@@ -1,0 +1,472 @@
+{
+  "date": "2026-11-05",
+  "scope": "Stage 2 shared metadata and affected numerical helpers; direct xarray serialization, not acceptance of the future importer/exporter or packing APIs",
+  "source": {
+    "base_revision": "f1a3af117a7085bef206a444edaa745b2431a9e7",
+    "branch": "cf-netcdf-io",
+    "state": "uncommitted development changes",
+    "sha256": {
+      "pysteps/dataset_metadata.py": "8cc3f7c46e71879f64e1afbff54e959a3ea7d1c4818d2ee71ef031d3fc1b0ca0",
+      "pysteps/xarray_helpers.py": "68a8ebecea3e92e1d45c5de4113aa5de1e8d97643740d4c9109c3ac3437e4116",
+      "pysteps/utils/conversion.py": "7e6f4dd494526dc046609a1dc6468225ee2b7bd83357b1bda4ca4784b1356e0a",
+      "pysteps/utils/dimension.py": "7893bc48cba2198058717727dc94526c50f1337c80f19cd75cca838923203d92",
+      "pysteps/io/readers.py": "1a9794368b4564db65acd66e19b3287f71b455cdfa2b6d6fea0f421b444b5347",
+      "pysteps/io/importers.py": "180503613430aa6d568ba0a923e74cb7f95486577684c5c802acabbdd76d5628",
+      "pysteps/io/exporters.py": "2184605a35b66fcf0172335faf468583362fbaed0e8c6dfa95e0668a731cb084",
+      "pysteps/tests/test_dataset_metadata.py": "cb8d1b8d6e4612ee1fa3cec40f8bbd9366fa5844f8178d9b1a65041dd0d4f9a7",
+      "pysteps/tests/cf_netcdf_stage2_acceptance.py": "e6921857f37cee0662231b8d1c296938d554d8407124f8e6edfbab4456c219fc",
+      "pysteps/tests/cf_netcdf_reference.py": "55eee9cf8831db2bff76936317abaa981b8d0de8d5d621fe4b5af7b239a6afd7",
+      "setup.py": "35fbc986f3b76d8040f37d39711070e6bce266a3849d8a856da8a3e694a9a46b"
+    }
+  },
+  "environment": {
+    "python": "3.13.18",
+    "pytest": "9.2.0",
+    "numpy": "2.5.4",
+    "xarray": "2026.9.0",
+    "netCDF4": "1.7.4",
+    "pyproj": "3.8.0"
+  },
+  "tests": {
+    "principal": {
+      "passed": 306,
+      "new_shared_metadata_checks": 73,
+      "warnings": 1,
+      "warning": "Existing ANVIL dry-field autoregression invalid divide",
+      "summary": "306 passed, 1 warning in 34.72s"
+    },
+    "additional": {
+      "passed": 8,
+      "deselected": 18,
+      "warnings": 16,
+      "warning": "Existing MRMS declared pixel size conflicts with grid edges and shape",
+      "selection": "test_importer_decorator.py test_nowcasts_steps.py -k \"callback or default_steps_norain or test_postprocess_import\"",
+      "summary": "8 passed, 18 deselected, 16 warnings in 91.65s (0:01:31)"
+    },
+    "local_configuration": {
+      "source_configuration_unchanged": true,
+      "temporary_configuration": "/tmp/pysteps-stage2-pystepsrc",
+      "fmi_geotiff_corrections": [
+        "Remove duplicate .tif suffix from fn_pattern; fn_ext supplies it",
+        "Use importer=fmi_geotiff rather than geotiff"
+      ]
+    }
+  },
+  "examples": {
+    "scope": "Stage 2 shared metadata and helper integration; no new file importer/exporter, packing implementation or forecast-skill claim",
+    "packages": {
+      "numpy": "2.5.4",
+      "xarray": "2026.9.0",
+      "netCDF4": "1.7.4",
+      "pyproj": "3.8.0"
+    },
+    "archive": {
+      "source": "Configured local MCH sample archive",
+      "input_files": [
+        {
+          "name": "AQC151351620F_00005.801.gif",
+          "sha256": "aa5bdc1a0229f12c3793364d350eb348451f2a6c1ad76cea57cc0165038a3fc4"
+        },
+        {
+          "name": "AQC151351625F_00005.801.gif",
+          "sha256": "1e221a9107a2cefd7598a56783301444d8d099706adf14a16ecfe7abba94bce3"
+        },
+        {
+          "name": "AQC151351630F_00005.801.gif",
+          "sha256": "03f31829aa45914ab9d75a82a59538453e689aedcec6c0e84b6e616cb74a4936"
+        }
+      ],
+      "input_times": [
+        "2015-05-15T16:20:00.000000",
+        "2015-05-15T16:25:00.000000",
+        "2015-05-15T16:30:00.000000"
+      ],
+      "output_times": [
+        "2015-05-15T16:35:00.000000",
+        "2015-05-15T16:40:00.000000",
+        "2015-05-15T16:50:00.000000"
+      ],
+      "shape": [
+        3,
+        320,
+        355
+      ],
+      "missing_pixels": 111652,
+      "mask_preserved_by_normalization": true,
+      "numerical_values_preserved_by_normalization": true,
+      "lead_steps": [
+        1,
+        2,
+        4
+      ],
+      "rate_threshold_mmph": 0.1,
+      "modelling_floor_dbr": -15.0
+    },
+    "inventory": {
+      "instantaneous_rate": {
+        "bytes": 30583,
+        "sha256": "a727c22ed0d0943b7674275491974f5ed0c9cf9aa8e34362cf4482bccf936210",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "mean_rate": {
+        "bytes": 32913,
+        "sha256": "6a305225761988b7c87aec39c333be7f48af7af678c044cde5285220341b5e61",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "interval_depth": {
+        "bytes": 32922,
+        "sha256": "e40141638dad6a799aefb90270503ceaea38bde2c2d7a60903e216d7291e6c0a",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "cumulative_depth": {
+        "bytes": 33650,
+        "sha256": "1fb559e1ca5d8d6dae76f1573a073add290eb8de19a2f0fca37846a1dcc83992",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "reflectivity": {
+        "bytes": 33574,
+        "sha256": "31e1726092a292fc069b1510dd88e69df256ce6c7b5ce6923d09ae05b0f10ac4",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "ensemble_rate": {
+        "bytes": 31225,
+        "sha256": "bbfd9b279085e5f052879dc6b10f6798fca1ab5455b30818eff6325a0e247cf6",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "multiple_variables": {
+        "bytes": 38788,
+        "sha256": "a753309416581c343e71dd4bcf2f56ce9b6f72e7723588f4286353aeae95ab75",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "unit_alias_rate": {
+        "bytes": 30583,
+        "sha256": "a727c22ed0d0943b7674275491974f5ed0c9cf9aa8e34362cf4482bccf936210",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "all_missing": {
+        "bytes": 30583,
+        "sha256": "a41ec07c79423082f247ae2c4c8caa47f98ce6a3058905fb665c4e4eb3b19f51",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "polar_sphere": {
+        "bytes": 29174,
+        "sha256": "35d4ff6e6fb2a3447ba03549fa8215d3df10e348506bc076572d46dd3c708e61",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "albers": {
+        "bytes": 30501,
+        "sha256": "0688eced0e0cb350bd965ef5effebe2af0ba3b88f7b2a26a75ae59f235ec8413",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "projected_without_latlon": {
+        "bytes": 28800,
+        "sha256": "732299577a1daa70442fe4bb8776fc02aa473e4f98af434a31e00e6a97164c84",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "converted_mean": {
+        "bytes": 35665,
+        "sha256": "a70bff68aefad712c5a2387d28690833e7877e32e6301dbc39151bdef8e1ac2a",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "integrated_point": {
+        "bytes": 33146,
+        "sha256": "f86c5d3e674d17d421f04e7a609cccefecbed2739b07e73fa5411a7e5e46566c",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "aggregated_depth": {
+        "bytes": 32773,
+        "sha256": "6f07ef7fc14002325893c854b630537cbd240a56d75f6c0656ba18ac00bceb0f",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "forecast_mean_sparse": {
+        "bytes": 33136,
+        "sha256": "9adc825f3f576834ccf4594984702751c3c897dd9617e2b374d6efc6afa1df88",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "dbz_to_rate": {
+        "bytes": 33587,
+        "sha256": "6f39d08926a272024a24fcf9ffb8485e8705ee7cecdc7c7b82b16557adfe7728",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "midpoint_mean": {
+        "bytes": 33186,
+        "sha256": "d8796bb693cc9fa27c61af22f2a2189dc0963c78b4709fc3cbab8dfb734eede3",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "partial_aggregation": {
+        "bytes": 33432,
+        "sha256": "ea29e4a4a738333c55621dbee674804d2e7493ce5af1fcd4ff0e53e44f15d97c",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      },
+      "archived_radar_forecast": {
+        "bytes": 4583840,
+        "sha256": "c44b60276afb64e77cee67bae6f7864915fcb393a741978e90c1716db8ae0378",
+        "decoded_values_masks_coordinates_preserved": true,
+        "classic_numeric_time_member_types": true
+      }
+    }
+  },
+  "cf_validation": {
+    "checker": "compliance-checker 6.1.0",
+    "cf_units": "3.3.1",
+    "standard": "cf:1.8",
+    "criteria": "strict",
+    "skipped_checks": [],
+    "standard_name_table": {
+      "version": 95,
+      "url": "https://cfconventions.org/Data/cf-standard-names/95/src/cf-standard-name-table.xml",
+      "sha256": "d202558c2f2d0bf99e9fd4fbf8b8450902c56e09e7974b70b8726e740bbd51ba"
+    },
+    "command": "CF_STANDARD_NAME_TABLE=/path/to/v95.xml compliance-checker -t cf:1.8 -c strict -f json_new -o /tmp/cf-stage2-checks.json /tmp/cf-stage2/*.nc",
+    "unmodified_results": {
+      "aggregated_depth.nc": {
+        "scored_points": 229,
+        "possible_points": 229,
+        "failures": []
+      },
+      "albers.nc": {
+        "scored_points": 218,
+        "possible_points": 218,
+        "failures": []
+      },
+      "all_missing.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      },
+      "archived_radar_forecast.nc": {
+        "scored_points": 261,
+        "possible_points": 262,
+        "failures": [
+          {
+            "priority": "high_priorities",
+            "name": "\u00a75.6 Horizontal Coordinate Reference Systems, Grid Mappings, Projections",
+            "points": [
+              13,
+              14
+            ],
+            "messages": [
+              "azimuth is a required attribute for grid mapping oblique_mercator"
+            ]
+          }
+        ]
+      },
+      "converted_mean.nc": {
+        "scored_points": 255,
+        "possible_points": 255,
+        "failures": []
+      },
+      "cumulative_depth.nc": {
+        "scored_points": 242,
+        "possible_points": 242,
+        "failures": []
+      },
+      "dbz_to_rate.nc": {
+        "scored_points": 249,
+        "possible_points": 249,
+        "failures": []
+      },
+      "ensemble_rate.nc": {
+        "scored_points": 240,
+        "possible_points": 240,
+        "failures": []
+      },
+      "forecast_mean_sparse.nc": {
+        "scored_points": 250,
+        "possible_points": 250,
+        "failures": []
+      },
+      "instantaneous_rate.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      },
+      "integrated_point.nc": {
+        "scored_points": 229,
+        "possible_points": 229,
+        "failures": []
+      },
+      "interval_depth.nc": {
+        "scored_points": 227,
+        "possible_points": 227,
+        "failures": []
+      },
+      "mean_rate.nc": {
+        "scored_points": 229,
+        "possible_points": 229,
+        "failures": []
+      },
+      "midpoint_mean.nc": {
+        "scored_points": 246,
+        "possible_points": 246,
+        "failures": []
+      },
+      "multiple_variables.nc": {
+        "scored_points": 302,
+        "possible_points": 302,
+        "failures": []
+      },
+      "partial_aggregation.nc": {
+        "scored_points": 265,
+        "possible_points": 265,
+        "failures": []
+      },
+      "polar_sphere.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      },
+      "projected_without_latlon.nc": {
+        "scored_points": 169,
+        "possible_points": 169,
+        "failures": []
+      },
+      "reflectivity.nc": {
+        "scored_points": 246,
+        "possible_points": 246,
+        "failures": []
+      },
+      "unit_alias_rate.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      }
+    },
+    "schema_correction": {
+      "reason": "Checker 6.1.0 requires azimuth for Oblique Mercator; CF-1.8 Appendix F requires azimuth_of_central_line, which is already present in the written file",
+      "source": "https://cfconventions.org/Data/cf-conventions/cf-conventions-1.8/cf-conventions.html#_oblique_mercator",
+      "location": "compliance_checker.cf.appendix_f.grid_mapping_dict17[\"oblique_mercator\"][0]",
+      "before": "azimuth",
+      "after": "azimuth_of_central_line",
+      "method": "Replace only the required key in memory before invoking cchecker.py; all tests, scoring and strict criteria retained; no file metadata changed"
+    },
+    "corrected_schema_results": {
+      "aggregated_depth.nc": {
+        "scored_points": 229,
+        "possible_points": 229,
+        "failures": []
+      },
+      "albers.nc": {
+        "scored_points": 218,
+        "possible_points": 218,
+        "failures": []
+      },
+      "all_missing.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      },
+      "archived_radar_forecast.nc": {
+        "scored_points": 262,
+        "possible_points": 262,
+        "failures": []
+      },
+      "converted_mean.nc": {
+        "scored_points": 255,
+        "possible_points": 255,
+        "failures": []
+      },
+      "cumulative_depth.nc": {
+        "scored_points": 242,
+        "possible_points": 242,
+        "failures": []
+      },
+      "dbz_to_rate.nc": {
+        "scored_points": 249,
+        "possible_points": 249,
+        "failures": []
+      },
+      "ensemble_rate.nc": {
+        "scored_points": 240,
+        "possible_points": 240,
+        "failures": []
+      },
+      "forecast_mean_sparse.nc": {
+        "scored_points": 250,
+        "possible_points": 250,
+        "failures": []
+      },
+      "instantaneous_rate.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      },
+      "integrated_point.nc": {
+        "scored_points": 229,
+        "possible_points": 229,
+        "failures": []
+      },
+      "interval_depth.nc": {
+        "scored_points": 227,
+        "possible_points": 227,
+        "failures": []
+      },
+      "mean_rate.nc": {
+        "scored_points": 229,
+        "possible_points": 229,
+        "failures": []
+      },
+      "midpoint_mean.nc": {
+        "scored_points": 246,
+        "possible_points": 246,
+        "failures": []
+      },
+      "multiple_variables.nc": {
+        "scored_points": 302,
+        "possible_points": 302,
+        "failures": []
+      },
+      "partial_aggregation.nc": {
+        "scored_points": 265,
+        "possible_points": 265,
+        "failures": []
+      },
+      "polar_sphere.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      },
+      "projected_without_latlon.nc": {
+        "scored_points": 169,
+        "possible_points": 169,
+        "failures": []
+      },
+      "reflectivity.nc": {
+        "scored_points": 246,
+        "possible_points": 246,
+        "failures": []
+      },
+      "unit_alias_rate.nc": {
+        "scored_points": 219,
+        "possible_points": 219,
+        "failures": []
+      }
+    }
+  },
+  "limits": [
+    "Scoped regression tests only, not the complete upstream suite",
+    "Minimum dependency versions were not independently tested",
+    "No new file API, lazy resource-ownership, packed-storage or performance acceptance",
+    "No second independent high-level CF reader or forecast-skill validation",
+    "Document syntax and references checked with docutils plus local Sphinx role/directive adapters, not a full Sphinx build"
+  ]
+}

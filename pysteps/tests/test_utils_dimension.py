@@ -229,7 +229,7 @@ test_data_time = [
 def test_aggregate_fields_time(data, metadata, time_window_min, ignore_nan, expected):
     """Test the aggregate_fields_time."""
     dataset_ref = convert_input_to_xarray_dataset(
-        data, None, {**fillvalues_metadata, **metadata}
+        data, None, {**fillvalues_metadata, **metadata, "accutime": 1.0}
     )
     datasets = []
     for timestamp in metadata["timestamps"]:
@@ -240,9 +240,13 @@ def test_aggregate_fields_time(data, metadata, time_window_min, ignore_nan, expe
 
     dataset = xr.concat(datasets, dim="time")
     assert_array_equal(
-        dimension.aggregate_fields_time(dataset, time_window_min, ignore_nan)[
-            "precip_intensity" if metadata["unit"] == "mm/h" else "precip_accum"
-        ].values,
+        dimension.aggregate_fields_time(
+            dataset,
+            time_window_min,
+            ignore_nan,
+            legacy=True,
+            integration="constant" if metadata["unit"] == "mm/h" else None,
+        )["precip_intensity" if metadata["unit"] == "mm/h" else "precip_accum"].values,
         expected,
     )
 

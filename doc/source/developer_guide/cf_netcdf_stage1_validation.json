@@ -1,0 +1,155 @@
+{
+  "date": "2026-11-05",
+  "scope": "Independent stage 1 reference files; not production exporter validation",
+  "checker": "compliance-checker 6.1.0",
+  "criteria": "strict",
+  "standard": "cf:1.8",
+  "skipped_checks": [],
+  "standard_name_table": {
+    "version": 95,
+    "url": "https://cfconventions.org/Data/cf-standard-names/95/src/cf-standard-name-table.xml",
+    "sha256": "d202558c2f2d0bf99e9fd4fbf8b8450902c56e09e7974b70b8726e740bbd51ba"
+  },
+  "command": "CF_STANDARD_NAME_TABLE=/path/to/v95.xml compliance-checker -t cf:1.8 -c strict -f json_new -o /tmp/cf-checks.json /tmp/cf-reference/*.nc",
+  "results": {
+    "albers.nc": {
+      "scored_points": 213,
+      "possible_points": 213,
+      "failures": []
+    },
+    "all_missing.nc": {
+      "scored_points": 214,
+      "possible_points": 214,
+      "failures": []
+    },
+    "cumulative_depth.nc": {
+      "scored_points": 238,
+      "possible_points": 238,
+      "failures": []
+    },
+    "ensemble_rate.nc": {
+      "scored_points": 235,
+      "possible_points": 235,
+      "failures": []
+    },
+    "instantaneous_rate.nc": {
+      "scored_points": 214,
+      "possible_points": 214,
+      "failures": []
+    },
+    "interval_depth.nc": {
+      "scored_points": 223,
+      "possible_points": 223,
+      "failures": []
+    },
+    "mean_rate.nc": {
+      "scored_points": 223,
+      "possible_points": 223,
+      "failures": []
+    },
+    "multiple_variables.nc": {
+      "scored_points": 295,
+      "possible_points": 295,
+      "failures": []
+    },
+    "polar_sphere.nc": {
+      "scored_points": 214,
+      "possible_points": 214,
+      "failures": []
+    },
+    "projected_without_latlon.nc": {
+      "scored_points": 164,
+      "possible_points": 164,
+      "failures": []
+    },
+    "reflectivity.nc": {
+      "scored_points": 241,
+      "possible_points": 241,
+      "failures": []
+    },
+    "unit_alias_rate.nc": {
+      "scored_points": 214,
+      "possible_points": 214,
+      "failures": []
+    }
+  },
+  "inventory": {
+    "instantaneous_rate": {
+      "file": "instantaneous_rate.nc",
+      "sha256": "245726c1820c08bc318dbaadb0e98adcc5e864ec5996de679384ea0b630d184c",
+      "bytes": 24227
+    },
+    "mean_rate": {
+      "file": "mean_rate.nc",
+      "sha256": "76cc9f94299798b877b4f1c75d702a9f84bbc9d03813d5d05222aaf5874b64e1",
+      "bytes": 26600
+    },
+    "interval_depth": {
+      "file": "interval_depth.nc",
+      "sha256": "f45c92121e367531d482f0dac877cab4e20c2748ae7be0cafa4fb2f5d53e250c",
+      "bytes": 26606
+    },
+    "cumulative_depth": {
+      "file": "cumulative_depth.nc",
+      "sha256": "6468a01252ba7d87d8088deab28e690e3e4ddf4a56d4d3651403f7ab1d525264",
+      "bytes": 27334
+    },
+    "reflectivity": {
+      "file": "reflectivity.nc",
+      "sha256": "6b882968da75ede066dbfc012f057f5d364f5a9a29d4b9b9d1fb941e1cce4d9f",
+      "bytes": 27518
+    },
+    "ensemble_rate": {
+      "file": "ensemble_rate.nc",
+      "sha256": "504926fb45c1ae286c7250dc0766acb46347f9bf82b21c1cea85073d1b7bd608",
+      "bytes": 25050
+    },
+    "multiple_variables": {
+      "file": "multiple_variables.nc",
+      "sha256": "2613c151b7ecd887ec1553c4f7e472520744d1c4e8814193f5538bfe2b563ec6",
+      "bytes": 32237
+    },
+    "unit_alias_rate": {
+      "file": "unit_alias_rate.nc",
+      "sha256": "f98cb5b5be9d59f0fccbcebb30d4eab9a01b5b5727b93076c31b23a656833182",
+      "bytes": 24226
+    },
+    "all_missing": {
+      "file": "all_missing.nc",
+      "sha256": "b331dfdd15b7e085818cbb4f8e2918ef08824b43aa2fa591cbdb2e0ad0dc438b",
+      "bytes": 24227
+    },
+    "polar_sphere": {
+      "file": "polar_sphere.nc",
+      "sha256": "2230391eea0b9cb28620afc5965a3f6829115bdb6957bbc346ee9d6a7dff514e",
+      "bytes": 23936
+    },
+    "albers": {
+      "file": "albers.nc",
+      "sha256": "4092e21a35b18cee8a0c825b8299528767786fd31b3e491d0b96b65c88aa9567",
+      "bytes": 24145
+    },
+    "projected_without_latlon": {
+      "file": "projected_without_latlon.nc",
+      "sha256": "a5b2366cc75b30bc3f48d3c0a4d4a806eb4608a3ac1f2609adad5685ba01fc9a",
+      "bytes": 21796
+    }
+  },
+  "reference_source_sha256": "55eee9cf8831db2bff76936317abaa981b8d0de8d5d621fe4b5af7b239a6afd7",
+  "tests": {
+    "existing_baseline": {
+      "passed": 73,
+      "warnings": 72
+    },
+    "reference_only": {
+      "passed": 18
+    },
+    "combined_final": {
+      "passed": 91,
+      "warnings": 72,
+      "seconds": 9.92
+    },
+    "log_sha256": "0f5a130d6c79a0df8c15ebf3c2288879003271833fda87c1e652671786da979e"
+  },
+  "documentation_checks": "docutils 0.22.4 parsing with Sphinx ref/download/toctree stubs, link validation and git diff --check; not a full Sphinx build"
+}

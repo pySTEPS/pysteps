@@ -97,6 +97,7 @@ from importlib.metadata import version as get_version
 import numpy as np
 
 from pysteps.exceptions import MissingOptionalDependency
+from pysteps.dataset_metadata import cf_grid_mapping, unit_spec, variable_metadata
 
 try:
     from osgeo import gdal, osr
@@ -465,6 +466,11 @@ def initialize_forecast_exporter_netcdf(
             "pyproj package is required for netcdf " "exporters but it is not installed"
         )
 
+    if unit_spec(metadata["unit"])[2] != 1:
+        raise ValueError(
+            "Legacy NetCDF exporter requires canonical physical values; normalize units before export"
+        )
+
     if incremental not in [None, "timestep", "member"]:
         raise ValueError(
             f"unknown option {incremental}: incremental must be "
@@ -519,23 +525,12 @@ def initialize_forecast_exporter_netcdf(
     ncf.createDimension("y", size=h)
     ncf.createDimension("x", size=w)
 
-    if metadata["unit"] == "mm/h":
-        var_name = "precip_intensity"
-        var_standard_name = "instantaneous_precipitation_rate"
-        var_long_name = "instantaneous precipitation rate"
-        var_unit = "mm h-1"
-    elif metadata["unit"] == "mm":
-        var_name = "precip_accum"
-        var_standard_name = "accumulated_precipitation"
-        var_long_name = "accumulated precipitation"
-        var_unit = "mm"
-    elif metadata["unit"] == "dBZ":
-        var_name = "reflectivity"
-        var_long_name = "equivalent reflectivity factor"
-        var_standard_name = "equivalent_reflectivity_factor"
-        var_unit = "dBZ"
-    else:
-        raise ValueError("unknown unit %s" % metadata["unit"])
+    var_name, physical_attrs = variable_metadata(metadata["unit"])
+    var_standard_name = physical_attrs["standard_name"]
+    var_long_name = physical_attrs["long_name"]
+    var_unit = (
+        "mm h-1" if physical_attrs["units"] == "mm/h" else physical_attrs["units"]
+    )
 
     xr = np.linspace(metadata["x1"], metadata["x2"], w + 1)[:-1]
     xr += 0.5 * (xr[1] - xr[0])
@@ -886,72 +881,16 @@ def _export_netcdf(field, exporter):
         var_ens_num[len(var_ens_num) - 1] = len(var_ens_num)
 
 
-# TODO(exporters): Write methods for converting Proj.4 projection definitions
-# into CF grid mapping attributes. Currently this has been implemented for
-# the stereographic projection.
-# The conversions implemented here are take from:
-# https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
-
-
-def _convert_proj4_to_grid_mapping(proj4str):
-    tokens = proj4str.split("+")
-
-    d = {}
-    for t in tokens[1:]:
-        t = t.split("=")
-        if len(t) > 1:
-            d[t[0]] = t[1].strip()
-
-    params = {}
-    # TODO(exporters): implement more projection types here
-    if d["proj"] == "stere":
-        grid_mapping_var_name = "polar_stereographic"
-        grid_mapping_name = "polar_stereographic"
-        v = d["lon_0"] if d["lon_0"][-1] not in ["E", "W"] else d["lon_0"][:-1]
-        params["straight_vertical_longitude_from_pole"] = float(v)
-        v = d["lat_0"] if d["lat_0"][-1] not in ["N", "S"] else d["lat_0"][:-1]
-        params["latitude_of_projection_origin"] = float(v)
-        if "lat_ts" in list(d.keys()):
-            params["standard_parallel"] = float(d["lat_ts"])
-        elif "k_0" in list(d.keys()):
-            params["scale_factor_at_projection_origin"] = float(d["k_0"])
-        params["false_easting"] = float(d["x_0"])
-        params["false_northing"] = float(d["y_0"])
-    elif d["proj"] == "aea":  # Albers Conical Equal Area
-        grid_mapping_var_name = "proj"
-        grid_mapping_name = "albers_conical_equal_area"
-        params["false_easting"] = float(d["x_0"]) if "x_0" in d else float(0)
-        params["false_northing"] = float(d["y_0"]) if "y_0" in d else float(0)
-        v = d["lon_0"] if "lon_0" in d else float(0)
-        params["longitude_of_central_meridian"] = float(v)
-        v = d["lat_0"] if "lat_0" in d else float(0)
-        params["latitude_of_projection_origin"] = float(v)
-        v1 = d["lat_1"] if "lat_1" in d else float(0)
-        v2 = d["lat_2"] if "lat_2" in d else float(0)
-        params["standard_parallel"] = (float(v1), float(v2))
-    elif d["proj"] == "lcc":
-        grid_mapping_var_name = "lcc"
-        grid_mapping_name = "lambert_conformal_conic"
-        params["false_easting"] = float(d["x_0"]) if "x_0" in d else float(0)
-        params["false_northing"] = float(d["y_0"]) if "y_0" in d else float(0)
-        v = d["lon_0"] if "lon_0" in d else float(0)
-        params["longitude_of_central_meridian"] = float(v)
-        v = d["lat_0"] if "lat_0" in d else float(0)
-        params["latitude_of_projection_origin"] = float(v)
-        v1 = d["lat_1"] if "lat_1" in d else float(0)
-        v2 = d["lat_2"] if "lat_2" in d else float(0)
-        params["standard_parallel"] = (float(v1), float(v2))
-        v = d["ellps"] if "ellps" in d else ""
-        if len(v):
-            params["reference_ellipsoid_name"] = v
-        v = d["towgs84"] if "towgs84" in d else ""
-        if len(v):
-            params["towgs84"] = v
-    else:
-        print("unknown projection", d["proj"])
-        return None, None, None
-
-    return grid_mapping_var_name, grid_mapping_name, params
+def _convert_proj4_to_grid_mapping(projection):
+    """Legacy variable names over the shared complete CRS metadata builder."""
+    attrs = cf_grid_mapping(projection, projected=False)
+    mapping = attrs.pop("grid_mapping_name")
+    name = {
+        "polar_stereographic": "polar_stereographic",
+        "albers_conical_equal_area": "proj",
+        "lambert_conformal_conic": "lcc",
+    }.get(mapping, "crs")
+    return name, mapping, attrs
 
 
 def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):

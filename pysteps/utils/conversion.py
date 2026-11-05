@@ -1,321 +1,335 @@
-# -*- coding: utf-8 -*-
-"""
-pysteps.utils.conversion
-========================
+"""Conversions between physical rain rate, interval depth and reflectivity.
 
-Methods for converting physical units.
-
-.. autosummary::
-    :toctree: ../generated/
-
-    to_rainrate
-    to_raindepth
-    to_reflectivity
+Time support is retained when converting depths to interval mean rates. An
+instantaneous rate requires an explicit constant-in-time integration rule to
+produce a depth. ``legacy=True`` permits an explicit accutime duration for old
+in-memory fields lacking CF bounds; cadence is never used as a duration.
 """
 
-import warnings
-
+import numpy as np
 import xarray as xr
 
-from pysteps.xarray_helpers import cf_parameters_from_unit
-
+from pysteps.dataset_metadata import (
+    cadence_seconds,
+    clear_packing,
+    interval_durations,
+    linked,
+    normalize_units,
+    select_variable,
+    set_time_metadata,
+    temporal_axis,
+    temporal_method,
+    time_bounds,
+    unit_spec,
+    variable_metadata,
+)
 from . import transformation
 
-# TODO: This should not be done. Instead fix the code so that it doesn't
-# produce the warnings.
-# to deactivate warnings for comparison operators with NaNs
-warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-
-def _change_unit(dataset: xr.Dataset, precip_var: str, new_unit: str) -> xr.Dataset:
-    new_var, new_attrs = cf_parameters_from_unit(new_unit)
-    dataset = dataset.rename_vars({precip_var: new_var})
-    dataset.attrs["precip_var"] = new_var
-
-    dataset[new_var].attrs = {
-        **dataset[new_var].attrs,
-        **new_attrs,
-    }
-
-    return dataset
-
-
-def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
-    """
-    Convert to rain rate [mm/h].
-
-    Parameters
-    ----------
-    dataset: xarray.Dataset
-        Dataset to be (back-)transformed as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
-
-        Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required,
-        but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation,
-        that is, zr_a = 200.0 and zr_b = 1.6.
-    zr_a, zr_b: float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
-
-    Returns
-    -------
-    dataset: xarray.Dataset
-        Dataset containing the converted units.
-    """
-
+def _prepare(dataset):
     dataset = dataset.copy(deep=True)
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-
-    if "transform" in metadata:
-        if metadata["transform"] == "dB":
-            dataset = transformation.dB_transform(dataset, inverse=True)
-
-        elif metadata["transform"] in ["BoxCox", "log"]:
-            dataset = transformation.boxcox_transform(dataset, inverse=True)
-
-        elif metadata["transform"] == "NQT":
-            dataset = transformation.NQ_transform(dataset, inverse=True)
-
-        elif metadata["transform"] == "sqrt":
-            dataset = transformation.sqrt_transform(dataset, inverse=True)
-
-        else:
-            raise ValueError(f'Unknown transformation {metadata["transform"]}')
-
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-    precip_data = dataset[precip_var].values
-
-    if metadata["units"] == "mm/h":
+    variable = dataset.attrs.get("precip_var") or select_variable(dataset)
+    dataset.attrs["precip_var"] = variable
+    quantity = unit_spec(dataset[variable].attrs.get("units"))[0]
+    marker = dataset[variable].attrs.get("transform")
+    if marker is not None and not (quantity == "reflectivity" and marker == "dB"):
+        inverse = {
+            "dB": transformation.dB_transform,
+            "BoxCox": transformation.boxcox_transform,
+            "log": transformation.boxcox_transform,
+            "sqrt": transformation.sqrt_transform,
+            "NQT": transformation.NQ_transform,
+        }.get(marker)
+        if inverse is None:
+            raise ValueError(f"Unknown transformation {marker!r}")
+        dataset = inverse(dataset, inverse=True)
+    dataset[variable].attrs.pop("transform", None)
+    dataset = normalize_units(dataset, variable)
+    try:
+        time = temporal_axis(dataset, variable)
+    except ValueError:
         pass
-
-    elif metadata["units"] == "mm":
-        threshold = metadata["threshold"]  # convert the threshold, too
-        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
-
-        precip_data = precip_data / float(metadata["accutime"]) * 60.0
-        threshold = threshold / float(metadata["accutime"]) * 60.0
-        zerovalue = zerovalue / float(metadata["accutime"]) * 60.0
-
-        metadata["threshold"] = threshold
-        metadata["zerovalue"] = zerovalue
-
-    elif metadata["units"] == "dBZ":
-        threshold = metadata["threshold"]  # convert the threshold, too
-        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
-
-        # Z to R
-        if zr_a is None:
-            zr_a = metadata.get("zr_a", 200.0)  # default to Marshall–Palmer
-        if zr_b is None:
-            zr_b = metadata.get("zr_b", 1.6)  # default to Marshall–Palmer
-        precip_data = (precip_data / zr_a) ** (1.0 / zr_b)
-        threshold = (threshold / zr_a) ** (1.0 / zr_b)
-        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b)
-
-        metadata["zr_a"] = zr_a
-        metadata["zr_b"] = zr_b
-        metadata["threshold"] = threshold
-        metadata["zerovalue"] = zerovalue
-
     else:
-        raise ValueError(
-            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to mm/h'
-        )
+        cadence_seconds(dataset[time])
+    values = dataset[variable].values
+    if np.isinf(values).any() or (quantity != "reflectivity" and np.any(values < 0)):
+        raise ValueError("Invalid physical precipitation values")
+    return dataset, variable, quantity
 
-    dataset[precip_var].data[:] = precip_data
-    dataset = _change_unit(dataset, precip_var, "mm/h")
+
+def _interval_support(dataset, variable, legacy):
+    duration = interval_durations(dataset, variable, legacy=legacy)
+    if legacy:
+        try:
+            axis = temporal_axis(dataset, variable)
+        except ValueError:
+            pass  # Explicit array-only compatibility has no dated support to store.
+        else:
+            if linked(dataset[axis], "bounds") is None:
+                bounds = time_bounds(dataset, variable, legacy=True)
+                dataset = set_time_metadata(dataset, variable, bounds)
+                dataset.attrs["history"] = (
+                    dataset.attrs.get("history", "")
+                    + "\nLegacy accutime interpreted as an interval ending at supplied valid time"
+                ).strip()
+    return dataset, duration
+
+
+def _coefficients(dataset, variable, zr_a, zr_b):
+    attrs = dataset[variable].attrs
+    a = float(zr_a if zr_a is not None else attrs.get("zr_a", 200.0))
+    b = float(zr_b if zr_b is not None else attrs.get("zr_b", 1.6))
+    if not np.isfinite([a, b]).all() or a <= 0 or b <= 0:
+        raise ValueError("Z-R coefficients must be positive finite numbers")
+    sources = [
+        "argument" if arg is not None else "metadata" if key in attrs else "default"
+        for key, arg in (("zr_a", zr_a), ("zr_b", zr_b))
+    ]
+    attrs.update(zr_a=a, zr_b=b, zr_source="a:" + sources[0] + ",b:" + sources[1])
+    return a, b
+
+
+def _scale_metadata(dataset, variable, function, unit):
+    """Keep varying thresholds as linked fields rather than misleading scalars."""
+    attrs = dataset[variable].attrs.copy()
+    existing_parameters = [
+        name
+        for name in (attrs.get("ancillary_variables") or "").split()
+        if name in dataset
+        and dataset[name].attrs.get("pysteps_parameter") in ("threshold", "zerovalue")
+    ]
+    for parameter in existing_parameters:
+        metadata = dataset[parameter].attrs.copy()
+        dataset[parameter] = function(dataset[parameter])
+        dataset[parameter].attrs = {**metadata, "units": unit}
+        clear_packing(dataset[parameter])
+    for key in ("threshold", "zerovalue"):
+        if key not in attrs:
+            continue
+        value = function(attrs[key])
+        data = np.asarray(value)
+        if data.size and np.allclose(data, data.flat[0], equal_nan=True):
+            attrs[key] = float(data.flat[0])
+        elif isinstance(value, xr.DataArray):
+            name = variable + "_" + key
+            if name in dataset:
+                raise ValueError(f"Conversion would overwrite {name!r}")
+            dataset[name] = value
+            dataset[name].attrs = {
+                "long_name": key + " for " + variable,
+                "units": unit,
+                "pysteps_parameter": key,
+                "pysteps_parameter_of": variable,
+            }
+            attrs.pop(key)
+            attrs["ancillary_variables"] = " ".join(
+                filter(None, [attrs.get("ancillary_variables"), name])
+            )
+        else:
+            raise ValueError(f"Cannot represent varying {key} without a coordinate")
+    dataset[variable].attrs = attrs
     return dataset
 
 
-def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
-    """
-    Convert to rain depth [mm].
-
-    Parameters
-    ----------
-    dataset: xarray.Dataset
-        Dataset to be (back-)transformed as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
-
-        Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required,
-        but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation, that is,
-        zr_a = 200.0 and zr_b = 1.6.
-    zr_a, zr_b: float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
-
-    Returns
-    -------
-    dataset: xarray.Dataset
-        Dataset containing the converted units.
-    """
-
-    dataset = dataset.copy(deep=True)
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-
-    if "transform" in metadata:
-        if metadata["transform"] == "dB":
-            dataset = transformation.dB_transform(dataset, inverse=True)
-
-        elif metadata["transform"] in ["BoxCox", "log"]:
-            dataset = transformation.boxcox_transform(dataset, inverse=True)
-
-        elif metadata["transform"] == "NQT":
-            dataset = transformation.NQ_transform(dataset, inverse=True)
-
-        elif metadata["transform"] == "sqrt":
-            dataset = transformation.sqrt_transform(dataset, inverse=True)
-
-        else:
-            raise ValueError(f'Unknown transformation {metadata["transform"]}')
-
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-    precip_data = dataset[precip_var].values
-
-    if metadata["units"] == "mm" and "transform" not in metadata:
-        pass
-
-    elif metadata["units"] == "mm/h":
-        threshold = metadata["threshold"]  # convert the threshold, too
-        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
-
-        precip_data = precip_data / 60.0 * metadata["accutime"]
-        threshold = threshold / 60.0 * metadata["accutime"]
-        zerovalue = zerovalue / 60.0 * metadata["accutime"]
-
-        metadata["threshold"] = threshold
-        metadata["zerovalue"] = zerovalue
-
-    elif metadata["units"] == "dBZ":
-        threshold = metadata["threshold"]  # convert the threshold, too
-        zerovalue = metadata["zerovalue"]  # convert the zerovalue, too
-
-        # Z to R
-        if zr_a is None:
-            zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall–Palmer
-        if zr_b is None:
-            zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
-        precip_data = (precip_data / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
-        threshold = (threshold / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
-        zerovalue = (zerovalue / zr_a) ** (1.0 / zr_b) / 60.0 * metadata["accutime"]
-
-        metadata["zr_a"] = zr_a
-        metadata["zr_b"] = zr_b
-        metadata["threshold"] = threshold
-        metadata["zerovalue"] = zerovalue
-
-    else:
+def _finish(dataset, variable, values, unit, method=None, name=None):
+    default, metadata = variable_metadata(unit, method)
+    target = name or default
+    if target != variable and target in dataset:
         raise ValueError(
-            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to mm'
+            f"Conversion would overwrite {target!r}; select another result name"
         )
-
-    dataset[precip_var].data[:] = precip_data
-    dataset = _change_unit(dataset, precip_var, "mm")
+    attrs = {**dataset[variable].attrs, **metadata}
+    if isinstance(values, xr.DataArray):
+        dataset[variable] = (values.dims, values.data)
+    else:
+        dataset[variable] = (dataset[variable].dims, values)
+    dataset[variable].attrs = attrs
+    clear_packing(dataset[variable])
+    if target != variable:
+        dataset = dataset.rename_vars({variable: target})
+    dataset.attrs["precip_var"] = target
+    for auxiliary in (dataset[target].attrs.get("ancillary_variables") or "").split():
+        if (
+            auxiliary in dataset
+            and dataset[auxiliary].attrs.get("pysteps_parameter_of") == variable
+        ):
+            dataset[auxiliary].attrs["pysteps_parameter_of"] = target
+    try:
+        bounds = time_bounds(dataset, target)
+        dataset = set_time_metadata(dataset, target, bounds, method)
+    except ValueError:
+        # Legacy array-only conversion has no time axis. Do not suppress errors
+        # in a dated field, especially malformed or conflicting bounds.
+        if any(
+            dim == "time" or dataset[dim].attrs.get("standard_name") == "time"
+            for dim in dataset[target].dims
+            if dim in dataset.coords
+        ):
+            raise
     return dataset
 
 
-def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
+def to_rainrate(dataset, zr_a=None, zr_b=None, *, legacy=False, name=None):
+    """Convert to mm/h, preserving interval support when input is a depth.
+
+    Z-R parameters come from arguments, metadata, or the recorded historical
+    defaults (200, 1.6). No-detection flags/floors are preserved as dry values.
     """
-    Convert to reflectivity [dBZ].
-
-    Parameters
-    ----------
-    dataset: xarray.Dataset
-        Dataset to be (back-)transformed as described in the documentation of
-        :py:mod:`pysteps.io.importers`.
-
-        Additionally, in case of conversion to/from reflectivity units, the
-        zr_a and zr_b attributes are also required,
-        but only if zr_a = zr_b = None.
-        If missing, it defaults to Marshall–Palmer relation, that is,
-        zr_a = 200.0 and zr_b = 1.6.
-    zr_a, zr_b: float, optional
-        The a and b coefficients of the Z-R relationship (Z = a*R^b).
-
-    Returns
-    -------
-    dataset: xarray.Dataset
-        Dataset containing the converted units.
-    """
-
-    dataset = dataset.copy(deep=True)
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-
-    if "transform" in metadata:
-        if metadata["transform"] == "dB":
-            dataset = transformation.dB_transform(dataset, inverse=True)
-
-        elif metadata["transform"] in ["BoxCox", "log"]:
-            dataset = transformation.boxcox_transform(dataset, inverse=True)
-
-        elif metadata["transform"] == "NQT":
-            dataset = transformation.NQ_transform(dataset, inverse=True)
-
-        elif metadata["transform"] == "sqrt":
-            dataset = transformation.sqrt_transform(dataset, inverse=True)
-
-        else:
-            raise ValueError(f'Unknown transformation {metadata["transform"]}')
-
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-    precip_data = dataset[precip_var].values
-
-    if metadata["units"] == "mm/h":
-        # Z to R
-        if zr_a is None:
-            zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall–Palmer
-        if zr_b is None:
-            zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall–Palmer
-
-        precip_data = zr_a * precip_data**zr_b
-        metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
-        metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
-        metadata["zr_a"] = zr_a
-        metadata["zr_b"] = zr_b
-
-    elif metadata["units"] == "mm":
-        # depth to rate
-        dataset = to_rainrate(dataset)
-
-        precip_var = dataset.attrs["precip_var"]
-        metadata = dataset[precip_var].attrs
-        precip_data = dataset[precip_var].values
-
-        # Z to R
-        if zr_a is None:
-            zr_a = metadata.get("zr_a", 200.0)  # Default to Marshall-Palmer
-        if zr_b is None:
-            zr_b = metadata.get("zr_b", 1.6)  # Default to Marshall-Palmer
-        precip_data = zr_a * precip_data**zr_b
-        metadata["threshold"] = zr_a * metadata["threshold"] ** zr_b
-        metadata["zerovalue"] = zr_a * metadata["zerovalue"] ** zr_b
-        metadata["zr_a"] = zr_a
-        metadata["zr_b"] = zr_b
-
-    elif metadata["units"] == "dBZ":
-        pass
-
-    else:
-        raise ValueError(
-            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to dBZ'
+    dataset, variable, quantity = _prepare(dataset)
+    values = dataset[variable]
+    method = temporal_method(dataset, variable)
+    if quantity == "depth":
+        dataset, duration = _interval_support(dataset, variable, legacy)
+        factor = 3600 / duration
+        dataset = _scale_metadata(dataset, variable, lambda x: x * factor, "mm/h")
+        values = values * factor
+        method = "mean"
+    elif quantity == "reflectivity":
+        a, b = _coefficients(dataset, variable, zr_a, zr_b)
+        convert = lambda x: (10 ** (x / 10) / a) ** (1 / b)
+        values = convert(values)
+        attrs = dataset[variable].attrs
+        floor = attrs.get(
+            "pysteps_no_detection_value", attrs.get("zerovalue") if not legacy else None
         )
+        if floor is not None:
+            values = values.where(dataset[variable] != floor, 0)
+        for auxiliary in (
+            linked(dataset[variable], "ancillary_variables") or ""
+        ).split():
+            if auxiliary in dataset and dataset[auxiliary].attrs.get(
+                "flag_meanings", ""
+            ).split() == ["not_detected", "detected"]:
+                codes = dataset[auxiliary].attrs.get("flag_values")
+                if codes is not None and len(codes) == 2:
+                    values = values.where(dataset[auxiliary] != codes[0], 0)
+        if "threshold" in attrs:
+            attrs["threshold"] = float(convert(attrs["threshold"]))
+        if "zerovalue" in attrs or floor is not None:
+            attrs["zerovalue"] = 0.0
+        attrs.pop("pysteps_no_detection_value", None)
+        method = "point"
+    return _finish(dataset, variable, values, "mm/h", method, name)
 
-    dataset[precip_var].data[:] = precip_data
-    # Z to dBZ
-    dataset = transformation.dB_transform(dataset)
 
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-    precip_data = dataset[precip_var].values
+def to_raindepth(
+    dataset,
+    zr_a=None,
+    zr_b=None,
+    *,
+    integration=None,
+    duration_seconds=None,
+    legacy=False,
+    name=None,
+):
+    """Convert to mm using interval support or explicit constant-rate integration.
 
-    dataset[precip_var].data[:] = precip_data
-    dataset = _change_unit(dataset, precip_var, "dBZ")
-    return dataset
+    ``integration='constant'`` declares a backward constant rate over the
+    requested duration, ending at each valid time. A duration is never inferred
+    from cadence. For array-only legacy fields accutime supplies the duration.
+    """
+    dataset, variable, quantity = _prepare(dataset)
+    if quantity == "depth":
+        return _finish(dataset, variable, dataset[variable], "mm", "sum", name)
+    if quantity == "reflectivity":
+        dataset = to_rainrate(dataset, zr_a, zr_b, legacy=legacy)
+        variable = dataset.attrs["precip_var"]
+    method = temporal_method(dataset, variable)
+    if method == "point":
+        if integration != "constant":
+            raise ValueError(
+                "Point rate to depth requires integration='constant' and an explicit duration"
+            )
+        duration = duration_seconds
+        if duration is None and legacy:
+            minutes = dataset[variable].attrs.get("accutime")
+            duration = None if minutes is None else float(minutes) * 60
+        if (
+            duration is None
+            or not np.isscalar(duration)
+            or not np.isfinite(duration)
+            or duration <= 0
+        ):
+            raise ValueError(
+                "A positive duration_seconds is required for point integration"
+            )
+        dataset.attrs["history"] = (
+            dataset.attrs.get("history", "")
+            + f"\nIntegrated an explicitly constant rate over {duration:g} seconds ending at valid time"
+        ).strip()
+        try:
+            time = temporal_axis(dataset, variable)
+        except ValueError:
+            if not legacy:
+                raise
+        else:
+            ends = dataset[time].values.astype("datetime64[us]")
+            bounds = np.column_stack(
+                [ends - np.timedelta64(int(round(duration * 1e6)), "us"), ends]
+            )
+            dataset[variable].attrs.pop("accutime", None)
+            dataset = set_time_metadata(dataset, variable, bounds)
+    else:
+        if integration is not None or duration_seconds is not None:
+            raise ValueError(
+                "Interval mean rate already has support; do not override its duration"
+            )
+        dataset, duration = _interval_support(dataset, variable, legacy)
+    factor = duration / 3600
+    dataset = _scale_metadata(dataset, variable, lambda x: x * factor, "mm")
+    values = dataset[variable] * factor
+    return _finish(dataset, variable, values, "mm", "sum", name)
+
+
+def to_reflectivity(dataset, zr_a=None, zr_b=None, *, legacy=False, name=None):
+    """Convert physical rain to dBZ without conflating dBZ with log rain.
+
+    Finite positive trace values are not thresholded away. A supplied positive
+    rain threshold defines a finite no-detection floor for zero rain; otherwise
+    converting dry zero to a finite dBZ value requires an explicit policy.
+    """
+    dataset, variable, quantity = _prepare(dataset)
+    if quantity == "reflectivity":
+        return _finish(dataset, variable, dataset[variable], "dBZ", "point", name)
+    if quantity == "depth":
+        dataset = to_rainrate(dataset, zr_a, zr_b, legacy=legacy)
+        variable = dataset.attrs["precip_var"]
+    method = temporal_method(dataset, variable)
+    if method == "mean" and not legacy:
+        raise ValueError(
+            "A Z-R relation applied to interval mean rain does not recover instantaneous reflectivity"
+        )
+    a, b = _coefficients(dataset, variable, zr_a, zr_b)
+    attrs = dataset[variable].attrs
+    convert = lambda x: 10 * np.log10(a * x**b)
+    threshold = attrs.get("threshold")
+    floor = None
+    if threshold is not None and threshold > 0:
+        attrs["threshold"] = float(convert(threshold))
+        floor = attrs["threshold"] - 5
+        attrs["zerovalue"] = floor
+        attrs["pysteps_no_detection_value"] = floor
+        attrs["pysteps_no_detection_source"] = (
+            "5 dBZ below converted supplied rain threshold"
+        )
+    if bool((dataset[variable] == 0).any()) and floor is None:
+        raise ValueError(
+            "Dry zero requires an explicit positive threshold/no-detection policy for finite dBZ"
+        )
+    values = convert(dataset[variable].where(dataset[variable] > 0))
+    if floor is not None:
+        values = values.where(dataset[variable] != 0, floor)
+    # Interval-mean pseudo-reflectivity is available only through the explicit
+    # compatibility path; retaining its interval prevents an instantaneous label.
+    result = _finish(dataset, variable, values, "dBZ", None, name)
+    if method == "mean":
+        time = (
+            temporal_axis(result, result.attrs["precip_var"])
+            if "time" in result
+            else "time"
+        )
+        result[result.attrs["precip_var"]].attrs["cell_methods"] = f"{time}: mean"
+        result[result.attrs["precip_var"]].attrs[
+            "pysteps_zr_mean_assumption"
+        ] = "Z-R applied to mean rate"
+    return result

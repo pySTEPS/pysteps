@@ -245,6 +245,13 @@ def test_convert_proj4_to_grid_mapping(proj4str, expected_value):
     """
     test the grid mapping in function _convert_proj4_to_grid_mapping()
     """
-    output = _convert_proj4_to_grid_mapping(proj4str)
+    from pyproj import CRS
 
-    assert output == expected_value
+    name, mapping, attributes = _convert_proj4_to_grid_mapping(proj4str)
+    assert (name, mapping) == expected_value[:2]
+    restored = CRS.from_cf({"grid_mapping_name": mapping, **attributes})
+    assert restored.equals(CRS.from_user_input(proj4str), ignore_axis_order=True)
+    for key, value in expected_value[2].items():
+        if key not in ("reference_ellipsoid_name", "towgs84"):
+            np.testing.assert_allclose(attributes[key], value)
+    assert "crs_wkt" in attributes

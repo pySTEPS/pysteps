@@ -726,7 +726,7 @@ def _import_bom_rf3_geodata(ds_rainfall):
 
     if start_time is not None:
         if valid_time is not None:
-            time_step = (valid_time - start_time).seconds // 60
+            time_step = (valid_time - start_time).total_seconds() / 60.0
 
     geodata["accutime"] = time_step
 

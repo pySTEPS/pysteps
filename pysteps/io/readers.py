@@ -16,6 +16,13 @@ import warnings
 import numpy as np
 import xarray as xr
 
+from pysteps.dataset_metadata import (
+    set_time_metadata,
+    temporal_method,
+    time_bounds,
+    utc_datetime,
+)
+
 
 def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset | None:
     """
@@ -66,7 +73,7 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
     sorted_dates = sorted(inputfns[1])
     timestep_dates = None
     if len(sorted_dates) > 1:
-        timestep_dates = int((sorted_dates[1] - sorted_dates[0]).total_seconds())
+        timestep_dates = float((sorted_dates[1] - sorted_dates[0]).total_seconds())
 
     if timestep is None and timestep_dates is None:
         raise ValueError("either provide a timestep or provide more than one inputfn")
@@ -80,7 +87,12 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
         )
         timestep = timestep_dates
     for i in range(len(sorted_dates) - 1):
-        if int((sorted_dates[i + 1] - sorted_dates[i]).total_seconds()) != timestep:
+        if not np.isclose(
+            (sorted_dates[i + 1] - sorted_dates[i]).total_seconds(),
+            timestep,
+            rtol=1e-9,
+            atol=1e-6,
+        ):
             raise ValueError("supplied dates are not evenly spaced")
 
     datasets = []
@@ -94,22 +106,44 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
             # In case this has rain over the entire domain, the no precip threshold
             # might be higher than the actual zero value.
             # Here we check all time steps and use the lowest value overall.
-            dataset_ref[precip_var_ref].attrs["threshold"] = min(
-                dataset_ref[precip_var_ref].attrs["threshold"],
-                dataset_[precip_var].attrs["threshold"],
-            )
+            if (
+                "threshold" in dataset_ref[precip_var_ref].attrs
+                and "threshold" in dataset_[precip_var].attrs
+            ):
+                dataset_ref[precip_var_ref].attrs["threshold"] = min(
+                    dataset_ref[precip_var_ref].attrs["threshold"],
+                    dataset_[precip_var].attrs["threshold"],
+                )
         else:
             dataset_ = dataset_ref * np.nan
         dataset_ = dataset_.expand_dims(dim="time", axis=0)
         dataset_ = dataset_.assign_coords(
             time=(
                 "time",
-                [inputfns[1][i]],
-                {"long_name": "forecast time", "stepsize": timestep},
+                [utc_datetime(inputfns[1][i])],
+                {
+                    "standard_name": "time",
+                    "long_name": "valid time",
+                    "stepsize": float(timestep),
+                },
                 {"units": f"seconds since {startdate:%Y-%m-%d %H:%M:%S}"},
             )
         )
+        variable = dataset_.attrs["precip_var"]
+        if temporal_method(dataset_, variable) != "point":
+            bounds = time_bounds(dataset_, variable, legacy=True)
+            if bounds is None:
+                raise ValueError("Legacy interval input needs an explicit duration")
+            dataset_ = set_time_metadata(dataset_, variable, bounds)
         datasets.append(dataset_)
 
     dataset = xr.concat(datasets, dim="time")
+    variable = dataset.attrs["precip_var"]
+    if temporal_method(dataset, variable) != "point":
+        dataset[variable].attrs.pop("accutime", None)
+        dataset = set_time_metadata(dataset, variable, time_bounds(dataset, variable))
+        dataset.attrs["history"] = (
+            dataset.attrs.get("history", "")
+            + "\nLegacy duration interpreted as interval ending at archive valid time"
+        ).strip()
     return dataset

@@ -46,6 +46,7 @@ __ https://github.com/pySTEPS/pysteps
 
     Contributing Guide <developer_guide/contributors_guidelines>
     Importer plugins <developer_guide/importer_plugins>
+    CF NetCDF I/O design <developer_guide/cf_netcdf_io_design>
     Testing <developer_guide/test_pysteps>
     Building the docs <developer_guide/build_the_docs>
     Packaging <developer_guide/pypi>
