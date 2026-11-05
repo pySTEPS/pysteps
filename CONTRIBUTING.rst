@@ -38,7 +38,7 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 * Work on your changes
 * Test your changes
 * Push to your fork repository
-* Create a new PR in GitHub.
+* Create a new PR on the pysteps GitHub.
 
 
 Setting up the Development environment
