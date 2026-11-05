@@ -50,7 +50,7 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 Setting up the Development environment
 --------------------------------------
 
-The recommended way to setup up the developer environment is with :code:`uv`.
+The recommended way to set up the developer environment is with :code:`uv`.
 uv quickly installs, runs, and updates packages and their dependencies.
 It also allows you to create, save, load, and switch between different environments on your local computer.
 
