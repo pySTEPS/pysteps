@@ -674,7 +674,7 @@ class StepsNowcaster:
         them in time. This prepares the precipitation fields for autoregressive modeling.
         """
         # Determine the precipitation threshold mask if conditional is set
-        if self.__config.conditional:
+        if self.__config.precip_threshold:
             self.__state.mask_threshold = np.logical_and.reduce(
                 [
                     self.__precip[i, :, :] >= self.__config.precip_threshold

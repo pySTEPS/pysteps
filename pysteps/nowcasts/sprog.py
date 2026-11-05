@@ -217,7 +217,7 @@ def forecast(
         )
 
     # determine the precipitation threshold mask
-    if conditional:
+    if precip_thr is not None:
         mask_thr = np.logical_and.reduce(
             [precip[i, :, :] >= precip_thr for i in range(precip.shape[0])]
         )

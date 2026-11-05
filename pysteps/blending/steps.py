@@ -897,14 +897,22 @@ class StepsBlendingNowcaster:
                 % self.__config.mask_method
             )
 
-        if self.__config.conditional and self.__params.precip_threshold is None:
-            raise ValueError("conditional=True but precip_thr is not set")
-
-        if (
-            self.__config.mask_method is not None
-            and self.__params.precip_threshold is None
-        ):
-            raise ValueError("mask_method!=None but precip_thr=None")
+        if self.__config.precip_threshold is None:
+            if self.__config.conditional:
+                raise ValueError("conditional=True but precip_thr is not specified.")
+            if self.__config.mask_method is not None:
+                raise ValueError("mask_method is set but precip_thr is not specified.")
+            if self.__config.probmatching_method == "mean":
+                raise ValueError(
+                    "probmatching_method='mean' but precip_thr is not specified."
+                )
+            if (
+                self.__config.noise_method is not None
+                and self.__config.noise_stddev_adj == "auto"
+            ):
+                raise ValueError(
+                    "noise_stddev_adj='auto' but precip_thr is not specified."
+                )
 
         if self.__config.noise_stddev_adj not in ["auto", "fixed", None]:
             raise ValueError(
@@ -1089,7 +1097,7 @@ class StepsBlendingNowcaster:
         for zero-precip areas. The results are stored in class attributes.
         """
         # determine the precipitation threshold mask
-        if self.__config.conditional:
+        if self.__config.precip_threshold is not None:
             # TODO: is this logical_and correct here? Now only those places where precip is in all images is saved?
             self.__params.mask_threshold = np.logical_and.reduce(
                 [
