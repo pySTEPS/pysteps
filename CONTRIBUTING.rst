@@ -292,7 +292,6 @@ Here is an example of a docstring::
 Contributions guidelines
 ------------------------
 
-Collaborators guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 As a collaborator, all your new contributions should be made in a new branch under your forked repository, or
