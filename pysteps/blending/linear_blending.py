@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 pysteps.nowcasts.linear_blending
 ================================
@@ -182,11 +181,9 @@ def forecast(
                     precip_nowcast = np.repeat(precip_nowcast, repeats, axis=0)
 
         # Check if dimensions are correct
-        assert precip_nwp.shape[-2:] == precip_nowcast.shape[-2:], (
-            "The x and y dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {} and dimension of precip_nowcast = {}".format(
-                precip_nwp.shape[-2:], precip_nowcast.shape[-2:]
-            )
-        )
+        assert (
+            precip_nwp.shape[-2:] == precip_nowcast.shape[-2:]
+        ), f"The x and y dimensions of precip_nowcast and precip_nwp need to be identical: dimension of precip_nwp = {precip_nwp.shape[-2:]} and dimension of precip_nowcast = {precip_nowcast.shape[-2:]}"
 
         # Ensure we are not working with nans in the bleding.
         # Check if the NWP data contains any nans. If so, fill them with 0.0.
