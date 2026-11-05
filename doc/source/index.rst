@@ -36,7 +36,7 @@ __ https://github.com/pySTEPS/pysteps
    API Reference <pysteps_reference/index>
    Parametric rainfall estimators <user_guide/parametric_estimators>
    Calibrated stochastic rainfall fields <user_guide/calibrated_generator>
-   Parametric ensemble nowcasting <user_guide/parametric_nowcast>
+   Parametric nowcasting and simulation <user_guide/parametric_nowcast>
    Example data <user_guide/example_data>
    Configuration file (pystepsrc) <user_guide/set_pystepsrc>
    Machine learning applications <user_guide/machine_learning_pysteps>

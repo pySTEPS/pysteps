@@ -1,11 +1,13 @@
-Parametric ensemble nowcasting
-==============================
+Parametric nowcasting and simulation
+====================================
 
 ``pysteps.nowcasts.parametric.forecast`` takes three consecutive rain-rate
 observations and returns an ensemble in mm/h. Transformation, motion estimation,
 cascade decomposition, statistical estimation, and forecast evolution happen
 inside the call. Each ensemble member represents one possible evolution of the
-rainfall field.
+rainfall field. For simulations with prescribed rainfall statistics and motion,
+use :func:`pysteps.nowcasts.parametric.simulate` instead. Both interfaces share
+the same numerical evolution.
 
 The method describes rainfall using the fraction of rainy pixels, the
 rain-intensity distribution, spectral slopes describing spatial structure, and
@@ -14,6 +16,9 @@ these statistics and motion fixed while individual rainfall patterns evolve.
 Rain intensity is modelled in dBR, defined as ``10*log10(R)`` for rain rate R in
 mm/h. A cascade separates this transformed field into bands of spatial scales;
 each band evolves with a second-order autoregressive, or AR(2), model.
+
+Nowcasting from observations
+----------------------------
 
 For observations stored in a v2 ``dataset`` with three time slices, ordered
 oldest to newest::
@@ -63,9 +68,8 @@ Both components must be present together and finite. Otherwise dense
 Lucas-Kanade motion is estimated from the latest two transformed observations.
 Statistical parameters and motion remain fixed throughout each forecast.
 
-See :ref:`sphx_glr_auto_examples_plot_parametric_nowcast.py` for a runnable
-synthetic dataset example. For the complete Swiss radar workflow, including
-clipping, aggregation, plotting, and a lossless NetCDF round trip, see
+For the complete Swiss radar nowcasting workflow, including clipping,
+aggregation, plotting, and a lossless NetCDF round trip, see
 :ref:`sphx_glr_auto_examples_plot_parametric_nowcast_swiss.py`. The common
 dataset model is described in :py:mod:`pysteps.io.importers`.
 
@@ -243,10 +247,99 @@ fallback uses its configured time without clipping to
 ``correlation_time_bounds``; spectral bounds still apply. This option cannot be
 combined with an explicit ``estimation_kwargs["reference_time"]`` override.
 
+Simulation with prescribed parameters
+-------------------------------------
+
+:func:`pysteps.nowcasts.parametric.simulate` uses supplied rainfall parameters
+and motion to generate stochastic time series. The initial fields provide the
+cascade states; they are not used to estimate the generation parameters.
+This is useful for controlled experiments with specified rainfall statistics.
+See :ref:`sphx_glr_auto_examples_plot_parametric_simulation.py` for a complete
+example that constructs its initial history and a uniform advection field.
+
+Supply the same three-field dataset used by ``forecast``, including both
+``velocity_x`` and ``velocity_y`` variables. Their values are displacements in
+pixels per observation interval. Motion is required even for a dry target;
+use zero-valued components for no advection. The latest two fields initialize
+the AR(2) state. The oldest field is accepted and validated for consistency
+with the forecast input interface.
+
+For an initial ``dataset`` prepared in this way::
+
+    from pysteps.nowcasts.parametric import simulate
+
+    parameters = {
+        "beta_1": -2.4,
+        "beta_2": -3.1,
+        "rain_fraction": 0.2,
+        "mean_db": 6.0,
+        "stdev_db": 3.0,
+    }
+    ensemble, diagnostics = simulate(
+        dataset,
+        timesteps=12,
+        parameters=parameters,
+        reference_time=400.0,         # minutes
+        reference_wavelength=256.0,  # km
+        temporal_exponent=0.81,
+        alpha=2.72,
+        n_ens_members=1,
+        seed=42,
+        return_diagnostics=True,
+    )
+
+The five rainfall parameters are finite real scalars. ``rain_fraction`` must
+lie in [0, 1] and ``stdev_db`` must be positive. The two spectral slopes are
+signed; ``mean_db`` and ``stdev_db`` are Normal location and scale in dBR.
+These are generation targets, distinct from the initial fields' sample moments.
+The mapping must contain exactly these five keys. Values are held fixed without
+moment selection, regional replacements, or clipping to estimation bounds.
+Spectral calibration still uses the configurable controls described in
+:doc:`calibrated_generator`.
+
+Reference time and reference wavelength are required, positive inputs. In this
+example, correlation time is 400 minutes at 256 km, and each cascade level uses
+
+.. math::
+
+    T_j = 400 \left(\frac{\lambda_j}{256}\right)^{0.81},
+
+where :math:`\lambda_j` is its nominal wavelength in km. The defaults are
+``temporal_exponent=0.81`` and ``alpha=2.72``. The helper
+:func:`pysteps.timeseries.parametric.model_cascade_correlations` finds lag-1 and
+lag-2 correlations for these times. The relation
+``rho2 = rho1**alpha`` is adjusted where needed for a nonperiodic AR(2) model;
+the correlations are then converted to AR coefficients and innovation weights.
+These quantities are reported separately in diagnostics.
+
+Correlation time is the one-sided discrete AR(2) autocorrelation sum including
+lag zero. It is not an e-folding time. Requested times at or below the observation
+interval use white noise, with the achieved times recorded. Distribution
+matching and boundary feedback can change the correlations measured from the
+resulting rainfall fields.
+
+A zero target rain fraction produces dry output even from wet initial fields.
+A positive target can generate rain from dry initial fields. Unlike ``forecast``,
+``simulate`` defaults to ``min_rain_fraction=0.0`` so positive target fractions
+are not suppressed. Missing inputs and failed positive-fraction distribution
+mappings remain errors.
+
+Shifted copies of one stochastic field can provide the initial history, as in
+the gallery example. They describe pure translation, so the initial history
+is not stationary under the prescribed temporal model. Interpretation of
+simulated statistics should account for this initial transient.
+
+The returned dataset, member numbering, random streams, callbacks, and output
+retention follow the forecast conventions below. For compatibility, the output
+``forecast_reference_time`` coordinate identifies the newest initial field.
+With diagnostics requested, ``parameter_source`` is ``supplied`` and
+``model_correlations`` and ``ar_coefficients`` identify the model driving the
+simulation. No observation-based fitting diagnostics are produced.
+
 State evolution and boundaries
 ------------------------------
 
-Each member starts from the newest and previous observed cascade states.
+Each member starts from the newest and previous initial cascade states.
 One- and two-step semi-Lagrangian backward trajectories are cached once. The
 two-step trajectory retains two unit integration steps. Histories are sampled
 with linear interpolation and zero normalized anomalies outside the domain.

@@ -2,12 +2,13 @@
 pysteps.nowcasts.parametric
 ===========================
 
-Generate parametric ensemble nowcasts from three rainfall observations.
+Generate rainfall time series from estimated or prescribed parameters.
 
 .. autosummary::
     :toctree: ../generated/
 
     forecast
+    simulate
 """
 
 from collections.abc import Mapping
@@ -515,6 +516,165 @@ def _prepare_dataset(dataset, kmperpixel, timestep):
     return prepared, velocity, float(spacings[0]), derived_timestep
 
 
+def _random_streams(seed, n_ens_members):
+    """Create independent member streams and record their seed identities."""
+    # Give each member a separate stream; increasing ensemble size leaves the
+    # existing member streams unchanged. Copy a supplied SeedSequence first.
+    if isinstance(seed, np.random.SeedSequence):
+        root_seed = np.random.SeedSequence(
+            seed.entropy, spawn_key=seed.spawn_key, pool_size=seed.pool_size
+        )
+    else:
+        if seed is not None:
+            _integer("seed", seed, 0)
+        root_seed = np.random.SeedSequence(seed)
+    member_seeds = root_seed.spawn(n_ens_members)
+    streams = [np.random.default_rng(s) for s in member_seeds]
+    information = dict(
+        entropy=root_seed.entropy,
+        spawn_key=root_seed.spawn_key,
+        pool_size=root_seed.pool_size,
+        member_spawn_keys=[s.spawn_key for s in member_seeds],
+    )
+    return streams, information
+
+
+def _evolution_settings(
+    timesteps,
+    n_ens_members,
+    n_cascade_levels,
+    rain_threshold,
+    scale_break,
+    zerovalue,
+    taper_sigma,
+    min_rain_fraction,
+    callback,
+    return_output,
+    return_diagnostics,
+):
+    """Validate shared evolution controls and return settings with explicit units."""
+    timesteps = _integer("timesteps", timesteps)
+    n_ens_members = _integer("n_ens_members", n_ens_members)
+    n_cascade_levels = _integer("n_cascade_levels", n_cascade_levels, 3)
+    rain_threshold = _positive("rain_threshold", rain_threshold)
+    scale_break = _positive("scale_break", scale_break)
+    threshold = float(10 * np.log10(rain_threshold))
+    zerovalue = (
+        threshold - 0.1 if zerovalue is None else _finite("zerovalue", zerovalue)
+    )
+    if zerovalue >= threshold:
+        raise ValueError("zerovalue must be below the dBR threshold")
+    taper_sigma = _finite("taper_sigma", taper_sigma)
+    min_rain_fraction = _finite("min_rain_fraction", min_rain_fraction)
+    if taper_sigma < 0 or not 0 <= min_rain_fraction <= 1:
+        raise ValueError("taper_sigma must be nonnegative; min_rain_fraction in [0, 1]")
+    if callback is not None and not callable(callback):
+        raise ValueError("callback must be callable")
+    for name, flag in [
+        ("return_output", return_output),
+        ("return_diagnostics", return_diagnostics),
+    ]:
+        if not isinstance(flag, (bool, np.bool_)):
+            raise ValueError(f"{name} must be boolean")
+    return dict(
+        timesteps=timesteps,
+        n_ens_members=n_ens_members,
+        n_cascade_levels=n_cascade_levels,
+        rain_threshold=rain_threshold,
+        scale_break_km=scale_break,
+        threshold_dbr=threshold,
+        zerovalue_dbr=zerovalue,
+        taper_sigma_pixels=taper_sigma,
+        min_rain_fraction=min_rain_fraction,
+    )
+
+
+def _run_ensemble(
+    dataset,
+    observed,
+    velocity,
+    parameters,
+    phi,
+    bp_filter,
+    streams,
+    settings,
+    diagnostics,
+    callback,
+    return_output,
+    return_diagnostics,
+):
+    """Evolve initialized members and collect or stream rain-rate fields.
+
+    Both forecast and simulate use this loop. The observed sequence contains
+    normalized cascade decompositions, oldest first. Settings contain validated
+    physical units and calibration controls. A missing parameter set or zero target rain
+    fraction returns dry fields without drawing noise or constructing trajectories.
+    """
+    shape = dataset[dataset.attrs["precip_var"]].shape[1:]
+    n_ens_members = len(streams)
+    timesteps = settings["timesteps"]
+    threshold = settings["threshold_dbr"]
+    zerovalue = settings["zerovalue_dbr"]
+    rain_threshold = settings["rain_threshold"]
+    kmperpixel = settings["kmperpixel"]
+    scale_break = settings["scale_break_km"]
+    noise_settings = settings["noise"]
+    min_rain_fraction = settings["min_rain_fraction"]
+    dry = parameters is None or parameters["rain_fraction"] == 0
+    output = np.empty((n_ens_members, timesteps, *shape)) if return_output else None
+    if not dry:
+        coordinates = prepare_advection_coordinates(velocity)
+        taper = gaussian_filter(
+            advect_field(np.ones(shape), coordinates[1]), settings["taper_sigma_pixels"]
+        )
+        # Histories share read-only observations until each member replaces its
+        # own list entries. The numerical kernels never mutate these observations.
+        histories = [[observed[-1], observed[-2]] for _ in range(n_ens_members)]
+    members = range(n_ens_members) if not dry else ()
+    for lead in range(timesteps):
+        fields = (
+            np.zeros((n_ens_members, *shape))
+            if dry
+            else np.empty((n_ens_members, *shape))
+        )
+        for member in members:
+            field, generation = _advance(
+                histories[member],
+                parameters,
+                phi,
+                bp_filter,
+                coordinates,
+                streams[member],
+                threshold,
+                zerovalue,
+                kmperpixel,
+                scale_break,
+                noise_settings,
+                min_rain_fraction,
+            )
+            with np.errstate(over="ignore"):
+                physical = 10 ** (field / 10)
+            physical[physical < rain_threshold] = 0
+            if not np.isfinite(physical).all():
+                raise ValueError("Generated rainfall contains nonfinite values")
+            # Return physical rainfall before tapering. Only the feedback state
+            # is tapered and decomposed for the next forecast step.
+            fields[member] = physical
+            histories[member] = [
+                _decompose(field * taper, bp_filter),
+                histories[member][0],
+            ]
+            if return_diagnostics:
+                diagnostics["generation"][member].append(generation)
+        if output is not None:
+            output[:, lead] = fields
+        if callback is not None:
+            callback(fields.copy())
+    if output is not None:
+        output = convert_output_to_xarray_dataset(dataset, timesteps, output)
+    return (output, diagnostics) if return_diagnostics else output
+
+
 def forecast(
     dataset,
     timesteps=1,
@@ -610,6 +770,10 @@ def forecast(
         and bounded generation parameters, settings, motion, seed information,
         and per-member/per-lead calibration results.
 
+    See also
+    --------
+    simulate
+
     Notes
     -----
     Fixed statistical parameters and motion are used throughout the forecast.
@@ -631,31 +795,25 @@ def forecast(
     precip_var = dataset.attrs["precip_var"]
     rain = dataset[precip_var].values
     shape = rain.shape[1:]
-    timesteps = _integer("timesteps", timesteps)
-    n_ens_members = _integer("n_ens_members", n_ens_members)
-    n_cascade_levels = _integer("n_cascade_levels", n_cascade_levels, 3)
-    kmperpixel = _positive("kmperpixel", kmperpixel)
-    timestep = _positive("timestep", timestep)
-    rain_threshold = _positive("rain_threshold", rain_threshold)
-    scale_break = _positive("scale_break", scale_break)
-    threshold = float(10 * np.log10(rain_threshold))
-    zerovalue = (
-        threshold - 0.1 if zerovalue is None else _finite("zerovalue", zerovalue)
+    settings = _evolution_settings(
+        timesteps,
+        n_ens_members,
+        n_cascade_levels,
+        rain_threshold,
+        scale_break,
+        zerovalue,
+        taper_sigma,
+        min_rain_fraction,
+        callback,
+        return_output,
+        return_diagnostics,
     )
-    if zerovalue >= threshold:
-        raise ValueError("zerovalue must be below the dBR threshold")
-    taper_sigma = _finite("taper_sigma", taper_sigma)
-    min_rain_fraction = _finite("min_rain_fraction", min_rain_fraction)
-    if taper_sigma < 0 or not 0 <= min_rain_fraction <= 1:
-        raise ValueError("taper_sigma must be nonnegative; min_rain_fraction in [0, 1]")
-    if callback is not None and not callable(callback):
-        raise ValueError("callback must be callable")
-    for name, flag in [
-        ("return_output", return_output),
-        ("return_diagnostics", return_diagnostics),
-    ]:
-        if not isinstance(flag, (bool, np.bool_)):
-            raise ValueError(f"{name} must be boolean")
+    timesteps = settings["timesteps"]
+    n_ens_members = settings["n_ens_members"]
+    n_cascade_levels = settings["n_cascade_levels"]
+    rain_threshold = settings["rain_threshold"]
+    threshold = settings["threshold_dbr"]
+    zerovalue = settings["zerovalue_dbr"]
     estimation = _estimation_settings(estimation_kwargs, threshold, n_cascade_levels)
     if temporal_fallback is not None:
         if not isinstance(temporal_fallback, Mapping) or set(temporal_fallback) != {
@@ -687,30 +845,10 @@ def forecast(
         velocity = np.array(velocity, dtype=float, copy=True)
         if velocity.shape != (2, *shape) or not np.isfinite(velocity).all():
             raise ValueError("velocity must be finite with shape (2, y, x)")
-    # Give each member a separate stream; increasing ensemble size leaves the
-    # existing member streams unchanged. Copy a supplied SeedSequence first.
-    if isinstance(seed, np.random.SeedSequence):
-        root_seed = np.random.SeedSequence(
-            seed.entropy, spawn_key=seed.spawn_key, pool_size=seed.pool_size
-        )
-    else:
-        if seed is not None:
-            _integer("seed", seed, 0)
-        root_seed = np.random.SeedSequence(seed)
-    member_seeds = root_seed.spawn(n_ens_members)
-    streams = [np.random.default_rng(s) for s in member_seeds]
-    settings = dict(
+    streams, seed_information = _random_streams(seed, n_ens_members)
+    settings.update(
         timestep_minutes=timestep,
         kmperpixel=kmperpixel,
-        n_cascade_levels=n_cascade_levels,
-        n_ens_members=n_ens_members,
-        timesteps=timesteps,
-        rain_threshold=rain_threshold,
-        scale_break_km=scale_break,
-        threshold_dbr=threshold,
-        zerovalue_dbr=zerovalue,
-        taper_sigma_pixels=taper_sigma,
-        min_rain_fraction=min_rain_fraction,
         estimation=estimation,
         temporal_fallback=temporal_fallback,
         noise=noise_settings,
@@ -721,12 +859,7 @@ def forecast(
         generator=GENERATOR_ID,
         settings=deepcopy(settings),
         motion_source="supplied" if velocity is not None else "lucaskanade",
-        seed=dict(
-            entropy=root_seed.entropy,
-            spawn_key=root_seed.spawn_key,
-            pool_size=root_seed.pool_size,
-            member_spawn_keys=[s.spawn_key for s in member_seeds],
-        ),
+        seed=seed_information,
         generation=[[] for _ in range(n_ens_members)] if return_diagnostics else None,
     )
     transformed_dataset = dB_transform(
@@ -745,22 +878,26 @@ def forecast(
         transformed[-1], threshold, estimation["lower_truncation"]
     )
     diagnostics["statistics"] = statistics
-    output = np.empty((n_ens_members, timesteps, *shape)) if return_output else None
     if statistics["rain_fraction"] == 0:
         diagnostics.update(
             status="dry_latest_observation", velocity=velocity, parameters=None
         )
         if velocity is None:
             diagnostics["motion_source"] = "not_required_for_dry_input"
-        for lead in range(timesteps):
-            fields = np.zeros((n_ens_members, *shape))
-            if output is not None:
-                output[:, lead] = fields
-            if callback is not None:
-                callback(fields)
-        if output is not None:
-            output = convert_output_to_xarray_dataset(dataset, timesteps, output)
-        return (output, diagnostics) if return_diagnostics else output
+        return _run_ensemble(
+            dataset,
+            None,
+            velocity,
+            None,
+            None,
+            None,
+            streams,
+            settings,
+            diagnostics,
+            callback,
+            return_output,
+            return_diagnostics,
+        )
     if velocity is None:
         motion_dataset = motion.get_method("LK")(
             transformed_dataset.isel(time=slice(-2, None)), **motion_settings
@@ -855,46 +992,263 @@ def forecast(
             np.flatnonzero(np.asarray(d["stds"]) == 0) for d in observed
         ],
     )
-    coordinates = prepare_advection_coordinates(velocity)
-    taper = gaussian_filter(advect_field(np.ones(shape), coordinates[1]), taper_sigma)
-    # Kernels never mutate histories. Members start from the same observations
-    # and replace their own list entries after each update.
-    histories = [[observed[-1], observed[-2]] for _ in range(n_ens_members)]
-    for lead in range(timesteps):
-        fields = np.empty((n_ens_members, *shape))
-        for member in range(n_ens_members):
-            field, generation = _advance(
-                histories[member],
-                parameters,
-                phi,
-                bp_filter,
-                coordinates,
-                streams[member],
-                threshold,
-                zerovalue,
-                kmperpixel,
-                scale_break,
-                noise_settings,
-                min_rain_fraction,
-            )
-            with np.errstate(over="ignore"):
-                physical = 10 ** (field / 10)
-            physical[physical < rain_threshold] = 0
-            if not np.isfinite(physical).all():
-                raise ValueError("Generated rainfall contains nonfinite values")
-            # Return physical rainfall before tapering. Only the feedback state
-            # is tapered and decomposed for the next forecast step.
-            fields[member] = physical
-            histories[member] = [
-                _decompose(field * taper, bp_filter),
-                histories[member][0],
-            ]
-            if return_diagnostics:
-                diagnostics["generation"][member].append(generation)
-        if output is not None:
-            output[:, lead] = fields
-        if callback is not None:
-            callback(fields.copy())
-    if output is not None:
-        output = convert_output_to_xarray_dataset(dataset, timesteps, output)
-    return (output, diagnostics) if return_diagnostics else output
+    return _run_ensemble(
+        dataset,
+        observed,
+        velocity,
+        parameters,
+        phi,
+        bp_filter,
+        streams,
+        settings,
+        diagnostics,
+        callback,
+        return_output,
+        return_diagnostics,
+    )
+
+
+def simulate(
+    dataset,
+    timesteps=1,
+    *,
+    parameters,
+    reference_time,
+    reference_wavelength,
+    temporal_exponent=0.81,
+    alpha=2.72,
+    n_ens_members=24,
+    kmperpixel=None,
+    timestep=None,
+    n_cascade_levels=6,
+    rain_threshold=1.0,
+    scale_break=20.0,
+    zerovalue=None,
+    taper_sigma=5.0,
+    min_rain_fraction=0.0,
+    seed=None,
+    noise_kwargs=None,
+    callback=None,
+    return_output=True,
+    return_diagnostics=False,
+):
+    """Simulate rainfall time series using prescribed statistics and motion.
+
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Three complete, finite, nonnegative rain-rate fields in mm/h, ordered
+        oldest first, on a regular grid with square pixels and at least four
+        pixels along each spatial dimension. Use the dataset
+        conventions described in :func:`forecast`: a global precip_var attribute,
+        precipitation dimensions (time, y, x) in any order, spatial units 'm' or
+        'km', and coordinate stepsize attributes matching the grid and time
+        interval. Time stepsize is in seconds. Supply both velocity_x and
+        velocity_y with dimensions (y, x), in either order, and displacements
+        in pixels per interval. Motion is not estimated. The latest two fields
+        initialize the AR(2) state; the oldest is retained for consistency with
+        the forecast input interface.
+    timesteps: int, optional
+        Positive number of intervals to simulate (default 1). The first output
+        is one observation interval after the newest initial field.
+    parameters: mapping
+        Exactly five finite real values: beta_1 and beta_2 are signed spectral
+        slopes; rain_fraction lies in [0, 1]; mean_db and positive stdev_db are
+        the Normal location and scale in dBR. These describe the generation
+        targets, not necessarily the initial fields' sample statistics. Values
+        are copied and held fixed, without estimation, clipping, or regional
+        replacements.
+    reference_time: float
+        Positive correlation time in minutes at reference_wavelength. This is
+        the one-sided discrete AR(2) autocorrelation sum including lag zero,
+        not an e-folding time or a forecast-skill horizon.
+    reference_wavelength: float
+        Positive reference wavelength in km. It need not equal a cascade level's
+        nominal wavelength or the domain size.
+    temporal_exponent: float, optional
+        Finite exponent in T = reference_time *
+        (wavelength/reference_wavelength)**temporal_exponent (default 0.81).
+    alpha: float, optional
+        Positive exponent in rho2 = rho1**alpha before the nonperiodic AR(2)
+        adjustment (default 2.72). Lag correlations are converted to AR
+        coefficients and innovation weights separately.
+    n_ens_members: int, optional
+        Number of independent realizations (default 24).
+    kmperpixel, timestep: float, optional
+        Pixel spacing in km and interval in minutes. Derived from coordinates
+        by default; explicit values must agree. Fractional minutes are retained.
+    n_cascade_levels: int, optional
+        Number of Gaussian cascade levels (default 6, minimum 3).
+    rain_threshold: float, optional
+        Rain occurrence threshold in mm/h (default 1).
+    scale_break: float, optional
+        Prescribed spectral break wavelength in km (default 20).
+    zerovalue: float, optional
+        Dry dBR value below the transformed rain threshold. The default is
+        10*log10(rain_threshold)-0.1.
+    taper_sigma: float, optional
+        Gaussian boundary-mask smoothing width in pixels (default 5). Tapering
+        affects the feedback state after the output field has been produced.
+    min_rain_fraction: float, optional
+        Return dry output for target fractions strictly below this value.
+        Default 0 preserves positive target fractions; forecast defaults to
+        0.025. Failed positive-fraction mappings raise an error.
+    seed: int or numpy.random.SeedSequence, optional
+        Seed for separate member streams. Global random state and a supplied
+        SeedSequence are unchanged. Increasing the ensemble size preserves the
+        leading members for identical settings.
+    noise_kwargs: dict, optional
+        Overrides for spectral calibration and distribution matching, as in
+        :func:`forecast`. Calibration may miss its tolerance; diagnostics
+        report the selected candidate and its spectral error.
+    callback: callable, optional
+        Called once per interval with a fresh (member, y, x) array in mm/h.
+        Modifying it does not affect the state or retained output. Exceptions
+        propagate to the caller.
+    return_output: bool, optional
+        Retain and return the full time series (default True). Set False to
+        stream through callback without retaining the full output.
+    return_diagnostics: bool, optional
+        Also return diagnostics (default False).
+
+    Returns
+    -------
+    ensemble: xarray.Dataset or None
+        Float64 rain rates with dimensions (ens_number, time, y, x), preserving
+        spatial coordinates and projection metadata. Members are numbered from
+        one. The forecast_reference_time coordinate identifies the newest
+        initial field, following the forecast output convention. None if
+        return_output=False.
+    diagnostics: dict, optional
+        When requested, return (ensemble, diagnostics). Record the prescribed
+        parameters, effective settings, seed identities, supplied velocity,
+        nominal wavelengths, requested and achieved correlation times, model
+        lag correlations, AR coefficients, and calibration results indexed
+        [member][interval].
+
+    See also
+    --------
+    forecast, pysteps.timeseries.parametric.model_cascade_correlations
+
+    Notes
+    -----
+    Simulation and forecasting share the same advection, stochastic AR(2)
+    updates, distribution matching, and boundary feedback. Parameters and motion
+    stay fixed while each member's rainfall pattern evolves. Matching of rain
+    fraction, intensity distribution, and spectra is approximate on finite
+    grids. Distribution matching and boundary feedback can change correlations
+    measured from the resulting rainfall. Requested level times at or below one
+    interval resolve to white noise, with achieved times recorded in diagnostics.
+
+    A zero target rain fraction produces dry output even from wet initial
+    fields. Conversely, a positive target can generate rain from dry initial
+    fields. Missing initial values remain errors. Shifted copies of one field
+    can initialize a simulation, but they represent pure translation; they do
+    not establish a stationary history for the prescribed temporal model.
+    """
+    dataset, velocity, kmperpixel, timestep = _prepare_dataset(
+        dataset, kmperpixel, timestep
+    )
+    if velocity is None:
+        raise ValueError("simulate requires both velocity_x and velocity_y")
+    precip_var = dataset.attrs["precip_var"]
+    shape = dataset[precip_var].shape[1:]
+    if min(shape) < 4:
+        raise ValueError("Simulation requires at least four pixels per axis")
+    settings = _evolution_settings(
+        timesteps,
+        n_ens_members,
+        n_cascade_levels,
+        rain_threshold,
+        scale_break,
+        zerovalue,
+        taper_sigma,
+        min_rain_fraction,
+        callback,
+        return_output,
+        return_diagnostics,
+    )
+    if not isinstance(parameters, Mapping):
+        raise ValueError("parameters must be a mapping")
+    names = ("beta_1", "beta_2", "rain_fraction", "mean_db", "stdev_db")
+    if set(parameters) != set(names):
+        raise ValueError(f"parameters must contain exactly {', '.join(names)}")
+    parameters = {name: _finite(name, parameters[name]) for name in names}
+    if not 0 <= parameters["rain_fraction"] <= 1:
+        raise ValueError("rain_fraction must lie in [0, 1]")
+    _positive("stdev_db", parameters["stdev_db"])
+    reference_time = _positive("reference_time", reference_time)
+    reference_wavelength = _positive("reference_wavelength", reference_wavelength)
+    temporal_exponent = _finite("temporal_exponent", temporal_exponent)
+    alpha = _positive("alpha", alpha)
+    noise_settings = _noise_settings(noise_kwargs)
+    streams, seed_information = _random_streams(seed, settings["n_ens_members"])
+    settings.update(
+        timestep_minutes=timestep,
+        kmperpixel=kmperpixel,
+        reference_time_minutes=reference_time,
+        reference_wavelength_km=reference_wavelength,
+        temporal_exponent=temporal_exponent,
+        alpha=alpha,
+        noise=noise_settings,
+    )
+
+    # Construct temporal correlations from the prescribed scale law, using the
+    # actual filter wavelengths. No correlations are estimated from the history.
+    bp_filter = filter_gaussian(shape, settings["n_cascade_levels"])
+    wavelengths = kmperpixel / bp_filter["central_freqs"]
+    model_lags, temporal_diagnostics = model_cascade_correlations(
+        reference_time,
+        wavelengths,
+        temporal_exponent,
+        alpha,
+        timestep,
+        reference_wavelength=reference_wavelength,
+        return_diagnostics=True,
+    )
+    phi = np.array([estimate_ar_params_yw(pair) for pair in model_lags])
+
+    # Initial rainfall supplies cascade states only. It does not alter the
+    # supplied intensity, occurrence, spectral, or persistence parameters.
+    transformed_dataset = dB_transform(
+        dataset,
+        threshold=settings["rain_threshold"],
+        zerovalue=settings["zerovalue_dbr"],
+    )
+    observed = [
+        _decompose(field, bp_filter) for field in transformed_dataset[precip_var].values
+    ]
+    dataset[precip_var].attrs.pop("transform", None)
+    dataset[precip_var].attrs.update(
+        units="mm/h", threshold=settings["rain_threshold"], zerovalue=0.0
+    )
+    diagnostics = dict(
+        method="parametric_simulation",
+        generator=GENERATOR_ID,
+        status="dry_target" if parameters["rain_fraction"] == 0 else "ok",
+        settings=deepcopy(settings),
+        parameter_source="supplied",
+        parameters=parameters.copy(),
+        motion_source="supplied",
+        velocity=velocity.copy(),
+        seed=seed_information,
+        wavelengths_km=wavelengths,
+        temporal_model=temporal_diagnostics,
+        model_correlations=model_lags,
+        ar_coefficients=phi,
+        generation=[[] for _ in streams] if return_diagnostics else None,
+    )
+    return _run_ensemble(
+        dataset,
+        observed,
+        velocity,
+        parameters,
+        phi,
+        bp_filter,
+        streams,
+        settings,
+        diagnostics,
+        callback,
+        return_output,
+        return_diagnostics,
+    )
