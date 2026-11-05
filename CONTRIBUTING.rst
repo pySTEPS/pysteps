@@ -32,7 +32,7 @@ the best way to get started is by looking for "Good First Issue" in the
 
 In a nutshell, the main steps to follow for contributing to pysteps are:
 
-* Setting up the development environment
+* Setting up the pysteps environment (see below)
 * Fork and clone the repository
 * Install pre-commit hooks
 * Create an issue for each contribution
