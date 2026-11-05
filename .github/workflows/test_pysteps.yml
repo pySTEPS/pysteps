@@ -99,7 +99,8 @@ jobs:
           uv sync --python ${{ matrix.python-version }} --frozen
           uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal --frozen
 
-      - name: Install pygrib
+      - name: Install pygrib (not windows)
+        if: matrix.os != 'windows-latest'
         working-directory: ${{ github.workspace }}
         run: uv pip install pygrib
 
