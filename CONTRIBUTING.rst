@@ -20,7 +20,7 @@ If you have ideas for new contributions to the project, feel free to get in touc
 through the `project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
 
 
-First Time Contributors
+**First Time Contributors**
 -----------------------
 
 If you are interested in helping to improve pysteps,
