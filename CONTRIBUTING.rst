@@ -422,15 +422,19 @@ This role can of course be restored if needed (e.g. after a sabbatical or leave)
 Credits
 -------
 
-This document was based on https://opensource.guide/ and contributors guides of two Python
-open-source projects:
+This document was based on information from
+
+* Official github documentation_
+* https://opensource.guide/
+
+and contributors guides of two Python open-source projects:
 
 * Py-Art_: Copyright (c) 2013, UChicago Argonne, LLC.
   `License <https://github.com/ARM-DOE/pyart/blob/master/LICENSE.txt>`_.
 * mypy_: Copyright (c) 2015-2016 Jukka Lehtosalo and contributors.
   `MIT License <https://github.com/python/mypy/blob/master/LICENSE>`_.
-* Official github documentation (https://help.github.com)
 
+.. _documentation: https://help.github.com
 .. _Py-Art: https://github.com/ARM-DOE/pyart
 .. _mypy: https://github.com/python/mypy
 
