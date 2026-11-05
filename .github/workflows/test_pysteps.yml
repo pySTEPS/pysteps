@@ -10,6 +10,28 @@ on:
       - main
 
 jobs:
+
+  formatting_checks:
+    name: Check formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      -   uses: actions/checkout@v7
+      -   name: Install uv
+          uses: astral-sh/setup-uv@v10.3.3
+      -   name: Sync uv
+          working-directory: ${{github.workspace}}
+          run: uv sync --only-dev --frozen
+      -   name: Run bandit
+          working-directory: ${{github.workspace}}
+          run: uv run bandit -c pyproject.toml -r .
+      -   name: Run import sorter
+          working-directory: ${{github.workspace}}
+          run: uv run --no-sync ruff check
+      -   name: Run ruff
+          working-directory: ${{github.workspace}}
+          run: uv run --no-sync ruff format --check
+
   unit_tests:
     name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
