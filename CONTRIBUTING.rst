@@ -360,7 +360,7 @@ To process the pull request, we follow similar rules to those used in the
 * Always use "`Squash and merge`_"  to merge PRs.
 * Make sure that the subject of the commit message summarizes the objective of the PR and does not finish with a dot.
 * Write a new commit message before merging that provides a detailed description of the changes introduced by the PR.
-  Try to keep the maximum line length under 80 characters, spplitting lines if necessary.
+  Try to keep the maximum line length under 80 characters, splitting lines if necessary.
   **IMPORTANT:** Make sure that the commit message doesn't contain the branch's commit history!
   Also, if the PR fixes an issue, mention this explicitly.
 * Use the imperative mood in the subject line (e.g. "Fix typo in README").
