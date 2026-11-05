@@ -87,15 +87,15 @@ pprint(dict(precip_dataset[precip_var].attrs))
 
 # Estimate the motion field with Lucas-Kanade
 oflow_method = motion.get_method("LK")
-precip_dataset_w_motion = oflow_method(precip_dataset)
+precip_dataset_with_motion = oflow_method(precip_dataset)
 
 # Extrapolate the last radar observation
 extrapolate = nowcasts.get_method("extrapolation")
-precip_dataset_w_motion[precip_var] = precip_dataset_w_motion[precip_var].fillna(
-    precip_dataset_w_motion[precip_var].attrs["zerovalue"]
+precip_dataset_with_motion[precip_var] = precip_dataset_with_motion[precip_var].fillna(
+    precip_dataset_with_motion[precip_var].attrs["zerovalue"]
 )
 precip_forecast = extrapolate(
-    precip_dataset_w_motion.isel(time=slice(-1, None)), n_leadtimes
+    precip_dataset_with_motion.isel(time=slice(-1, None)), n_leadtimes
 )
 
 # Back-transform to rain rate
@@ -107,8 +107,8 @@ precip_forecast = transformation.dB_transform(
 plot_precip_field(R_, geodata=geodata)
 velocity = np.stack(
     [
-        precip_dataset_w_motion["velocity_x"].values,
-        precip_dataset_w_motion["velocity_y"].values,
+        precip_dataset_with_motion["velocity_x"].values,
+        precip_dataset_with_motion["velocity_y"].values,
     ]
 )
 quiver(velocity, geodata=geodata, step=50)

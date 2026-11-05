@@ -70,7 +70,7 @@ plt.show()
 # ----------------------------
 
 # The advection field is estimated using the Lucas-Kanade optical flow
-precip_dataset_w_motion = dense_lucaskanade(precip_dataset, verbose=True)
+precip_dataset_with_motion = dense_lucaskanade(precip_dataset, verbose=True)
 
 ###############################################################################
 # Deterministic nowcast
@@ -79,7 +79,7 @@ precip_dataset_w_motion = dense_lucaskanade(precip_dataset, verbose=True)
 # Compute 30-minute LINDA nowcast with 8 parallel workers
 # Restrict the number of features to 15 to reduce computation time
 nowcast_linda_dataset = linda.forecast(
-    precip_dataset_w_motion,
+    precip_dataset_with_motion,
     6,
     max_num_features=15,
     add_perturbations=False,
@@ -89,11 +89,11 @@ nowcast_linda_dataset = linda.forecast(
 nowcast_linda = nowcast_linda_dataset[precip_var].values
 
 # Compute S-PROG nowcast for comparison
-precip_dataset_w_motion_db = transformation.dB_transform(
-    precip_dataset_w_motion, threshold=0.1, zerovalue=-15.0
+precip_dataset_with_motion_db = transformation.dB_transform(
+    precip_dataset_with_motion, threshold=0.1, zerovalue=-15.0
 )
 nowcast_sprog_dataset = sprog.forecast(
-    precip_dataset_w_motion_db.isel(time=slice(-3, None)),
+    precip_dataset_with_motion_db.isel(time=slice(-3, None)),
     6,
     n_cascade_levels=6,
     precip_thr=-10.0,
@@ -134,7 +134,7 @@ plt.show()
 
 # Compute 30-minute LINDA nowcast ensemble with 40 members and 8 parallel workers
 nowcast_linda_dataset = linda.forecast(
-    precip_dataset_w_motion,
+    precip_dataset_with_motion,
     6,
     max_num_features=15,
     add_perturbations=True,
@@ -148,7 +148,7 @@ nowcast_linda = nowcast_linda_dataset[precip_var].values
 
 # Compute 40-member STEPS nowcast for comparison
 nowcast_steps_dataset = steps.forecast(
-    precip_dataset_w_motion_db.isel(time=slice(-3, None)),
+    precip_dataset_with_motion_db.isel(time=slice(-3, None)),
     6,
     40,
     n_cascade_levels=6,

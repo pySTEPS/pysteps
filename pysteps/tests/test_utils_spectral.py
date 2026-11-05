@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from pysteps.utils import spectral
 
 _rapsd_input_fields = [

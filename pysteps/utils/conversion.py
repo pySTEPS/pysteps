@@ -82,7 +82,7 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
             dataset = transformation.sqrt_transform(dataset, inverse=True)
 
         else:
-            raise ValueError(f'Unknown transformation {metadata["transform"]}')
+            raise ValueError(f"Unknown transformation {metadata['transform']}")
 
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
@@ -122,7 +122,7 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     else:
         raise ValueError(
-            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to mm/h'
+            f"Cannot convert unit {metadata['units']} and transform {metadata['transform']} to mm/h"
         )
 
     dataset[precip_var].data[:] = precip_data
@@ -172,7 +172,7 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
             dataset = transformation.sqrt_transform(dataset, inverse=True)
 
         else:
-            raise ValueError(f'Unknown transformation {metadata["transform"]}')
+            raise ValueError(f"Unknown transformation {metadata['transform']}")
 
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
@@ -212,7 +212,7 @@ def to_raindepth(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     else:
         raise ValueError(
-            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to mm'
+            f"Cannot convert unit {metadata['units']} and transform {metadata['transform']} to mm"
         )
 
     dataset[precip_var].data[:] = precip_data
@@ -262,7 +262,7 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
             dataset = transformation.sqrt_transform(dataset, inverse=True)
 
         else:
-            raise ValueError(f'Unknown transformation {metadata["transform"]}')
+            raise ValueError(f"Unknown transformation {metadata['transform']}")
 
     precip_var = dataset.attrs["precip_var"]
     metadata = dataset[precip_var].attrs
@@ -305,7 +305,7 @@ def to_reflectivity(dataset: xr.Dataset, zr_a=None, zr_b=None):
 
     else:
         raise ValueError(
-            f'Cannot convert unit {metadata["units"]} and transform {metadata["transform"]} to dBZ'
+            f"Cannot convert unit {metadata['units']} and transform {metadata['transform']} to dBZ"
         )
 
     dataset[precip_var].data[:] = precip_data

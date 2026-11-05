@@ -801,7 +801,7 @@ def forecast(
 
                         precip_l[
                             idxm.item(0) : idxm.item(1), idxn.item(0) : idxn.item(1)
-                        ] += (precip_l_ * mask_l)
+                        ] += precip_l_ * mask_l
                         precip_l_ = None
 
                 ind = M_s > 0
@@ -874,9 +874,9 @@ def forecast(
                         [t_diff_prev],
                         **extrap_kwargs_,
                     )
-                    precip_forecast_ep[0][
-                        precip_forecast_ep[0] < precip_thr
-                    ] = precip_min
+                    precip_forecast_ep[0][precip_forecast_ep[0] < precip_thr] = (
+                        precip_min
+                    )
                     precip_forecast_out.append(precip_forecast_ep[0])
                     t_prev[j] = t_sub
 

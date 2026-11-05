@@ -11,9 +11,9 @@ Utilities for finding archived files that match the given criteria.
     find_by_date
 """
 
-from datetime import datetime, timedelta
 import fnmatch
 import os
+from datetime import datetime, timedelta
 
 
 def find_by_date(

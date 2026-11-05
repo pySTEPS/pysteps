@@ -4,10 +4,12 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
 
-from pysteps.noise.motion import generate_bps
-from pysteps.noise.motion import get_default_params_bps_par
-from pysteps.noise.motion import get_default_params_bps_perp
-from pysteps.noise.motion import initialize_bps
+from pysteps.noise.motion import (
+    generate_bps,
+    get_default_params_bps_par,
+    get_default_params_bps_perp,
+    initialize_bps,
+)
 
 
 def test_noise_motion_get_default_params_bps_par():

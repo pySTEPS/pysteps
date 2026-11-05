@@ -67,21 +67,21 @@ def test_linear_blending(
     # entirely constant
 
     # Assert that the control time step is in the range of the forecasted time steps
-    assert controltime <= (
-        n_timesteps * timestep
-    ), "Control time needs to be within reach of forecasts, controltime = {} and n_timesteps = {}".format(
-        controltime, n_timesteps
+    assert controltime <= (n_timesteps * timestep), (
+        "Control time needs to be within reach of forecasts, controltime = {} and n_timesteps = {}".format(
+            controltime, n_timesteps
+        )
     )
 
     # Assert that the start time of the blending comes before the end time of the blending
-    assert (
-        start_blending < end_blending
-    ), "Start time of blending needs to be smaller than end time of blending"
+    assert start_blending < end_blending, (
+        "Start time of blending needs to be smaller than end time of blending"
+    )
 
     # Assert that the control time is a multiple of the time step
-    assert (
-        not controltime % timestep
-    ), "Control time needs to be a multiple of the time step"
+    assert not controltime % timestep, (
+        "Control time needs to be a multiple of the time step"
+    )
 
     # Initialise dummy NWP data
     if n_models == 0:
@@ -184,16 +184,20 @@ def test_linear_blending(
             n_timesteps,
             200,
             200,
-        ), "The shape of the blended array does not have the expected value. The shape is {}".format(
-            r_blended.shape
+        ), (
+            "The shape of the blended array does not have the expected value. The shape is {}".format(
+                r_blended.shape
+            )
         )
     else:
         assert r_blended.shape == (
             n_timesteps,
             200,
             200,
-        ), "The shape of the blended array does not have the expected value. The shape is {}".format(
-            r_blended.shape
+        ), (
+            "The shape of the blended array does not have the expected value. The shape is {}".format(
+                r_blended.shape
+            )
         )
 
     # Assert that the blended field at the control time step is equal to
@@ -286,12 +290,14 @@ def test_linear_blending_ar_nowcast_3d_precip():
         n_timesteps,
         32,
         32,
-    ), "The shape of the blended array does not have the expected value. The shape is {}".format(
-        r_blended.shape
+    ), (
+        "The shape of the blended array does not have the expected value. The shape is {}".format(
+            r_blended.shape
+        )
     )
-    assert np.all(
-        np.isfinite(r_blended)
-    ), "The blended array contains non-finite values"
+    assert np.all(np.isfinite(r_blended)), (
+        "The blended array contains non-finite values"
+    )
 
 
 def test_linear_blending_timesteps_nowcast_clamp():
@@ -368,12 +374,14 @@ def test_linear_blending_timesteps_nowcast_clamp():
         n_timesteps,
         32,
         32,
-    ), "The shape of the blended array does not have the expected value. The shape is {}".format(
-        r_blended.shape
+    ), (
+        "The shape of the blended array does not have the expected value. The shape is {}".format(
+            r_blended.shape
+        )
     )
-    assert np.all(
-        np.isfinite(r_blended)
-    ), "The blended array contains non-finite values after filling with NWP data"
+    assert np.all(np.isfinite(r_blended)), (
+        "The blended array contains non-finite values after filling with NWP data"
+    )
 
 
 ranked_salience_values = [
@@ -401,6 +409,8 @@ def test_salient_weight(
     assert ws.shape == (
         200,
         200,
-    ), "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
-        ws.shape
+    ), (
+        "The shape of the ranked salience array does not have the expected value. The shape is {}".format(
+            ws.shape
+        )
     )

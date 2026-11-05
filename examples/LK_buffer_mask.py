@@ -238,6 +238,7 @@ for i in range(12):
     score_1.append(skill(R_f1[i, :, :], R_o[i + 1, :, :])["corr_s"])
     score_2.append(skill(R_f2[i, :, :], R_o[i + 1, :, :])["corr_s"])
 
+# Plot it
 x = (np.arange(12) + 1) * 5  # [min]
 plt.plot(x, score_1, label="buffer_mask = 0")
 plt.plot(x, score_2, label="buffer_mask = %i" % buffer)

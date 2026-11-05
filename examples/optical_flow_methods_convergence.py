@@ -291,7 +291,7 @@ def plot_optflow_method_convergence(
         precip_for_motion[precip_obs.mask] = np.nanmin(precip_for_motion)
 
     # Wrap the synthetic observations into a minimal xarray dataset, since the
-    # optical flow methods now take an xr.Dataset as input.
+    # optical flow methods require an xr.Dataset as input.
     obs_dataset = convert_input_to_xarray_dataset(
         precip_for_motion,
         None,
