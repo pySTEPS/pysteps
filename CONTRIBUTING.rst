@@ -326,7 +326,7 @@ This will help to reduce the time needed to review the PR.
 For changes out of the scope of the issue, please open new issue and associated PR.
 
 
-Testing your changes
+**Testing your changes**
 ~~~~~~~~~~~~~~~~~~~~
 
 Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
