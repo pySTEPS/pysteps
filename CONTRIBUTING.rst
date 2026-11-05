@@ -410,7 +410,6 @@ Owner and maintainer rules
   - preparing and tagging releases and updating release notes
   - coordinate PR reviews and merge PRs
   - issue triage
-  - organising hackathons and code sprints
   - keeping documentation and examples up to date
 
 * After 12 months of inactivity:
