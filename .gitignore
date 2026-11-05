@@ -71,7 +71,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-uv.lock
 
 # Pycharm
 .idea
