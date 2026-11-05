@@ -61,9 +61,6 @@ jobs:
           sudo apt update
           sudo apt install libgdal-dev libproj-dev libhdf5-dev libopencv-dev libeccodes-dev
 
-      - name: Install pygrib
-        run: mamba install --quiet pygrib
-
       - name: Install pysteps (MacOS)
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
@@ -98,6 +95,10 @@ jobs:
           uv python install ${{ matrix.python-version }}
           uv sync --python ${{ matrix.python-version }} --frozen
           uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal --frozen
+
+      - name: Install pygrib
+        working-directory: ${{ github.workspace }}
+        run: uv pip install pygrib
 
       - name: Download pysteps data
         env:
