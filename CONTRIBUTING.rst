@@ -27,44 +27,25 @@ through the `project's issue tracker <https://github.com/pySTEPS/pysteps/issues>
 -----------------------
 
 If you are interested in helping to improve pysteps,
-the best way to get started is by looking for "Good First Issue" in the
+the best way to get started is by looking for "Good First Issue" or creating
+a new issue for your contribution in the 
 `issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
 
 In a nutshell, the main steps to follow for contributing to pysteps are:
 
-* Setting up the pysteps environment (see below)
 * Fork and clone the repository
-* Install pre-commit hooks
-* Create an issue for each contribution
+* Set up the pysteps environment
+* Install the pre-commit hooks
 * Create a new branch for each contribution
 * Read the Code Style guide
 * Work on your changes
 * Test your changes
-* Push to your fork repository
-* Create a new PR on the pysteps GitHub.
+* Push to your fork
+* Open a pull request on GitHub in which you mention the associated issue
 
 
-Setting up the pysteps environment
---------------------------------------
-
-The recommended way to set up the developer environment is with :code:`uv`.
-uv quickly installs, runs, and updates packages and their dependencies.
-It also allows you to create, save, load, and switch between different environments on your local computer.
-
-Before continuing, Mac OSX users also need to install a more recent compiler.
-See instructions `here <https://pysteps.readthedocs.io/en/latest/user_guide/install_pysteps.html#install-osx-users>`__.
-
-The developer environment can be created by syncing the optional and dev dependencies::
-
-    uv sync --extra optional
-
-To test if the installation went fine, you can try importing pysteps from the python interpreter by running::
-
-    uv run python -c "import pysteps"
-
-
-Fork the repository
-~~~~~~~~~~~~~~~~~~~
+Fork and clone the repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once you have set up the pysteps environment, the next step is creating your local copy of the repository, where you will commit your modifications.
 The steps to follow are:
@@ -82,8 +63,30 @@ If you are new to GitHub, below you can find a list of helpful tutorials:
 - http://rogerdudler.github.io/git-guide/index.html
 - https://www.atlassian.com/git/tutorials
 
-Install pre-commit hooks
-~~~~~~~~~~~~~~~~~~~~~~~~
+Set up the pysteps environment
+------------------------------
+
+The recommended way to set up the developer environment is with `uv <https://docs.astral.sh/uv/>`__,
+uv quickly installs, runs, and updates packages and their dependencies.
+It also allows you to create, save, load, and switch between different environments on your local computer.
+
+Install uv following the
+`installation instructions <https://docs.astral.sh/uv/getting-started/installation/>`__
+
+Before continuing, Mac OSX users also need to install a more recent compiler.
+See instructions `here <https://pysteps.readthedocs.io/en/latest/user_guide/install_pysteps.html#install-osx-users>`__.
+
+The developer environment can be created by syncing the optional and dev dependencies::
+
+    uv sync --extra optional
+
+To test if the installation went fine, you can try importing pysteps from the python interpreter by running::
+
+    uv run python -c "import pysteps"
+
+
+Install the pre-commit hooks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After setting up your development environment, install the git pre-commit hook by executing the following command in the repository's
 root::
