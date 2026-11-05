@@ -66,7 +66,7 @@ To test if the installation went fine, you can try importing pysteps from the py
 Fork the repository
 ~~~~~~~~~~~~~~~~~~~
 
-Once you have set the development environment, the next step is creating your local copy of the repository, where you will commit your modifications.
+Once you have set up the pysteps environment, the next step is creating your local copy of the repository, where you will commit your modifications.
 The steps to follow are:
 
 #. Set up Git on your computer.
