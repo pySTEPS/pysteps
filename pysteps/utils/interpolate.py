@@ -19,7 +19,6 @@ from scipy.interpolate import Rbf
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 
-
 from pysteps.decorators import memoize, prepare_interpolator
 
 

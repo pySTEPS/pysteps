@@ -4,12 +4,13 @@ are done by comparing initial motion fields to those estimated in the future.
 For a description of the method, see :cite:`BPS2006`."""
 
 import argparse
-from datetime import datetime, timedelta
 import pickle
+from datetime import datetime, timedelta
+
 import numpy as np
 from scipy import linalg as la
-from pysteps import io, motion
-from pysteps import rcparams
+
+from pysteps import io, motion, rcparams
 from pysteps.utils import transformation
 
 # TODO: Don't hard-code these.

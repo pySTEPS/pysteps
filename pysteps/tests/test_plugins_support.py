@@ -6,10 +6,11 @@ https://github.com/pySTEPS/cookiecutter-pysteps-plugin
 """
 
 import os
-import pytest
 import subprocess
 import sys
 import tempfile
+
+import pytest
 
 __ = pytest.importorskip("cookiecutter")
 from cookiecutter.main import cookiecutter
@@ -17,6 +18,7 @@ from cookiecutter.main import cookiecutter
 PLUGIN_TEMPLATE_URL = "https://github.com/pysteps/cookiecutter-pysteps-plugin"
 
 from contextlib import contextmanager
+
 from pysteps import io, postprocessing
 
 

@@ -16,7 +16,7 @@ Workflow for code contributions
 -------------------------------
 
 We welcome all kinds of contributions, like documentation updates, bug fixes, or new features.
-The workflow for the contibutions uses the usual
+The workflow for the contributions uses the usual
 `GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
 
 If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community on our
@@ -50,33 +50,20 @@ In a nutshell, the main steps to follow for contributing to pysteps are:
 Setting up the Development environment
 --------------------------------------
 
-The recommended way to setup up the developer environment is the Anaconda
-(commonly referred to as Conda).
-Conda quickly installs, runs, and updates packages and their dependencies.
+The recommended way to set up the developer environment is with :code:`uv`.
+uv quickly installs, runs, and updates packages and their dependencies.
 It also allows you to create, save, load, and switch between different environments on your local computer.
 
 Before continuing, Mac OSX users also need to install a more recent compiler.
 See instructions `here <https://pysteps.readthedocs.io/en/latest/user_guide/install_pysteps.html#install-osx-users>`__.
 
-The developer environment can be created from the file
-`environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
-in the project's root directory by running the command::
+The developer environment can be created by syncing the optional and dev dependencies::
 
-    conda env create -f environment_dev.yml
-
-This will create the **pysteps_dev** environment that can be activated using::
-
-    conda activate pysteps_dev
-
-Once the environment is activated, the latest version of pysteps can be installed
-in development mode, in such a way that the project appears to be installed,
-but yet is still editable from the source tree::
-
-    pip install -e <path to local pysteps repo>
+    uv sync --extra optional
 
 To test if the installation went fine, you can try importing pysteps from the python interpreter by running::
 
-    python -c "import pysteps"
+    uv run python -c "import pysteps"
 
 
 Fork the repository
@@ -108,17 +95,15 @@ root::
 
 The pre-commit hooks are scripts executed automatically in every commit to identify simple issues with the code.
 When an issue is identified (the pre-commit script exits with non-zero status), the hook aborts the commit and prints the error.
-Currently, pysteps only tests that the code to be committed complies with black's format style.
-In case that the commit is aborted, you only need to run black in the entire source code.
-This can be done by running :code:`black .` or :code:`pre-commit run --all-files`.
-The latter is recommended since it indicates if the commit contained any formatting errors (that are automatically corrected).
-Black's configuration is stored in the `pyproject.toml` file to ensure that the same configuration is used in every development environment.
-This configuration is automatically loaded when black is run from any directory in the
-pysteps project.
+Currently, PySTEPS only tests that the code to be committed complies with :code:`bandit`, :code:`ruff format` and :code:`ruff`'s import sorter.
+In case that the commit is aborted, can run these to try to find the issues::
 
-IMPORTANT: Periodically update the black version used in the pre-commit hook by running::
+    uv run bandit -c bandit.yaml .
+    uv run ruff check
+    uv run ruff format --check
 
-    pre-commit autoupdate
+This can also be done by running :code:`pre-commit run --all-files`. The latter is recommended since it indicates if the
+commit contained any formatting errors (that are automatically corrected).
 
 For more information about git hooks and the pre-commit package, see:
 
@@ -146,12 +131,12 @@ We strongly suggest following the
 Since PEP8 is a set of recommendations, these are the most important good coding practices for the pysteps project:
 
 * Always use four spaces for indentation (don’t use tabs).
-* Max line-length: 88 characters (note that we don't use the PEP8's 79 value). Enforced by `black`.
-* Always indent wrapped code for readability. Enforced by `black`.
-* Avoid extraneous whitespace. Enforced by `black`.
-* Don’t use whitespace to line up assignment operators (=, :). Enforced by `black`.
+* Max line-length: 88 characters (note that we don't use the PEP8's 79 value). Enforced by `ruff`.
+* Always indent wrapped code for readability. Enforced by `ruff`.
+* Avoid extraneous whitespace. Enforced by `ruff`.
+* Don’t use whitespace to line up assignment operators (=, :). Enforced by `ruff`.
 * Avoid writing multiple statements in the same line.
-* Naming conventions should follow the recomendations from
+* Naming conventions should follow the recommendations from
   the `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__, summarized as follows:
 
    .. raw:: html
@@ -272,26 +257,6 @@ For more suggestions on good coding practices for python, check these guidelines
 - `The Hitchhiker's Guide to Python <https://docs.python-guide.org/writing/style/>`__
 - `Google's python style guide <http://google.github.io/styleguide/pyguide.html>`__
 - `PEP8 <https://www.python.org/dev/peps/pep-0008/>`__
-
-
-**Using Black auto-formatter**
-
-To ensure a minimal style consistency, we use
-`black <https://black.readthedocs.io/en/stable/>`__ to auto-format to the source code.
-The black configuration used in the pysteps project is defined in the pyproject.toml,
-and it is automatically detected by black.
-
-Black can be installed using any of the following::
-
-    conda install black
-
-    #For the latest version:
-    conda install -c conda-forge black
-
-    pip install black
-
-Check the `official documentation <https://black.readthedocs.io/en/stable/the_black_code_style.html>`__
-for more information.
 
 **Docstrings**
 
@@ -450,9 +415,6 @@ Core developers should follow the steps to prepare a new release (version):
    the `Python Package Index <https://pypi.org/>`_ (PyPI).
    See `Packaging the pysteps project <https://pysteps.readthedocs.io/en/latest/developer_guide/pypi.html#pypi-relase>`__
    for a detailed description of this process.
-#. Update the conda-forge pysteps-feedstock following this guidelines:
-   `Updating the conda-forge pysteps-feedstock <https://pysteps.readthedocs.io/en/latest/developer_guide/update_conda_forge.html#update-conda-feedstock>`__
-
 
 Credits
 -------

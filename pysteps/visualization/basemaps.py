@@ -12,10 +12,12 @@ Methods for plotting geographical maps using Cartopy.
     plot_map_cartopy
 """
 
-from matplotlib import gridspec
+import warnings
+
 import matplotlib.pylab as plt
 import numpy as np
-import warnings
+from matplotlib import gridspec
+
 from pysteps.exceptions import MissingOptionalDependency
 
 try:

@@ -17,9 +17,9 @@ import warnings
 
 import matplotlib.pylab as plt
 import numpy as np
-from matplotlib import pyplot, colors
+from matplotlib import colors, pyplot
 
-from pysteps.visualization.utils import get_geogrid, get_basemap_axis
+from pysteps.visualization.utils import get_basemap_axis, get_geogrid
 
 PRECIP_VALID_TYPES = ("intensity", "depth", "prob")
 PRECIP_VALID_UNITS = ("mm/h", "mm", "dBZ")
@@ -139,14 +139,12 @@ def plot_precip_field(
 
     if ptype not in PRECIP_VALID_TYPES:
         raise ValueError(
-            f"Invalid precipitation type '{ptype}'."
-            f"Supported: {str(PRECIP_VALID_TYPES)}"
+            f"Invalid precipitation type '{ptype}'.Supported: {str(PRECIP_VALID_TYPES)}"
         )
 
     if units not in PRECIP_VALID_UNITS:
         raise ValueError(
-            f"Invalid precipitation units '{units}."
-            f"Supported: {str(PRECIP_VALID_UNITS)}"
+            f"Invalid precipitation units '{units}.Supported: {str(PRECIP_VALID_UNITS)}"
         )
 
     if ptype == "prob" and colorbar and probthr is None:

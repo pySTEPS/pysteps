@@ -4,17 +4,38 @@ on:
   # Triggers the workflow on push or pull request events to the master branch
   push:
     branches:
-      - master
-      - pysteps-v2
+      - main
   pull_request:
-      branches:
-        - master
-        - pysteps-v2
+    branches:
+      - main
 
 jobs:
+
+  formatting_checks:
+    name: Check formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      -   uses: actions/checkout@v7
+      -   name: Install uv
+          uses: astral-sh/setup-uv@v10.3.3
+      -   name: Sync uv
+          working-directory: ${{github.workspace}}
+          run: uv sync --only-dev --frozen
+      -   name: Run bandit
+          working-directory: ${{github.workspace}}
+          run: uv run bandit -c pyproject.toml -r .
+      -   name: Run import sorter
+          working-directory: ${{github.workspace}}
+          run: uv run --no-sync ruff check
+      -   name: Run ruff
+          working-directory: ${{github.workspace}}
+          run: uv run --no-sync ruff format --check
+
   unit_tests:
     name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: formatting_checks
 
     strategy:
       fail-fast: false
@@ -29,40 +50,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
 
-      # need headless opencv on Linux, see https://github.com/conda-forge/opencv-feedstock/issues/401
-      - name: Install mamba and create environment for Linux
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          # https://github.com/mamba-org/setup-micromamba/issues/225
-          micromamba-version: 1.5.10-0
-          environment-file: ci/ci_test_env.yml
-          environment-name: test_environment
-          generate-run-shell: false
-          create-args: >-
-            python=${{ matrix.python-version }}
-            libopencv=*=headless*
+        working-directory: ${{github.workspace}}
+        run: |
+          sudo apt update
+          sudo apt install libgdal-dev libproj-dev libhdf5-dev libopencv-dev libeccodes-dev
 
-      - name: Install mamba and create environment (not Linux)
-        if: matrix.os != 'ubuntu-latest'
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          # https://github.com/mamba-org/setup-micromamba/issues/225
-          micromamba-version: 1.5.10-0
-          environment-file: ci/ci_test_env.yml
-          environment-name: test_environment
-          generate-run-shell: false
-          create-args: python=${{ matrix.python-version }}
-
-      - name: Install pygrib (not win)
-        if: matrix.os != 'windows-latest'
-        run: mamba install --quiet pygrib
-
-      - name: Install pysteps for MacOS
+      - name: Install pysteps (MacOS)
         if: matrix.os == 'macos-latest'
         working-directory: ${{github.workspace}}
         env:
@@ -74,35 +73,51 @@ jobs:
           brew update-reset
           brew update
           gcc-13 --version || brew install gcc@13
-          pip install .
+          brew install gdal
+          uv python install ${{ matrix.python-version }}
+          uv sync --python ${{ matrix.python-version }} --frozen
+          bash add_gdal_brew.sh
+          uv sync --python ${{ matrix.python-version }} --all-extras --frozen
 
-      - name: Install pysteps
-        if: matrix.os != 'macos-latest'
+      - name: Install pysteps (Linux)
+        if: matrix.os == 'ubuntu-latest'
         working-directory: ${{github.workspace}}
-        run: pip install .
+        run: |
+          uv python install ${{ matrix.python-version }}
+          uv sync --python ${{ matrix.python-version }} --frozen
+          bash add_gdal.sh
+          uv sync --python ${{ matrix.python-version }} --all-extras --frozen
+
+      - name: Install pysteps (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: ${{github.workspace}}
+        run: |
+          uv python install ${{ matrix.python-version }}
+          uv sync --python ${{ matrix.python-version }} --frozen
+          uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal --frozen
 
       - name: Download pysteps data
         env:
           PYSTEPS_DATA_PATH: ${{github.workspace}}/pysteps_data
         working-directory: ${{github.workspace}}/ci
-        run: python fetch_pysteps_data.py
+        run: uv run fetch_pysteps_data.py
 
       - name: Check imports
         working-directory: ${{github.workspace}}/pysteps_data
         run: |
-          python --version
-          python -c "import pysteps; print(pysteps.__file__)"
-          python -c "from pysteps import motion"
-          python -c "from pysteps.motion import vet"
-          python -c "from pysteps.motion import proesmans"
+          uv run python --version
+          uv run python -c "import pysteps; print(pysteps.__file__)"
+          uv run python -c "from pysteps import motion"
+          uv run python -c "from pysteps.motion import vet"
+          uv run python -c "from pysteps.motion import proesmans"
 
       - name: Run tests and coverage report
         working-directory: ${{github.workspace}}/pysteps_data
         env:
           PYSTEPSRC: ${{github.workspace}}/pysteps_data/pystepsrc
-        run: pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
+        run: uv run pytest --pyargs pysteps --cov=pysteps --cov-report=xml --cov-report=term -ra
 
-      - name: Upload coverage to Codecov (Linux only)
+      - name: Upload coverage to Codecov (Linux)
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         env:

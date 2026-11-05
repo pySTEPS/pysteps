@@ -12,14 +12,14 @@ Interface for the noise module.
 """
 
 from pysteps.noise.fftgenerators import (
-    initialize_param_2d_fft_filter,
     generate_noise_2d_fft_filter,
-    initialize_nonparam_2d_fft_filter,
-    initialize_nonparam_2d_ssft_filter,
     generate_noise_2d_ssft_filter,
+    initialize_nonparam_2d_fft_filter,
     initialize_nonparam_2d_nested_filter,
+    initialize_nonparam_2d_ssft_filter,
+    initialize_param_2d_fft_filter,
 )
-from pysteps.noise.motion import initialize_bps, generate_bps
+from pysteps.noise.motion import generate_bps, initialize_bps
 
 _noise_methods = dict()
 

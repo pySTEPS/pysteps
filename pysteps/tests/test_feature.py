@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 from pysteps import feature
 from pysteps.tests.helpers import get_precipitation_fields
 

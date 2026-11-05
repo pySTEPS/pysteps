@@ -25,9 +25,7 @@ def test_io_import_bom_shape():
 
 
 # Test import_bom_rf3 function
-expected_proj = (
-    "+proj=aea  +lon_0=144.752 +lat_0=-37.852 " "+lat_1=-18.000 +lat_2=-36.000"
-)
+expected_proj = "+proj=aea  +lon_0=144.752 +lat_0=-37.852 +lat_1=-18.000 +lat_2=-36.000"
 
 test_metadata_bom = [
     (precip_dataset.attrs["projection"], expected_proj, None),
@@ -36,10 +34,10 @@ test_metadata_bom = [
         "Commonwealth of Australia, Bureau of Meteorology",
         None,
     ),
-    (precip_dataset.x.isel(x=0).values, -127750.0, 1e-5),
-    (precip_dataset.y.isel(y=-1).values, -127250.0, 1e-5),
-    (precip_dataset.x.isel(x=-1).values, 127250.0, 1e-5),
-    (precip_dataset.y.isel(y=0).values, 127750.0, 1e-5),
+    (precip_dataset.x.isel(x=0).values, -128000.0, 1e-5),
+    (precip_dataset.y.isel(y=-1).values, -127500.0, 1e-5),
+    (precip_dataset.x.isel(x=-1).values, 127500.0, 1e-5),
+    (precip_dataset.y.isel(y=0).values, 128000.0, 1e-5),
     (precip_dataset.x.attrs["stepsize"], 500.0, 1e-4),
     (precip_dataset.y.attrs["stepsize"], -500.0, 1e-4),
     (precip_dataset.x.attrs["units"], "m", None),

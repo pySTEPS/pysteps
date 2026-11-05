@@ -98,27 +98,27 @@ def run_and_assert_forecast(
     precip_forecast = precip_forecast_dataset[precip_var_forecast].values
 
     assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in forecast output"
-    assert (
-        precip_forecast.shape[1] == n_timesteps
-    ), "Wrong amount of output time steps in forecast output"
+    assert precip_forecast.shape[0] == expected_n_ens_members, (
+        "Wrong amount of output ensemble members in forecast output"
+    )
+    assert precip_forecast.shape[1] == n_timesteps, (
+        "Wrong amount of output time steps in forecast output"
+    )
 
     # Transform the data back into mm/h
     precip_forecast_dataset = converter(precip_forecast_dataset)
     precip_var_forecast = precip_forecast_dataset.attrs["precip_var"]
     precip_forecast = precip_forecast_dataset[precip_var_forecast].values
 
-    assert (
-        precip_forecast.ndim == 4
-    ), "Wrong amount of dimensions in converted forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in converted forecast output"
-    assert (
-        precip_forecast.shape[1] == n_timesteps
-    ), "Wrong amount of output time steps in converted forecast output"
+    assert precip_forecast.ndim == 4, (
+        "Wrong amount of dimensions in converted forecast output"
+    )
+    assert precip_forecast.shape[0] == expected_n_ens_members, (
+        "Wrong amount of output ensemble members in converted forecast output"
+    )
+    assert precip_forecast.shape[1] == n_timesteps, (
+        "Wrong amount of output time steps in converted forecast output"
+    )
 
 
 steps_arg_names = (
@@ -358,12 +358,12 @@ def test_steps_blending(
         ~np.isfinite(model_dataset[model_precip_var].values)
     ] = model_dataset[model_precip_var].attrs["zerovalue"]
 
-    assert (
-        np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False
-    ), "There are still infinite values in the input radar data"
-    assert (
-        np.any(~np.isfinite(model_dataset[radar_precip_var].values)) == False
-    ), "There are still infinite values in the NWP data"
+    assert np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False, (
+        "There are still infinite values in the input radar data"
+    )
+    assert np.any(~np.isfinite(model_dataset[radar_precip_var].values)) == False, (
+        "There are still infinite values in the NWP data"
+    )
 
     ###
     # Decompose the R_NWP data
@@ -684,9 +684,9 @@ def test_steps_blending_external_nowcast_weight_distribution():
     external_radar, external_nwp = variance_shares(external_weights, has_noise=False)
 
     assert normal_nwp.size > 0, "No full-blend weights were captured"
-    assert (
-        normal_nwp.shape == external_nwp.shape
-    ), "The two paths produced a different number/shape of blend weights"
+    assert normal_nwp.shape == external_nwp.shape, (
+        "The two paths produced a different number/shape of blend weights"
+    )
 
     # The NWP (and thus radar-side) variance share must be identical between
     # the standard and external-nowcast paths at every blend call and scale.
@@ -735,9 +735,9 @@ def test_steps_blending_external_nowcast_with_noise_weight_distribution():
     )
 
     assert len(normal_weights) > 0, "No full-blend weights were captured"
-    assert len(normal_weights) == len(
-        external_weights
-    ), "The two paths produced a different number of blend weights"
+    assert len(normal_weights) == len(external_weights), (
+        "The two paths produced a different number of blend weights"
+    )
 
     # Both paths use the full three-component weights, so they must match
     # exactly (extrapolation, NWP and noise weights alike).
