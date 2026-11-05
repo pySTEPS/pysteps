@@ -12,10 +12,32 @@ on:
         - main
 
 jobs:
+  lint:
+    name: Lint and style checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13.18"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade "pip>=26.2.2" "certifi>=2026.10.19"
+          pip install black black[jupyter] ruff
+      - name: Black style check
+        run: |
+          black --check .
+      - name: Lint with ruff
+        run: |
+          ruff check .
+
   unit_tests:
     name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-
+    needs: [lint]
     strategy:
       fail-fast: false
       matrix:
