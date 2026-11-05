@@ -306,6 +306,7 @@ This approach has two main advantages:
 - Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
   then merged into the main branch. Squashing the commits helps to keep a clean commit history in the main branch.
 
+**Creating an issue**
 Before you submit a contribution or fix, please open a new issue so the community can provide input. 
 The discussions will help clarify the best way to approach the suggested changes and frame it in the project roadmap,
 and associate it with a milestone.
