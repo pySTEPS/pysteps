@@ -408,7 +408,7 @@ Owner and maintainer rules
 * Being a maintainer comes with responsibilities, i.e. regularly performing tasks such as:
 
   - preparing and tagging releases and updating release notes
-  - PR reviews
+  - coordinate PR reviews and merge PRs
   - issue triage
   - organising hackathons and code sprints
   - keeping documentation and examples up to date
