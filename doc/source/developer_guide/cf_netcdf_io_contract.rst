@@ -3,12 +3,13 @@
 CF NetCDF dataset contract
 ==========================
 
-Status: stage 1 development proposal, 5 November 2026. The choices below are
+Status: implemented contribution contract, 5 November 2026. The choices below are
 concrete defaults for this contribution, ready for review; they do not claim
 upstream approval. Shared metadata and numerical helpers are implemented in
 :ref:`cf-netcdf-io-stage2`. File I/O and callback adapters are implemented in
-:ref:`cf-netcdf-io-stage34`; new storage profiles and full acceptance below
-remain the target of :ref:`cf-netcdf-io-work-plan`.
+:ref:`cf-netcdf-io-stage34`. Storage profiles and measurements are implemented
+in :ref:`cf-netcdf-io-stage5`. Completed local acceptance and contribution
+preparation are recorded in :ref:`cf-netcdf-io-stage67`.
 
 Target and scope
 ----------------
@@ -276,9 +277,9 @@ Storage and dependencies
 
 The new bulk API preserves the input floating-point precision by default,
 using zlib level 4 with shuffle and no quantization. Coordinate values remain
-float64. Initial candidate chunks isolate a member and time step and tile
-space up to 256 by 256 cells; stage 5 measurements may revise this documented
-candidate before it becomes a production default. The legacy API retains its
+float64. Default chunks isolate a member and time step and tile space up to 256 by
+256 cells. Stage 5 measurements retain this general compromise; smaller tiles
+can improve point-series access. The legacy API retains its
 explicit defaults during adaptation.
 
 Packing is an opt-in per-variable encoding. Signed int16 rain-rate storage at

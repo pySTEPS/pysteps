@@ -3,12 +3,14 @@
 CF NetCDF I/O work plan
 =======================
 
-Status: stages 1 through 4 completed in the contribution worktree, 5 November 2026.
+Status: stages 1 through 7 completed in the contribution worktree, 5 November 2026.
 Stage 1 deliverables are recorded in :ref:`cf-netcdf-io-contract`,
 :ref:`cf-netcdf-io-acceptance` and :ref:`cf-netcdf-io-baseline`. The shared
 metadata implementation and validation evidence are recorded in
 :ref:`cf-netcdf-io-stage2`. The file APIs and callback adapters are recorded in
-:ref:`cf-netcdf-io-stage34`. Stages 5 through 7 remain to be completed.
+:ref:`cf-netcdf-io-stage34`. Storage encodings and measurements are recorded in
+:ref:`cf-netcdf-io-stage5`. Independent acceptance and user/upstream documentation are recorded in
+:ref:`cf-netcdf-io-stage67`. Remote submission is a separate step.
 The agreed objective and acceptance criteria are in :ref:`cf-netcdf-io-design`.
 
 Each stage includes tests and documentation for its own behaviour. The final

@@ -375,8 +375,8 @@ def test_invalid_export_is_atomic_and_overwrite_is_explicit(tmp_path):
 @pytest.mark.parametrize(
     "encoding, message",
     [
-        ({"precip_intensity": {"dtype": "int16"}}, "floating"),
-        ({"precip_intensity": {"scale_factor": 0.1}}, "stage 5"),
+        ({"precip_intensity": {"dtype": "int16"}}, "explicit scale_factor"),
+        ({"precip_intensity": {"scale_factor": 0.1}}, "require int16"),
         ({"precip_intensity": {"_FillValue": 0}}, "collide"),
         ({"precip_intensity": {"chunksizes": (9, 2, 3)}}, "chunksizes"),
         ({"absent": {}}, "outside"),

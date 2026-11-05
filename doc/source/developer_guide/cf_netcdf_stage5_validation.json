@@ -1,0 +1,810 @@
+{
+  "date": "2026-11-05",
+  "scope": "Stage 5 explicit int16 packing and storage assessment; raw missing codes, quantization limits and shared callback writes; full acceptance and upstream contribution remain stages 6/7",
+  "source": {
+    "base_revision": "a7c9c99815b89674b90909b84f1d6b791174ecb7",
+    "branch": "cf-netcdf-io",
+    "state": "uncommitted development changes",
+    "sha256": {
+      "pysteps/io/netcdf_cf.py": "5d9d307d20278b2489645a7e02818f69b6d807cd0ba9b8e105c22235fb3ee2f0",
+      "pysteps/tests/test_io_netcdf_cf.py": "9530fd0e9746988d693ca7860d1b3e8031c1ac1ac7669b842e09debbb98a8e1a",
+      "pysteps/tests/test_io_netcdf_storage.py": "df4febfce3a94934c344d314b14daf7b2dba53076796d06731ca9ee5e6821391",
+      "pysteps/tests/cf_netcdf_storage_acceptance.py": "aa9eab81d2206cf9d2313150b721b308d1116313a03265619d2d7642e423e114",
+      "pysteps/tests/cf_netcdf_storage_benchmark.py": "b8d2c103f7c062aeea9f7c011aa0adc0fb5bce741e7a52d6dd26d7cd7d40efe3"
+    }
+  },
+  "environment": {
+    "python": "3.13.18",
+    "numpy": "2.5.4",
+    "xarray": "2026.9.0",
+    "netCDF4": "1.7.4",
+    "pyproj": "3.8.0"
+  },
+  "tests": {
+    "principal": {
+      "passed": 479,
+      "new_storage_cases": 80,
+      "warnings": 17,
+      "warnings_description": "Existing MRMS pixel-spacing warnings and ANVIL dry-field divide warning",
+      "summary": "479 passed, 17 warnings in 130.23s (0:02:10)"
+    },
+    "steps_callback_and_dry": {
+      "passed": 2,
+      "deselected": 18,
+      "summary": "2 passed, 18 deselected in 3.44s"
+    },
+    "minimum_xarray": {
+      "version": "2025.1.2",
+      "passed": 80,
+      "warnings": 2,
+      "warnings_description": "Existing NumPy generic NaT deprecation from xarray 2025.1.2",
+      "summary": "80 passed, 2 warnings in 4.53s",
+      "installation": "Temporary target directory; conda environment unchanged"
+    },
+    "local_configuration": {
+      "source_configuration_unchanged": true,
+      "temporary_configuration": "/tmp/pysteps-stage2-pystepsrc",
+      "fmi_geotiff_corrections": [
+        "Remove duplicate .tif suffix from fn_pattern; fn_ext supplies it",
+        "Use importer=fmi_geotiff rather than geotiff"
+      ]
+    }
+  },
+  "acceptance": {
+    "scope": "Stage 5 explicit int16 packing, raw missing codes, decoded tolerances and compatibility writes; no forecast-skill claim",
+    "packages": {
+      "numpy": "2.5.4",
+      "xarray": "2026.9.0",
+      "netCDF4": "1.7.4",
+      "pyproj": "3.8.0"
+    },
+    "external_input": {
+      "sha256": "40db509868b33945fce37b1a12f06cbeba6979de891e3031c9b4042b65d473c1",
+      "raw_fill": -32768,
+      "raw_missing_value": -32767,
+      "scale_factor": 0.1,
+      "add_offset": 2.0,
+      "independent_handwritten_codes": true,
+      "both_raw_missing_markers_masked_before_scaling": true
+    },
+    "archive": {
+      "source": "Configured local MCH sample archive",
+      "input_files": [
+        {
+          "name": "AQC151351620F_00005.801.gif",
+          "sha256": "aa5bdc1a0229f12c3793364d350eb348451f2a6c1ad76cea57cc0165038a3fc4"
+        },
+        {
+          "name": "AQC151351625F_00005.801.gif",
+          "sha256": "1e221a9107a2cefd7598a56783301444d8d099706adf14a16ecfe7abba94bce3"
+        },
+        {
+          "name": "AQC151351630F_00005.801.gif",
+          "sha256": "03f31829aa45914ab9d75a82a59538453e689aedcec6c0e84b6e616cb74a4936"
+        }
+      ],
+      "input_times": [
+        "2015-05-15T16:20:00.000000",
+        "2015-05-15T16:25:00.000000",
+        "2015-05-15T16:30:00.000000"
+      ],
+      "output_times": [
+        "2015-05-15T16:35:00.000000",
+        "2015-05-15T16:40:00.000000",
+        "2015-05-15T16:50:00.000000"
+      ],
+      "shape": [
+        3,
+        320,
+        355
+      ],
+      "missing_pixels": 111652,
+      "mask_preserved_by_normalization": true,
+      "numerical_values_preserved_by_normalization": true,
+      "lead_steps": [
+        1,
+        2,
+        4
+      ],
+      "rate_threshold_mmph": 0.1,
+      "modelling_floor_dbr": -15.0
+    },
+    "exports": {
+      "instantaneous_rate": {
+        "bytes": 32374,
+        "sha256": "834ad0bb1d09911e63f8a57d2f1d6d76714e26cc7b568b60035c0c299693ab4e",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "mean_rate": {
+        "bytes": 33041,
+        "sha256": "b8586ba571ffeb0a8270042be1f6ce9de3efdd63c1e1dcfc07684f225b16b385",
+        "fields": {
+          "precip_mean_rate": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "interval_depth": {
+        "bytes": 33048,
+        "sha256": "1dcb9d98240c074a9ff09beb577b5d27965c7685850b90634732e4c1e4b09a78",
+        "fields": {
+          "precip_accum": {
+            "scale_factor": 0.01,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.005000000000014211
+          }
+        }
+      },
+      "cumulative_depth": {
+        "bytes": 33617,
+        "sha256": "5a3b6abc9977fbae45955dadf417c8b964cb52b240703bce6ee9d030eb5652c7",
+        "fields": {
+          "precip_cumulative": {
+            "scale_factor": 0.01,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.005000000000024869
+          }
+        }
+      },
+      "reflectivity": {
+        "bytes": 35692,
+        "sha256": "9c99f2d114a3f23ce6e555091d8cd5e23a26cc0901e275d34b7903fb0eae11ba",
+        "fields": {
+          "reflectivity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.050000000000145664
+          }
+        }
+      },
+      "ensemble_rate": {
+        "bytes": 33567,
+        "sha256": "840e489eaa3aee63d6e55517450cc8155ccdfd657e08865b5b190db6b1b9fecc",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 6,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "multiple_variables": {
+        "bytes": 43618,
+        "sha256": "96d5528b8b4e47bb16645ad63e1d0b578acec22d50917217bfa963dd94a3f138",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          },
+          "precip_accum": {
+            "scale_factor": 0.01,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 0,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.005000000000014211
+          }
+        }
+      },
+      "unit_alias_rate": {
+        "bytes": 32374,
+        "sha256": "834ad0bb1d09911e63f8a57d2f1d6d76714e26cc7b568b60035c0c299693ab4e",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "all_missing": {
+        "bytes": 32374,
+        "sha256": "f3ef847dcf264f901f23e366062b520da9763603fb1dd7d525a1fb6f7ae4cace",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 18,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.050000000000003555
+          }
+        }
+      },
+      "polar_sphere": {
+        "bytes": 30974,
+        "sha256": "d5efc14380b335e94ae1caea49dc1edd24971a4555dab3ee9c164963481b053a",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "albers": {
+        "bytes": 32292,
+        "sha256": "b4174fef8831dc2922c1e4dbf5c476fa63869bef6d5b818de75aa9fab19b361d",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "projected_without_latlon": {
+        "bytes": 32374,
+        "sha256": "834ad0bb1d09911e63f8a57d2f1d6d76714e26cc7b568b60035c0c299693ab4e",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "all_dry": {
+        "bytes": 32374,
+        "sha256": "bdc5ca39d4f79e268ca2c2979b78538962ce35e4243ec2e809bfb77b4d8ea5bd",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 0,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.050000000000003555
+          }
+        }
+      },
+      "offset_rate": {
+        "bytes": 33041,
+        "sha256": "c5f4e796f6a5ded86ab42fc57333c6d085544da89cfe04f287a3a1fb6f168165",
+        "fields": {
+          "precip_mean_rate": {
+            "scale_factor": 0.1,
+            "add_offset": 2.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.04000000000000015,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "offset_dbz": {
+        "bytes": 35692,
+        "sha256": "fda07c9cc1d5a8b93c812e2e85fd08a40ba056a2ffa4e1c588c7feb6824a54c1",
+        "fields": {
+          "reflectivity": {
+            "scale_factor": 0.1,
+            "add_offset": 10.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.050000000000145664
+          }
+        }
+      },
+      "custom_zero_fill": {
+        "bytes": 32374,
+        "sha256": "03a1f98b9af79d3cd3820318e142780a480cce0be98c6f49070a2e81aaeb958f",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 200.0,
+            "raw_fill_code": 0,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0400000000000057,
+            "checked_tolerance": 0.0500000000007141
+          }
+        }
+      },
+      "custom_positive_fill": {
+        "bytes": 32374,
+        "sha256": "45141d743c2d5b34bb692ef64ba99dfe7ecd74e4124261a53bf326f3d39a4ffa",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": 10,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.0,
+            "checked_tolerance": 0.05000000000002487
+          }
+        }
+      },
+      "validity_domain": {
+        "bytes": 32361,
+        "sha256": "3760ddb3b08d49c03624d271bdb8d2a9aa86034a98c3dc34ae0467c7164afbcc",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "repacked_external": {
+        "bytes": 33310,
+        "sha256": "bf148669b59b0403adccfa23a1b447f61c5d0de9337ac1315f208dedc2323b6b",
+        "fields": {
+          "external_rate": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 6,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 1.3877787807814457e-16,
+            "checked_tolerance": 0.05000000000001066
+          }
+        }
+      },
+      "finite_fill_view": {
+        "bytes": 32903,
+        "sha256": "5ad8348d0565d2d2983ea1270582f166e8e8226a7b6591a4cd7ef629c666b78d",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 3,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.040000000000000036,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "archived_radar_forecast": {
+        "bytes": 94201,
+        "sha256": "c6a58d9a6a999cda2ade6d512687295fe6fec3bf28c27844e95783962097addd",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 111652,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.04999919553888704,
+            "checked_tolerance": 0.05000000000030014
+          }
+        }
+      }
+    },
+    "legacy_modes": {
+      "legacy_bulk": {
+        "bytes": 29034,
+        "sha256": "8d3af4ce0f7bf1681b14fd0ce88449a71bdfb3de38a8118387796aaf2cd2c8e6",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 2.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 6,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.04000000000000015,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "legacy_timestep": {
+        "bytes": 29034,
+        "sha256": "0b5b7d872893b3100e64a9d46ab9230f70257ff73a4e893487d2f2e1709eb420",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 2.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 6,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.04000000000000015,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      },
+      "legacy_member": {
+        "bytes": 29034,
+        "sha256": "8d3af4ce0f7bf1681b14fd0ce88449a71bdfb3de38a8118387796aaf2cd2c8e6",
+        "fields": {
+          "precip_intensity": {
+            "scale_factor": 0.1,
+            "add_offset": 2.0,
+            "raw_fill_code": -32768,
+            "raw_fill_count": 6,
+            "missing_mask_exact_in_three_read_paths": true,
+            "maximum_abs_error": 0.04000000000000015,
+            "checked_tolerance": 0.05000000000035883
+          }
+        }
+      }
+    }
+  },
+  "cf_validation": {
+    "checker": "compliance-checker 6.1.0",
+    "cf_units": "3.3.1",
+    "standard": "cf:1.8",
+    "criteria": "strict",
+    "skipped_checks": [],
+    "standard_name_table": {
+      "version": 95,
+      "url": "https://cfconventions.org/Data/cf-standard-names/95/src/cf-standard-name-table.xml",
+      "sha256": "d202558c2f2d0bf99e9fd4fbf8b8450902c56e09e7974b70b8726e740bbd51ba"
+    },
+    "command": "CF_STANDARD_NAME_TABLE=/path/to/v95.xml compliance-checker -t cf:1.8 -c strict -f json_new -o /tmp/cf-storage-checks.json /tmp/cf-storage/*.nc",
+    "unmodified_results": {
+      "albers.nc": {
+        "scored_points": 167,
+        "possible_points": 167,
+        "failures": []
+      },
+      "all_dry.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "all_missing.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "archived_radar_forecast.nc": {
+        "scored_points": 206,
+        "possible_points": 207,
+        "failures": [
+          {
+            "priority": "high_priorities",
+            "name": "\u00a75.6 Horizontal Coordinate Reference Systems, Grid Mappings, Projections",
+            "points": [
+              11,
+              12
+            ],
+            "messages": [
+              "azimuth is a required attribute for grid mapping oblique_mercator"
+            ]
+          }
+        ]
+      },
+      "cumulative_depth.nc": {
+        "scored_points": 198,
+        "possible_points": 198,
+        "failures": []
+      },
+      "custom_positive_fill.nc": {
+        "scored_points": 172,
+        "possible_points": 172,
+        "failures": []
+      },
+      "custom_zero_fill.nc": {
+        "scored_points": 172,
+        "possible_points": 172,
+        "failures": []
+      },
+      "ensemble_rate.nc": {
+        "scored_points": 190,
+        "possible_points": 190,
+        "failures": []
+      },
+      "finite_fill_view.nc": {
+        "scored_points": 203,
+        "possible_points": 203,
+        "failures": []
+      },
+      "instantaneous_rate.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "interval_depth.nc": {
+        "scored_points": 175,
+        "possible_points": 175,
+        "failures": []
+      },
+      "legacy_bulk.nc": {
+        "scored_points": 210,
+        "possible_points": 210,
+        "failures": []
+      },
+      "legacy_member.nc": {
+        "scored_points": 210,
+        "possible_points": 210,
+        "failures": []
+      },
+      "legacy_timestep.nc": {
+        "scored_points": 210,
+        "possible_points": 210,
+        "failures": []
+      },
+      "mean_rate.nc": {
+        "scored_points": 177,
+        "possible_points": 177,
+        "failures": []
+      },
+      "multiple_variables.nc": {
+        "scored_points": 243,
+        "possible_points": 243,
+        "failures": []
+      },
+      "offset_dbz.nc": {
+        "scored_points": 194,
+        "possible_points": 194,
+        "failures": []
+      },
+      "offset_rate.nc": {
+        "scored_points": 177,
+        "possible_points": 177,
+        "failures": []
+      },
+      "polar_sphere.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "projected_without_latlon.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "reflectivity.nc": {
+        "scored_points": 194,
+        "possible_points": 194,
+        "failures": []
+      },
+      "repacked_external.nc": {
+        "scored_points": 173,
+        "possible_points": 173,
+        "failures": []
+      },
+      "unit_alias_rate.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "validity_domain.nc": {
+        "scored_points": 172,
+        "possible_points": 172,
+        "failures": []
+      }
+    },
+    "schema_correction": {
+      "reason": "Checker 6.1.0 requires azimuth for Oblique Mercator; CF-1.8 Appendix F requires azimuth_of_central_line, which is already present in the written file",
+      "source": "https://cfconventions.org/Data/cf-conventions/cf-conventions-1.8/cf-conventions.html#_oblique_mercator",
+      "location": "compliance_checker.cf.appendix_f.grid_mapping_dict17[\"oblique_mercator\"][0]",
+      "before": "azimuth",
+      "after": "azimuth_of_central_line",
+      "method": "Replace only the required key in memory before invoking cchecker.py; all tests, scoring and strict criteria retained; no file metadata changed"
+    },
+    "corrected_schema_results": {
+      "albers.nc": {
+        "scored_points": 167,
+        "possible_points": 167,
+        "failures": []
+      },
+      "all_dry.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "all_missing.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "archived_radar_forecast.nc": {
+        "scored_points": 207,
+        "possible_points": 207,
+        "failures": []
+      },
+      "cumulative_depth.nc": {
+        "scored_points": 198,
+        "possible_points": 198,
+        "failures": []
+      },
+      "custom_positive_fill.nc": {
+        "scored_points": 172,
+        "possible_points": 172,
+        "failures": []
+      },
+      "custom_zero_fill.nc": {
+        "scored_points": 172,
+        "possible_points": 172,
+        "failures": []
+      },
+      "ensemble_rate.nc": {
+        "scored_points": 190,
+        "possible_points": 190,
+        "failures": []
+      },
+      "finite_fill_view.nc": {
+        "scored_points": 203,
+        "possible_points": 203,
+        "failures": []
+      },
+      "instantaneous_rate.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "interval_depth.nc": {
+        "scored_points": 175,
+        "possible_points": 175,
+        "failures": []
+      },
+      "legacy_bulk.nc": {
+        "scored_points": 210,
+        "possible_points": 210,
+        "failures": []
+      },
+      "legacy_member.nc": {
+        "scored_points": 210,
+        "possible_points": 210,
+        "failures": []
+      },
+      "legacy_timestep.nc": {
+        "scored_points": 210,
+        "possible_points": 210,
+        "failures": []
+      },
+      "mean_rate.nc": {
+        "scored_points": 177,
+        "possible_points": 177,
+        "failures": []
+      },
+      "multiple_variables.nc": {
+        "scored_points": 243,
+        "possible_points": 243,
+        "failures": []
+      },
+      "offset_dbz.nc": {
+        "scored_points": 194,
+        "possible_points": 194,
+        "failures": []
+      },
+      "offset_rate.nc": {
+        "scored_points": 177,
+        "possible_points": 177,
+        "failures": []
+      },
+      "polar_sphere.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "projected_without_latlon.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "reflectivity.nc": {
+        "scored_points": 194,
+        "possible_points": 194,
+        "failures": []
+      },
+      "repacked_external.nc": {
+        "scored_points": 173,
+        "possible_points": 173,
+        "failures": []
+      },
+      "unit_alias_rate.nc": {
+        "scored_points": 168,
+        "possible_points": 168,
+        "failures": []
+      },
+      "validity_domain.nc": {
+        "scored_points": 172,
+        "possible_points": 172,
+        "failures": []
+      }
+    }
+  },
+  "storage_measurements": {
+    "artifact": "cf_netcdf_stage5_benchmark.json",
+    "repeats": 3,
+    "source_sha256": {
+      "pysteps/io/netcdf_cf.py": "5d9d307d20278b2489645a7e02818f69b6d807cd0ba9b8e105c22235fb3ee2f0",
+      "pysteps/tests/cf_netcdf_storage_benchmark.py": "b8d2c103f7c062aeea9f7c011aa0adc0fb5bce741e7a52d6dd26d7cd7d40efe3"
+    },
+    "scenarios": {
+      "synthetic_ensemble": {
+        "shape": [
+          4,
+          8,
+          384,
+          512
+        ],
+        "input_bytes": 25165824,
+        "missing_pixels": 116901,
+        "float32_zlib4_bytes": 9794106,
+        "int16_zlib4_bytes": 2726770,
+        "reduction_percent": 72.15907199697452,
+        "float32_write_median_seconds": 0.31233182799769565,
+        "int16_write_median_seconds": 0.1946570169966435
+      },
+      "archived_radar_forecast": {
+        "shape": [
+          3,
+          320,
+          355
+        ],
+        "input_bytes": 1363200,
+        "missing_pixels": 111652,
+        "float32_zlib4_bytes": 259307,
+        "int16_zlib4_bytes": 94201,
+        "reduction_percent": 63.67201810980807,
+        "float32_write_median_seconds": 0.026093603009940125,
+        "int16_write_median_seconds": 0.02056376199470833
+      }
+    }
+  },
+  "limits": [
+    "Scoped tests only, not the complete upstream suite",
+    "No second independent high-level CF reader or forecast-skill assessment",
+    "Storage timing uses warm operating-system cache, not cold-cache or fsync throughput",
+    "Ratios and timing are observations on two inputs, not a universal optimum or CI threshold",
+    "Positive traces below approximately half a quantization step can become observed zero; preserve source classifications separately",
+    "Documentation syntax and links checked with docutils adapters, not a full Sphinx build"
+  ]
+}

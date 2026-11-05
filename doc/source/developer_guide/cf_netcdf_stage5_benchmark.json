@@ -1,0 +1,2393 @@
+{
+  "scope": "Warm operating-system cache storage/backend measurements on identical physical inputs; no cold-cache, fsync throughput, forecast-skill or cross-machine timing claim",
+  "repeats": 3,
+  "source_sha256": {
+    "pysteps/io/netcdf_cf.py": "5d9d307d20278b2489645a7e02818f69b6d807cd0ba9b8e105c22235fb3ee2f0",
+    "pysteps/tests/cf_netcdf_storage_benchmark.py": "b8d2c103f7c062aeea9f7c011aa0adc0fb5bce741e7a52d6dd26d7cd7d40efe3"
+  },
+  "seed": 5128,
+  "platform": "Linux-6.17.0-1033-oem-x86_64-with-glibc2.39",
+  "logical_cpus": 32,
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "xarray": "2026.9.0",
+    "netCDF4": "1.7.4",
+    "pyproj": "3.8.0"
+  },
+  "netcdf_library": "4.10.1 of Oct 25 2026 17:49:20 $",
+  "hdf5_library": "2.2.0",
+  "read_method": "netCDF4 auto mask/scale into float32; reopen per read, materialize all requested data",
+  "scenarios": {
+    "synthetic_ensemble": {
+      "variable": "precip_intensity",
+      "shape": [
+        4,
+        8,
+        384,
+        512
+      ],
+      "dtype": "float32",
+      "input_sha256": "6f678db0eeed3d0e75ae0ec93a14ee4eca678a21ccd42f41bacc5d8d46014a2e",
+      "input_bytes": 25165824,
+      "missing_pixels": 116901,
+      "observed_dry_pixels": 3542306,
+      "positive_pixels": 2632249,
+      "positive_traces_below_half_step": 54707,
+      "maximum_mmph": 338.61602783203125,
+      "profiles": {
+        "f32_zlib0_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": false,
+            "complevel": 0,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 33602660,
+          "sha256": "c1d9f32e5ba9380fff6d6915a32eb3be454d11ad3723cd4e77b78e155c46322d",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": false,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": false,
+            "complevel": 0,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.04379455299931578,
+              "minimum": 0.04107245300838258,
+              "maximum": 0.06337667000479996,
+              "samples": [
+                0.06337667000479996,
+                0.04107245300838258,
+                0.04379455299931578
+              ]
+            },
+            "full": {
+              "median": 0.028218011997523718,
+              "minimum": 0.027043529000366107,
+              "maximum": 0.028550215996801853,
+              "samples": [
+                0.027043529000366107,
+                0.028218011997523718,
+                0.028550215996801853
+              ]
+            },
+            "map": {
+              "median": 0.0028684120043180883,
+              "minimum": 0.002839130989741534,
+              "maximum": 0.0029485150007531047,
+              "samples": [
+                0.0028684120043180883,
+                0.0029485150007531047,
+                0.002839130989741534
+              ]
+            },
+            "point_series": {
+              "median": 0.003310127998702228,
+              "minimum": 0.003286794002633542,
+              "maximum": 0.0033695159945636988,
+              "samples": [
+                0.003310127998702228,
+                0.0033695159945636988,
+                0.003286794002633542
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 3.430906302218906
+        },
+        "f32_zlib1_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 1,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 10213169,
+          "sha256": "04fe08f874837154c55959e7e2e28580c760bac0121da9a7006589199fea61c2",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 1,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.24968797000474297,
+              "minimum": 0.24405605600622948,
+              "maximum": 0.2551321469945833,
+              "samples": [
+                0.2551321469945833,
+                0.24968797000474297,
+                0.24405605600622948
+              ]
+            },
+            "full": {
+              "median": 0.09106961899669841,
+              "minimum": 0.0892862370092189,
+              "maximum": 0.09265822199813556,
+              "samples": [
+                0.09265822199813556,
+                0.09106961899669841,
+                0.0892862370092189
+              ]
+            },
+            "map": {
+              "median": 0.0052547270024660975,
+              "minimum": 0.005235295000602491,
+              "maximum": 0.005979678011499345,
+              "samples": [
+                0.005979678011499345,
+                0.005235295000602491,
+                0.0052547270024660975
+              ]
+            },
+            "point_series": {
+              "median": 0.00836262499797158,
+              "minimum": 0.008331526987603866,
+              "maximum": 0.00891301900264807,
+              "samples": [
+                0.00891301900264807,
+                0.00836262499797158,
+                0.008331526987603866
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 1.042787264095365
+        },
+        "f32_zlib4_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 9794106,
+          "sha256": "ac3f3bd2139d48448cb644cb7b00dcb8e6996724e968310d3725fb1ca32537fb",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.31233182799769565,
+              "minimum": 0.30494729400379583,
+              "maximum": 0.31408460599777754,
+              "samples": [
+                0.31233182799769565,
+                0.31408460599777754,
+                0.30494729400379583
+              ]
+            },
+            "full": {
+              "median": 0.08928621798986569,
+              "minimum": 0.0865672330110101,
+              "maximum": 0.09024592400237452,
+              "samples": [
+                0.08928621798986569,
+                0.09024592400237452,
+                0.0865672330110101
+              ]
+            },
+            "map": {
+              "median": 0.004995980008970946,
+              "minimum": 0.004993890004698187,
+              "maximum": 0.005613358996924944,
+              "samples": [
+                0.005613358996924944,
+                0.004995980008970946,
+                0.004993890004698187
+              ]
+            },
+            "point_series": {
+              "median": 0.007867940003052354,
+              "minimum": 0.0075855929899262264,
+              "maximum": 0.008085654000751674,
+              "samples": [
+                0.008085654000751674,
+                0.0075855929899262264,
+                0.007867940003052354
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 1.0
+        },
+        "f32_zlib6_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 6,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 9618705,
+          "sha256": "0d77ecc6349f3468a831a541b78c84da68da9968187669a44988346be18a0815",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 6,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.46280209500400815,
+              "minimum": 0.46018499400815926,
+              "maximum": 0.46913715898699593,
+              "samples": [
+                0.46280209500400815,
+                0.46913715898699593,
+                0.46018499400815926
+              ]
+            },
+            "full": {
+              "median": 0.08503367900266312,
+              "minimum": 0.0829379349888768,
+              "maximum": 0.08552783798950259,
+              "samples": [
+                0.08552783798950259,
+                0.08503367900266312,
+                0.0829379349888768
+              ]
+            },
+            "map": {
+              "median": 0.005062657000962645,
+              "minimum": 0.004852776997722685,
+              "maximum": 0.005510399991180748,
+              "samples": [
+                0.005510399991180748,
+                0.004852776997722685,
+                0.005062657000962645
+              ]
+            },
+            "point_series": {
+              "median": 0.00754633400356397,
+              "minimum": 0.007395883993012831,
+              "maximum": 0.007801985993864946,
+              "samples": [
+                0.007801985993864946,
+                0.007395883993012831,
+                0.00754633400356397
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.9820911678921996
+        },
+        "f32_zlib9_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 9,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 9460036,
+          "sha256": "bfe87d08a5642a66654cd058d78523c4e640e6e554d7bbf5c7045e38b53c6a01",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 9,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 3.607809678011108,
+              "minimum": 3.5983959099976346,
+              "maximum": 3.613062775999424,
+              "samples": [
+                3.613062775999424,
+                3.5983959099976346,
+                3.607809678011108
+              ]
+            },
+            "full": {
+              "median": 0.08042601401393767,
+              "minimum": 0.07888630699017085,
+              "maximum": 0.08133522199932486,
+              "samples": [
+                0.08133522199932486,
+                0.08042601401393767,
+                0.07888630699017085
+              ]
+            },
+            "map": {
+              "median": 0.004982216007192619,
+              "minimum": 0.004755307993036695,
+              "maximum": 0.005581333985901438,
+              "samples": [
+                0.005581333985901438,
+                0.004755307993036695,
+                0.004982216007192619
+              ]
+            },
+            "point_series": {
+              "median": 0.007208566996268928,
+              "minimum": 0.007140914996853098,
+              "maximum": 0.007875380004406907,
+              "samples": [
+                0.007875380004406907,
+                0.007140914996853098,
+                0.007208566996268928
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.965890710188352
+        },
+        "i16_zlib0_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": false,
+            "complevel": 0,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 16825326,
+          "sha256": "e2e35fbe0fb33cc2860aafe22d85e2bf3ef7f627acbe572cba5378305e27ea57",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": false,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": false,
+            "complevel": 0,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.10290342499502003,
+              "minimum": 0.10205725800187793,
+              "maximum": 0.10400332500285003,
+              "samples": [
+                0.10205725800187793,
+                0.10290342499502003,
+                0.10400332500285003
+              ]
+            },
+            "full": {
+              "median": 0.0450043739983812,
+              "minimum": 0.044528108002850786,
+              "maximum": 0.04597922900575213,
+              "samples": [
+                0.04597922900575213,
+                0.0450043739983812,
+                0.044528108002850786
+              ]
+            },
+            "map": {
+              "median": 0.0034381629957351834,
+              "minimum": 0.003377503002411686,
+              "maximum": 0.0034529710101196542,
+              "samples": [
+                0.0034381629957351834,
+                0.003377503002411686,
+                0.0034529710101196542
+              ]
+            },
+            "point_series": {
+              "median": 0.002115064999088645,
+              "minimum": 0.0020088760065846145,
+              "maximum": 0.0022813910036347806,
+              "samples": [
+                0.002115064999088645,
+                0.0020088760065846145,
+                0.0022813910036347806
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 1.717903196065062
+        },
+        "i16_zlib1_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 1,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 2898573,
+          "sha256": "5fe03e9222b4fb7643bd8cd971c17aee54c761d0d2758a5aea78390fbee1f096",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 1,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.1591532599995844,
+              "minimum": 0.15914691700891126,
+              "maximum": 0.15945101299439557,
+              "samples": [
+                0.15945101299439557,
+                0.15914691700891126,
+                0.1591532599995844
+              ]
+            },
+            "full": {
+              "median": 0.0723597320029512,
+              "minimum": 0.0723553370044101,
+              "maximum": 0.07257747100084089,
+              "samples": [
+                0.07257747100084089,
+                0.0723553370044101,
+                0.0723597320029512
+              ]
+            },
+            "map": {
+              "median": 0.004124607992707752,
+              "minimum": 0.0040470209933118895,
+              "maximum": 0.0041318589937873185,
+              "samples": [
+                0.004124607992707752,
+                0.0041318589937873185,
+                0.0040470209933118895
+              ]
+            },
+            "point_series": {
+              "median": 0.004222322997520678,
+              "minimum": 0.0041932390013244,
+              "maximum": 0.004879903994151391,
+              "samples": [
+                0.004879903994151391,
+                0.0041932390013244,
+                0.004222322997520678
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.29595074833782686
+        },
+        "i16_zlib4_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 2726770,
+          "sha256": "50e97899677a2ad04fcbbd9ff514158262a2633ae669a455c98db503f271320b",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.1946570169966435,
+              "minimum": 0.1928567659924738,
+              "maximum": 0.1997947199997725,
+              "samples": [
+                0.1928567659924738,
+                0.1946570169966435,
+                0.1997947199997725
+              ]
+            },
+            "full": {
+              "median": 0.07956918799027335,
+              "minimum": 0.07820654999522958,
+              "maximum": 0.08921100400038995,
+              "samples": [
+                0.07820654999522958,
+                0.08921100400038995,
+                0.07956918799027335
+              ]
+            },
+            "map": {
+              "median": 0.0043253920011920854,
+              "minimum": 0.00432260699744802,
+              "maximum": 0.005672049010172486,
+              "samples": [
+                0.005672049010172486,
+                0.00432260699744802,
+                0.0043253920011920854
+              ]
+            },
+            "point_series": {
+              "median": 0.004505319986492395,
+              "minimum": 0.004498053007409908,
+              "maximum": 0.004781032010214403,
+              "samples": [
+                0.004781032010214403,
+                0.004498053007409908,
+                0.004505319986492395
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.27840928003025495
+        },
+        "i16_zlib6_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 6,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 2674856,
+          "sha256": "01acb14f13f08ea131fdb4d01f423d4fdd9f51052b04f8e60f2f17223e166aa4",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 6,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.23774628799583297,
+              "minimum": 0.2355143449967727,
+              "maximum": 0.24405725600081496,
+              "samples": [
+                0.24405725600081496,
+                0.23774628799583297,
+                0.2355143449967727
+              ]
+            },
+            "full": {
+              "median": 0.07484413699421566,
+              "minimum": 0.07364994200179353,
+              "maximum": 0.07620915000734385,
+              "samples": [
+                0.07484413699421566,
+                0.07620915000734385,
+                0.07364994200179353
+              ]
+            },
+            "map": {
+              "median": 0.004002340996521525,
+              "minimum": 0.003923593991203234,
+              "maximum": 0.005330613988917321,
+              "samples": [
+                0.005330613988917321,
+                0.003923593991203234,
+                0.004002340996521525
+              ]
+            },
+            "point_series": {
+              "median": 0.004165349004324526,
+              "minimum": 0.0041451599972788244,
+              "maximum": 0.004296612009056844,
+              "samples": [
+                0.004296612009056844,
+                0.004165349004324526,
+                0.0041451599972788244
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.2731087451983877
+        },
+        "i16_zlib9_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 9,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 2615437,
+          "sha256": "4e0003ada3d6302b50e55d4aaabddce663defa8d2faba51c425b699087da5b61",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 9,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.713140342006227,
+              "minimum": 0.7124972899910063,
+              "maximum": 0.7134985869925003,
+              "samples": [
+                0.7124972899910063,
+                0.7134985869925003,
+                0.713140342006227
+              ]
+            },
+            "full": {
+              "median": 0.07335498000611551,
+              "minimum": 0.0720910539967008,
+              "maximum": 0.07777868400444277,
+              "samples": [
+                0.07777868400444277,
+                0.07335498000611551,
+                0.0720910539967008
+              ]
+            },
+            "map": {
+              "median": 0.004069941001944244,
+              "minimum": 0.004036582002299838,
+              "maximum": 0.004420583994942717,
+              "samples": [
+                0.004420583994942717,
+                0.004036582002299838,
+                0.004069941001944244
+              ]
+            },
+            "point_series": {
+              "median": 0.0042523680021986365,
+              "minimum": 0.004210972998407669,
+              "maximum": 0.00457390199881047,
+              "samples": [
+                0.00457390199881047,
+                0.004210972998407669,
+                0.0042523680021986365
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.2670419331789956
+        },
+        "i16_zlib4_tile128": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              128,
+              128
+            ]
+          },
+          "bytes": 2788237,
+          "sha256": "e429aa97dd760fb71c3e95c10ed97e4c31727c56095e23ba8113bdfc19c2c975",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            128,
+            128
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.17663252700003795,
+              "minimum": 0.1747563219978474,
+              "maximum": 0.1770670989935752,
+              "samples": [
+                0.1747563219978474,
+                0.17663252700003795,
+                0.1770670989935752
+              ]
+            },
+            "full": {
+              "median": 0.07532195599924307,
+              "minimum": 0.07468932399933692,
+              "maximum": 0.07538490000297315,
+              "samples": [
+                0.07532195599924307,
+                0.07538490000297315,
+                0.07468932399933692
+              ]
+            },
+            "map": {
+              "median": 0.0041757680010050535,
+              "minimum": 0.004068162001203746,
+              "maximum": 0.004456128997844644,
+              "samples": [
+                0.0041757680010050535,
+                0.004456128997844644,
+                0.004068162001203746
+              ]
+            },
+            "point_series": {
+              "median": 0.0025391910021426156,
+              "minimum": 0.0024890679924283177,
+              "maximum": 0.0027672919968608767,
+              "samples": [
+                0.0024890679924283177,
+                0.0027672919968608767,
+                0.0025391910021426156
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.2846851974034179
+        },
+        "i16_zlib4_frame": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              1,
+              384,
+              512
+            ]
+          },
+          "bytes": 2657906,
+          "sha256": "281cf7a823b8bea2094b041d9b7f3cac5b23d20be8f718193409b1082d24a7aa",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            384,
+            512
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.18397843299317174,
+              "minimum": 0.18374770000809804,
+              "maximum": 0.18457292900711764,
+              "samples": [
+                0.18397843299317174,
+                0.18457292900711764,
+                0.18374770000809804
+              ]
+            },
+            "full": {
+              "median": 0.07224554299318697,
+              "minimum": 0.07222376100253314,
+              "maximum": 0.0726139710022835,
+              "samples": [
+                0.0726139710022835,
+                0.07224554299318697,
+                0.07222376100253314
+              ]
+            },
+            "map": {
+              "median": 0.0039790020091459155,
+              "minimum": 0.0038630889903288335,
+              "maximum": 0.0041901380027411506,
+              "samples": [
+                0.0041901380027411506,
+                0.0039790020091459155,
+                0.0038630889903288335
+              ]
+            },
+            "point_series": {
+              "median": 0.009697275003418326,
+              "minimum": 0.009590093992301263,
+              "maximum": 0.009700945010990836,
+              "samples": [
+                0.009697275003418326,
+                0.009700945010990836,
+                0.009590093992301263
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.2713781125097074
+        },
+        "i16_zlib4_time4": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              4,
+              256,
+              256
+            ]
+          },
+          "bytes": 2669804,
+          "sha256": "f72279e4bfbfdfd1486e33bdacf8d713f467de8971c9e9ca617de8b748fb808c",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            4,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.194484255000134,
+              "minimum": 0.19424393300141674,
+              "maximum": 0.19473455200204626,
+              "samples": [
+                0.194484255000134,
+                0.19424393300141674,
+                0.19473455200204626
+              ]
+            },
+            "full": {
+              "median": 0.0754662749968702,
+              "minimum": 0.07505637900612783,
+              "maximum": 0.07723621599143371,
+              "samples": [
+                0.07723621599143371,
+                0.07505637900612783,
+                0.0754662749968702
+              ]
+            },
+            "map": {
+              "median": 0.007369150000158697,
+              "minimum": 0.0073190109978895634,
+              "maximum": 0.007620645992574282,
+              "samples": [
+                0.007620645992574282,
+                0.0073190109978895634,
+                0.007369150000158697
+              ]
+            },
+            "point_series": {
+              "median": 0.004269958997610956,
+              "minimum": 0.004260109999449924,
+              "maximum": 0.004401845988468267,
+              "samples": [
+                0.004401845988468267,
+                0.004260109999449924,
+                0.004269958997610956
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.2725929247651598
+        },
+        "i16_zlib4_members4": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              4,
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 2671125,
+          "sha256": "31b2c257c350b057a1f8206ea98c2e843a4ce2528b9a8c64ee36359d4f5e73cf",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            4,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.19416503500542603,
+              "minimum": 0.19355315700522624,
+              "maximum": 0.19481102100689895,
+              "samples": [
+                0.19416503500542603,
+                0.19355315700522624,
+                0.19481102100689895
+              ]
+            },
+            "full": {
+              "median": 0.07541048200801015,
+              "minimum": 0.07532021499355324,
+              "maximum": 0.07543971500126645,
+              "samples": [
+                0.07543971500126645,
+                0.07532021499355324,
+                0.07541048200801015
+              ]
+            },
+            "map": {
+              "median": 0.00734454499615822,
+              "minimum": 0.0073442560096737,
+              "maximum": 0.007456452993210405,
+              "samples": [
+                0.00734454499615822,
+                0.007456452993210405,
+                0.0073442560096737
+              ]
+            },
+            "point_series": {
+              "median": 0.012032637998345308,
+              "minimum": 0.012030102996504866,
+              "maximum": 0.01270510999893304,
+              "samples": [
+                0.012032637998345308,
+                0.01270510999893304,
+                0.012030102996504866
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.27272780180243095
+        },
+        "i16_zlib4_no_shuffle": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": false,
+            "chunksizes": [
+              1,
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 3317312,
+          "sha256": "a4adb02bc94e66763dc00b536f287fbf48cf14380d56128b82c3aad33f7f2de6",
+          "maximum_abs_error_mmph": 0.0500030517578125,
+          "checked_tolerance_mmph": 0.0501619428396225,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": false,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.21602790099859703,
+              "minimum": 0.21579258600831963,
+              "maximum": 0.21958589799760375,
+              "samples": [
+                0.21958589799760375,
+                0.21602790099859703,
+                0.21579258600831963
+              ]
+            },
+            "full": {
+              "median": 0.07576476800022647,
+              "minimum": 0.07555739900271874,
+              "maximum": 0.07586428300419357,
+              "samples": [
+                0.07586428300419357,
+                0.07576476800022647,
+                0.07555739900271874
+              ]
+            },
+            "map": {
+              "median": 0.004293277001124807,
+              "minimum": 0.004236659005982801,
+              "maximum": 0.00437969398626592,
+              "samples": [
+                0.004236659005982801,
+                0.00437969398626592,
+                0.004293277001124807
+              ]
+            },
+            "point_series": {
+              "median": 0.005030443993746303,
+              "minimum": 0.004772823012899607,
+              "maximum": 0.005086648001451977,
+              "samples": [
+                0.004772823012899607,
+                0.005086648001451977,
+                0.005030443993746303
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.3387049313127712
+        }
+      }
+    },
+    "archived_radar_forecast": {
+      "variable": "precip_intensity",
+      "shape": [
+        3,
+        320,
+        355
+      ],
+      "dtype": "float32",
+      "input_sha256": "628331b70a8ee14f321606422ff9c8e07a643427d47d91d090bdd1a323d3c746",
+      "input_bytes": 1363200,
+      "missing_pixels": 111652,
+      "observed_dry_pixels": 180070,
+      "positive_pixels": 49078,
+      "positive_traces_below_half_step": 0,
+      "maximum_mmph": 83.48067474365234,
+      "profiles": {
+        "f32_zlib0_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": false,
+            "complevel": 0,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 3186023,
+          "sha256": "7e1ca6e1e05c58e5d5a731391278377d7295073d21615dd362a4f8f7525a8b3d",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": false,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": false,
+            "complevel": 0,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.014036823995411396,
+              "minimum": 0.013930696004536003,
+              "maximum": 0.014172780996887013,
+              "samples": [
+                0.014036823995411396,
+                0.013930696004536003,
+                0.014172780996887013
+              ]
+            },
+            "full": {
+              "median": 0.002298208011779934,
+              "minimum": 0.0022199509985512123,
+              "maximum": 0.0026863570092245936,
+              "samples": [
+                0.0026863570092245936,
+                0.0022199509985512123,
+                0.002298208011779934
+              ]
+            },
+            "map": {
+              "median": 0.0018273269961355254,
+              "minimum": 0.001791073998901993,
+              "maximum": 0.0019254650105722249,
+              "samples": [
+                0.0019254650105722249,
+                0.0018273269961355254,
+                0.001791073998901993
+              ]
+            },
+            "point_series": {
+              "median": 0.0015932850074023008,
+              "minimum": 0.001579208008479327,
+              "maximum": 0.0016203440027311444,
+              "samples": [
+                0.001579208008479327,
+                0.0016203440027311444,
+                0.0015932850074023008
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 12.28668335216558
+        },
+        "f32_zlib1_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 1,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 275717,
+          "sha256": "018c38922b3575099a8c4121b5900eb436d4fcefc91948f7ea7d0b038b96839e",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 1,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.02115284300816711,
+              "minimum": 0.02114982200146187,
+              "maximum": 0.021593031007796526,
+              "samples": [
+                0.021593031007796526,
+                0.02115284300816711,
+                0.02114982200146187
+              ]
+            },
+            "full": {
+              "median": 0.004966405002051033,
+              "minimum": 0.004959511003107764,
+              "maximum": 0.005016903000068851,
+              "samples": [
+                0.005016903000068851,
+                0.004966405002051033,
+                0.004959511003107764
+              ]
+            },
+            "map": {
+              "median": 0.0024258120101876557,
+              "minimum": 0.0024067439953796566,
+              "maximum": 0.0024348330043721944,
+              "samples": [
+                0.0024067439953796566,
+                0.0024348330043721944,
+                0.0024258120101876557
+              ]
+            },
+            "point_series": {
+              "median": 0.0026749320095404983,
+              "minimum": 0.0026708969962783158,
+              "maximum": 0.0026934900088235736,
+              "samples": [
+                0.0026934900088235736,
+                0.0026708969962783158,
+                0.0026749320095404983
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 1.0632840609779142
+        },
+        "f32_zlib4_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 259307,
+          "sha256": "1ce0594e4e6cc0098f348f2f2e11f7236eba22a4df23daa0d16d7c0daff69b6c",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.026093603009940125,
+              "minimum": 0.026064706995384768,
+              "maximum": 0.026117280998732895,
+              "samples": [
+                0.026117280998732895,
+                0.026093603009940125,
+                0.026064706995384768
+              ]
+            },
+            "full": {
+              "median": 0.005883148987777531,
+              "minimum": 0.005874160007806495,
+              "maximum": 0.006011659002979286,
+              "samples": [
+                0.006011659002979286,
+                0.005874160007806495,
+                0.005883148987777531
+              ]
+            },
+            "map": {
+              "median": 0.0027782440010923892,
+              "minimum": 0.002717919007409364,
+              "maximum": 0.0027968219947069883,
+              "samples": [
+                0.0027968219947069883,
+                0.002717919007409364,
+                0.0027782440010923892
+              ]
+            },
+            "point_series": {
+              "median": 0.0028114460001233965,
+              "minimum": 0.002806853997753933,
+              "maximum": 0.0028698530077235773,
+              "samples": [
+                0.002806853997753933,
+                0.0028114460001233965,
+                0.0028698530077235773
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 1.0
+        },
+        "f32_zlib6_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 6,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 250070,
+          "sha256": "bcf2d0648d424088002e8e4e71915acf44e85e9dd4ce63b128d6b7b0ecea190c",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 6,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.033803061000071466,
+              "minimum": 0.03362874701269902,
+              "maximum": 0.03384228299546521,
+              "samples": [
+                0.033803061000071466,
+                0.03384228299546521,
+                0.03362874701269902
+              ]
+            },
+            "full": {
+              "median": 0.0051735890010604635,
+              "minimum": 0.005158587999176234,
+              "maximum": 0.005192825003177859,
+              "samples": [
+                0.0051735890010604635,
+                0.005192825003177859,
+                0.005158587999176234
+              ]
+            },
+            "map": {
+              "median": 0.002495059001375921,
+              "minimum": 0.002490020007826388,
+              "maximum": 0.002506005999748595,
+              "samples": [
+                0.002495059001375921,
+                0.002490020007826388,
+                0.002506005999748595
+              ]
+            },
+            "point_series": {
+              "median": 0.0026164690061705187,
+              "minimum": 0.002596278995042667,
+              "maximum": 0.002624002008815296,
+              "samples": [
+                0.002596278995042667,
+                0.002624002008815296,
+                0.0026164690061705187
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.9643781309413166
+        },
+        "f32_zlib9_tile256": {
+          "encoding": {
+            "dtype": "float32",
+            "zlib": true,
+            "complevel": 9,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 241112,
+          "sha256": "7f104812291f331fa0713783ed7f954280bcda032de9c60a9745c8c0a3747854",
+          "maximum_abs_error_mmph": 0.0,
+          "checked_tolerance_mmph": 0.0,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 9,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.18439636599214282,
+              "minimum": 0.18422135501168668,
+              "maximum": 0.18511233800381888,
+              "samples": [
+                0.18511233800381888,
+                0.18422135501168668,
+                0.18439636599214282
+              ]
+            },
+            "full": {
+              "median": 0.005095917003927752,
+              "minimum": 0.005054794004536234,
+              "maximum": 0.005194313998799771,
+              "samples": [
+                0.005194313998799771,
+                0.005095917003927752,
+                0.005054794004536234
+              ]
+            },
+            "map": {
+              "median": 0.002452216998790391,
+              "minimum": 0.002435916001559235,
+              "maximum": 0.002482823998434469,
+              "samples": [
+                0.002452216998790391,
+                0.002435916001559235,
+                0.002482823998434469
+              ]
+            },
+            "point_series": {
+              "median": 0.0024821020051604137,
+              "minimum": 0.0024627079983474687,
+              "maximum": 0.002539795998018235,
+              "samples": [
+                0.0024627079983474687,
+                0.0024821020051604137,
+                0.002539795998018235
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.9298322066122395
+        },
+        "i16_zlib0_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": false,
+            "complevel": 0,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 1613879,
+          "sha256": "c5bb693fc2d79c30bb2f16f78ce1121ef4ab38616fbc74c59e670b7dfdc60a0f",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": false,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": false,
+            "complevel": 0,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.014810515989665873,
+              "minimum": 0.014693334000185132,
+              "maximum": 0.014981181986513548,
+              "samples": [
+                0.014810515989665873,
+                0.014981181986513548,
+                0.014693334000185132
+              ]
+            },
+            "full": {
+              "median": 0.002778355003101751,
+              "minimum": 0.0027616730076260865,
+              "maximum": 0.0028626380080822855,
+              "samples": [
+                0.0028626380080822855,
+                0.002778355003101751,
+                0.0027616730076260865
+              ]
+            },
+            "map": {
+              "median": 0.001797614007955417,
+              "minimum": 0.001763035004842095,
+              "maximum": 0.0018273860041517764,
+              "samples": [
+                0.0018273860041517764,
+                0.001797614007955417,
+                0.001763035004842095
+              ]
+            },
+            "point_series": {
+              "median": 0.0013793609978165478,
+              "minimum": 0.0013597459910670295,
+              "maximum": 0.001407481002388522,
+              "samples": [
+                0.001407481002388522,
+                0.0013597459910670295,
+                0.0013793609978165478
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 6.2238157859217065
+        },
+        "i16_zlib1_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 1,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 101111,
+          "sha256": "28295dc1abe4b3db384c4bb896080fbbaa9991876bc4b571cc68137456d3ab87",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 1,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.017734232998918742,
+              "minimum": 0.01772735599661246,
+              "maximum": 0.017811286001233384,
+              "samples": [
+                0.01772735599661246,
+                0.017734232998918742,
+                0.017811286001233384
+              ]
+            },
+            "full": {
+              "median": 0.003977619999204762,
+              "minimum": 0.003945800010114908,
+              "maximum": 0.004071192000992596,
+              "samples": [
+                0.004071192000992596,
+                0.003945800010114908,
+                0.003977619999204762
+              ]
+            },
+            "map": {
+              "median": 0.0021081029990455136,
+              "minimum": 0.002092466995236464,
+              "maximum": 0.0021311250020517036,
+              "samples": [
+                0.0021311250020517036,
+                0.002092466995236464,
+                0.0021081029990455136
+              ]
+            },
+            "point_series": {
+              "median": 0.0017332849965896457,
+              "minimum": 0.0017320759943686426,
+              "maximum": 0.00173674599500373,
+              "samples": [
+                0.00173674599500373,
+                0.0017332849965896457,
+                0.0017320759943686426
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.3899277690151057
+        },
+        "i16_zlib4_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 94201,
+          "sha256": "b605a5fc3625b41aeb976df6bc6d36a2e8e9fe54b767c827ccb225083fc45bcb",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.02056376199470833,
+              "minimum": 0.020060531998751685,
+              "maximum": 0.020944205010891892,
+              "samples": [
+                0.020944205010891892,
+                0.02056376199470833,
+                0.020060531998751685
+              ]
+            },
+            "full": {
+              "median": 0.004425769002409652,
+              "minimum": 0.004401305006467737,
+              "maximum": 0.004643979002139531,
+              "samples": [
+                0.004643979002139531,
+                0.004401305006467737,
+                0.004425769002409652
+              ]
+            },
+            "map": {
+              "median": 0.0022621800017077476,
+              "minimum": 0.0022429859964177012,
+              "maximum": 0.002341359999263659,
+              "samples": [
+                0.002341359999263659,
+                0.0022621800017077476,
+                0.0022429859964177012
+              ]
+            },
+            "point_series": {
+              "median": 0.001835611998103559,
+              "minimum": 0.0018227760010631755,
+              "maximum": 0.001843798003392294,
+              "samples": [
+                0.001843798003392294,
+                0.0018227760010631755,
+                0.001835611998103559
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.36327981890191935
+        },
+        "i16_zlib6_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 6,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 89276,
+          "sha256": "c363b4d88b4fcf78041ee3fe9ef2d5d29b53a82f8511b3fad5474bee5b848342",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 6,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.022582015008083545,
+              "minimum": 0.022444677000748925,
+              "maximum": 0.022999359003733844,
+              "samples": [
+                0.022999359003733844,
+                0.022582015008083545,
+                0.022444677000748925
+              ]
+            },
+            "full": {
+              "median": 0.004155389993684366,
+              "minimum": 0.004134912000154145,
+              "maximum": 0.0041774830024223775,
+              "samples": [
+                0.0041774830024223775,
+                0.004134912000154145,
+                0.004155389993684366
+              ]
+            },
+            "map": {
+              "median": 0.0021425980085041374,
+              "minimum": 0.002137703006155789,
+              "maximum": 0.002149979001842439,
+              "samples": [
+                0.002149979001842439,
+                0.002137703006155789,
+                0.0021425980085041374
+              ]
+            },
+            "point_series": {
+              "median": 0.0017297119920840487,
+              "minimum": 0.0017229329969268292,
+              "maximum": 0.0017378500051563606,
+              "samples": [
+                0.0017297119920840487,
+                0.0017378500051563606,
+                0.0017229329969268292
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.3442868877430999
+        },
+        "i16_zlib9_tile256": {
+          "encoding": {
+            "dtype": "int16",
+            "zlib": true,
+            "complevel": 9,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ],
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768
+          },
+          "bytes": 86069,
+          "sha256": "1a50e9cb54bfc8477e57d5717dd641c97544d76fdc5307081550ca119f4eaab8",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 9,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.07389957300620154,
+              "minimum": 0.07343141600722447,
+              "maximum": 0.07480782900529448,
+              "samples": [
+                0.07389957300620154,
+                0.07343141600722447,
+                0.07480782900529448
+              ]
+            },
+            "full": {
+              "median": 0.0042191839893348515,
+              "minimum": 0.004209737002383918,
+              "maximum": 0.004297835999750532,
+              "samples": [
+                0.004297835999750532,
+                0.0042191839893348515,
+                0.004209737002383918
+              ]
+            },
+            "map": {
+              "median": 0.002193339998484589,
+              "minimum": 0.0021823920105816796,
+              "maximum": 0.0023203870077850297,
+              "samples": [
+                0.0023203870077850297,
+                0.0021823920105816796,
+                0.002193339998484589
+              ]
+            },
+            "point_series": {
+              "median": 0.0016901679919101298,
+              "minimum": 0.00168986500648316,
+              "maximum": 0.0017002370004775003,
+              "samples": [
+                0.0017002370004775003,
+                0.0016901679919101298,
+                0.00168986500648316
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.33191930800171227
+        },
+        "i16_zlib4_tile128": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              128,
+              128
+            ]
+          },
+          "bytes": 90896,
+          "sha256": "ef712c0cd5a1a17083f3ccf3cce0af1f6fde551a0c37bf25ab0ee23bbce17ab3",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            128,
+            128
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.018039137008599937,
+              "minimum": 0.017994667010498233,
+              "maximum": 0.01813436498923693,
+              "samples": [
+                0.01813436498923693,
+                0.017994667010498233,
+                0.018039137008599937
+              ]
+            },
+            "full": {
+              "median": 0.003916199988452718,
+              "minimum": 0.0038198449910851195,
+              "maximum": 0.003920946997823194,
+              "samples": [
+                0.003916199988452718,
+                0.003920946997823194,
+                0.0038198449910851195
+              ]
+            },
+            "map": {
+              "median": 0.0021202429925324395,
+              "minimum": 0.0020377930050017312,
+              "maximum": 0.0028343599988147616,
+              "samples": [
+                0.0028343599988147616,
+                0.0021202429925324395,
+                0.0020377930050017312
+              ]
+            },
+            "point_series": {
+              "median": 0.0014255889982450753,
+              "minimum": 0.0014195040130289271,
+              "maximum": 0.001508657995145768,
+              "samples": [
+                0.0014195040130289271,
+                0.001508657995145768,
+                0.0014255889982450753
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.35053430875371666
+        },
+        "i16_zlib4_frame": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              1,
+              320,
+              355
+            ]
+          },
+          "bytes": 90499,
+          "sha256": "b342ef2ff91029df3910d066c65d19c4bf0e86264d9c6787038d302ad9dcf90e",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            320,
+            355
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.01737579799373634,
+              "minimum": 0.01732012200227473,
+              "maximum": 0.017617846999200992,
+              "samples": [
+                0.01732012200227473,
+                0.017617846999200992,
+                0.01737579799373634
+              ]
+            },
+            "full": {
+              "median": 0.003684493000037037,
+              "minimum": 0.0036397919902810827,
+              "maximum": 0.0037126480019651353,
+              "samples": [
+                0.003684493000037037,
+                0.0036397919902810827,
+                0.0037126480019651353
+              ]
+            },
+            "map": {
+              "median": 0.00200025801314041,
+              "minimum": 0.0019716109964065254,
+              "maximum": 0.0020292010012781247,
+              "samples": [
+                0.0019716109964065254,
+                0.00200025801314041,
+                0.0020292010012781247
+              ]
+            },
+            "point_series": {
+              "median": 0.0023641199950361624,
+              "minimum": 0.0023379210033454,
+              "maximum": 0.002395578005234711,
+              "samples": [
+                0.0023641199950361624,
+                0.0023379210033454,
+                0.002395578005234711
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.34900330496284326
+        },
+        "i16_zlib4_time4": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": true,
+            "chunksizes": [
+              3,
+              256,
+              256
+            ]
+          },
+          "bytes": 93420,
+          "sha256": "2f876d60caf0b6623a048806901cb80bb144a00c2444a74102c2ce88b49c8dc2",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": true,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            3,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.020078462999663316,
+              "minimum": 0.019882178006810136,
+              "maximum": 0.020093294006073847,
+              "samples": [
+                0.020078462999663316,
+                0.020093294006073847,
+                0.019882178006810136
+              ]
+            },
+            "full": {
+              "median": 0.00441904399485793,
+              "minimum": 0.004411150002852082,
+              "maximum": 0.004438531992491335,
+              "samples": [
+                0.004411150002852082,
+                0.00441904399485793,
+                0.004438531992491335
+              ]
+            },
+            "map": {
+              "median": 0.003565733990399167,
+              "minimum": 0.0035416580067249015,
+              "maximum": 0.0035730880044866353,
+              "samples": [
+                0.0035416580067249015,
+                0.0035730880044866353,
+                0.003565733990399167
+              ]
+            },
+            "point_series": {
+              "median": 0.001821505997213535,
+              "minimum": 0.0018193690048065037,
+              "maximum": 0.001829430999350734,
+              "samples": [
+                0.0018193690048065037,
+                0.001821505997213535,
+                0.001829430999350734
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.36026794494556647
+        },
+        "i16_zlib4_no_shuffle": {
+          "encoding": {
+            "dtype": "int16",
+            "scale_factor": 0.1,
+            "add_offset": 0.0,
+            "_FillValue": -32768,
+            "zlib": true,
+            "complevel": 4,
+            "shuffle": false,
+            "chunksizes": [
+              1,
+              256,
+              256
+            ]
+          },
+          "bytes": 101566,
+          "sha256": "ecc407bb98ae8393b9689768acb560ab4421bfe8a531da303379d67de9ed02ca",
+          "maximum_abs_error_mmph": 0.04999919235706329,
+          "checked_tolerance_mmph": 0.05004028603434563,
+          "missing_mask_exact": true,
+          "filters": {
+            "zlib": true,
+            "szip": false,
+            "zstd": false,
+            "bzip2": false,
+            "blosc": false,
+            "shuffle": false,
+            "complevel": 4,
+            "fletcher32": false
+          },
+          "chunksizes": [
+            1,
+            256,
+            256
+          ],
+          "seconds": {
+            "write": {
+              "median": 0.019812509010080248,
+              "minimum": 0.019811089005088434,
+              "maximum": 0.02032799000153318,
+              "samples": [
+                0.02032799000153318,
+                0.019811089005088434,
+                0.019812509010080248
+              ]
+            },
+            "full": {
+              "median": 0.004260803005308844,
+              "minimum": 0.004247333999956027,
+              "maximum": 0.004262936010491103,
+              "samples": [
+                0.004262936010491103,
+                0.004247333999956027,
+                0.004260803005308844
+              ]
+            },
+            "map": {
+              "median": 0.0021955700067337602,
+              "minimum": 0.0021686380059691146,
+              "maximum": 0.0022063759970478714,
+              "samples": [
+                0.0021686380059691146,
+                0.0021955700067337602,
+                0.0022063759970478714
+              ]
+            },
+            "point_series": {
+              "median": 0.0018283929966855794,
+              "minimum": 0.001824949009460397,
+              "maximum": 0.0018921309965662658,
+              "samples": [
+                0.0018283929966855794,
+                0.001824949009460397,
+                0.0018921309965662658
+              ]
+            }
+          },
+          "size_relative_to_float32_default": 0.39168244590389
+        }
+      }
+    }
+  },
+  "archive_provenance": {
+    "source": "Configured local MCH sample archive",
+    "input_files": [
+      {
+        "name": "AQC151351620F_00005.801.gif",
+        "sha256": "aa5bdc1a0229f12c3793364d350eb348451f2a6c1ad76cea57cc0165038a3fc4"
+      },
+      {
+        "name": "AQC151351625F_00005.801.gif",
+        "sha256": "1e221a9107a2cefd7598a56783301444d8d099706adf14a16ecfe7abba94bce3"
+      },
+      {
+        "name": "AQC151351630F_00005.801.gif",
+        "sha256": "03f31829aa45914ab9d75a82a59538453e689aedcec6c0e84b6e616cb74a4936"
+      }
+    ],
+    "input_times": [
+      "2015-05-15T16:20:00.000000",
+      "2015-05-15T16:25:00.000000",
+      "2015-05-15T16:30:00.000000"
+    ],
+    "output_times": [
+      "2015-05-15T16:35:00.000000",
+      "2015-05-15T16:40:00.000000",
+      "2015-05-15T16:50:00.000000"
+    ],
+    "shape": [
+      3,
+      320,
+      355
+    ],
+    "missing_pixels": 111652,
+    "mask_preserved_by_normalization": true,
+    "numerical_values_preserved_by_normalization": true,
+    "lead_steps": [
+      1,
+      2,
+      4
+    ],
+    "rate_threshold_mmph": 0.1,
+    "modelling_floor_dbr": -15.0
+  }
+}

@@ -3,9 +3,10 @@
 CF NetCDF acceptance matrix
 ===========================
 
-Status: stage 1 reference semantics and future implementation checks.
-Passing the fixture checks or validating these independently defined files
-does not establish compliance of the production importer or exporter.
+Status: local implementation acceptance completed through stage 6.
+Reference fixtures below remain independent of production I/O. Combined
+production, checker and independent-reader evidence is recorded in
+:ref:`cf-netcdf-io-stage67`; checker success alone is not a scientific oracle.
 
 Reference cases
 ---------------
@@ -27,7 +28,7 @@ cross-version expectation. Scientific expectations reside in source and tests.
 
    * - Case ID
      - Scientific expectation
-     - Future I/O acceptance
+     - Verified I/O expectation
    * - instantaneous_rate
      - Point rates; dry zero, trace values and NaN remain distinct.
      - Correct CF identity, units and mask; no invented duration.
@@ -72,10 +73,10 @@ No member or time axis may be squeezed away during import.
 Implementation matrix
 ---------------------
 
-The following rows are required implementation checks, not claims of existing
-coverage. Add focused parameterizations rather than a full Cartesian product.
+The following dimensions are implemented using focused parameterizations,
+not a full Cartesian product. Coverage locations are listed below.
 
-.. list-table:: Planned acceptance dimensions
+.. list-table:: Acceptance dimensions
    :header-rows: 1
    :widths: 20 48 32
 
@@ -141,5 +142,57 @@ name table 95, with no skipped checks::
 Keep checker versions, vocabulary hash, per-file results and fixture hashes
 with each acceptance run. Checker success complements the numerical oracles;
 it does not prove correct accumulation interpretation or forecast skill.
-Stage 6 must additionally validate the implemented exporter and an independent
-CF-aware reader; stage 1 uses xarray and raw netCDF4 inspections only.
+Stage 6 adds independent Iris interpretation of production exports; see
+:ref:`cf-netcdf-io-stage67`. Stage 1 used xarray and raw netCDF4 inspections only.
+
+Coverage locations
+------------------
+
+All test paths below are relative to ``pysteps/tests``. Historical run results
+and commands are retained in the stage 2, 3/4 and 5 reports; new independent
+reader and example results are retained in the stage 6/7 report.
+
+.. list-table:: Implementation evidence
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Matrix dimension
+     - Focused tests and executable evidence
+   * - Selection and metadata errors
+     - ``test_dataset_metadata.py``: second-axis selection, contradictory
+       metadata and unsupported definitions; ``test_io_netcdf_cf.py``:
+       variable subsets, missing overrides and dangling-link rejection.
+   * - Time and accumulation
+     - ``test_dataset_metadata.py``: midpoint labels, fractional/day duration,
+       sparse leads, cumulative differencing/reset rejection and initial zero,
+       overlapping means, partial coverage and shared axes.
+       ``test_io_netcdf_cf.py``: midpoint/subsecond, singleton coordinates and
+       time-bound serialization. Independent cumulative/mean/depth fixtures.
+   * - Conversion
+     - ``test_dataset_metadata.py``: unit scaling, duration-aware inverse,
+       explicit point integration, reflectivity floors and legacy markers;
+       ``test_utils_conversion.py`` and ``test_utils_dimension.py`` regression.
+   * - Geometry
+     - ``test_dataset_metadata.py``: kilometre offsets, sphere, singleton,
+       geolocation and alignment; ``test_io_netcdf_cf.py``: NZTM/UTM/Albers,
+       optional lat/lon; Iris geolocation checks on both y orientations.
+   * - Missing/detection and encoding
+     - ``test_io_netcdf_storage.py``: mask-before-scale, float/int16, offsets,
+       every usable int16 code, ties/range/fill collisions, ancillary flags,
+       all-dry/all-missing, separate quantity precision and normalized units.
+       ``test_io_netcdf_cf.py``: independent packed inputs and invalid values.
+   * - Write modes and ownership
+     - ``test_io_netcdf_cf.py``: bulk/timestep/member schema, incomplete close,
+       failure cleanup, concurrent publication, overwrite, groups, lazy/eager
+       ownership; ``test_io_netcdf_storage.py``: masked callback arrays and
+       packing/filter controls. Multi-megabyte storage benchmark workloads.
+   * - Legacy
+     - ``test_io_netcdf_cf.py``, ``test_io_nowcast_importers.py`` and
+       ``test_exporters.py``: old names, explicit repairs, dtype/fillna,
+       error modes and callback adapters.
+   * - Independent checks and integration
+     - ``cf_netcdf_stage34_acceptance.py`` and
+       ``cf_netcdf_storage_acceptance.py``: independently constructed inputs,
+       source-based numerical oracles and archive nowcast pipeline.
+       ``cf_netcdf_independent_acceptance.py``: Iris interpretation.
+       User guide examples: all quantities and ensemble, float and packed.

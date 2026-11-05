@@ -293,6 +293,14 @@ def import_netcdf_cf(
             name: {key: var.encoding[key] for key in _STORAGE if key in var.encoding}
             for name, var in source.variables.items()
         }
+        for original in source_encoding.values():
+            for key in ("scale_factor", "add_offset"):
+                if key in original and (
+                    not np.isscalar(original[key]) or not np.isfinite(original[key])
+                ):
+                    raise ValueError(
+                        "Source packing gain and offset must be finite scalars"
+                    )
         dataset = _metadata(source, metadata, variable, legacy)
         dataset = _cf_coordinates(dataset, legacy=legacy)
         dataset = _source_validity(dataset, source_encoding)
@@ -478,6 +486,10 @@ def _prepare(dataset, variables=None, include_latlon=False, validate_values=True
         var.attrs.pop("missing_value", None)
         var.attrs.pop("scale_factor", None)
         var.attrs.pop("add_offset", None)
+        var.attrs.pop("_Unsigned", None)
+        # This optional statistic is derived from values and becomes stale
+        # after unit/dtype changes or quantization. Do not mislabel the output.
+        var.attrs.pop("actual_range", None)
         if var.attrs.get("units") == "mm/h":
             var.attrs["units"] = "mm h-1"
         auxiliary = [
@@ -512,14 +524,20 @@ def _encoding(dataset, encoding=None, *, legacy=False):
         "shuffle",
         "chunksizes",
         "fletcher32",
+        "scale_factor",
+        "add_offset",
     }
-    if legacy:
-        allowed |= {"scale_factor", "add_offset"}
     for name, var in dataset.variables.items():
         requested = dict(encoding.get(name, {}))
         if set(requested) - allowed:
+            raise ValueError(f"Unsupported encoding options for {name!r}")
+        if (
+            not legacy
+            and name not in physical
+            and any(key in requested for key in ("scale_factor", "add_offset"))
+        ):
             raise ValueError(
-                f"Unsupported encoding for {name!r}; integer packing profiles belong to stage 5"
+                "scale_factor/add_offset are supported only for physical fields"
             )
         datetime = np.issubdtype(var.dtype, np.datetime64)
         flags = "flag_values" in var.attrs or "flag_masks" in var.attrs
@@ -532,10 +550,18 @@ def _encoding(dataset, encoding=None, *, legacy=False):
             requested.get("dtype", "float64" if datetime else default_dtype)
         )
         if name in physical:
-            if not legacy and dtype.kind not in "f":
-                raise ValueError(
-                    "The CF bulk exporter currently requires floating-point storage"
-                )
+            if not legacy:
+                if dtype.kind == "i":
+                    if dtype != np.dtype("int16") or "scale_factor" not in requested:
+                        raise ValueError(
+                            "Integer physical storage requires int16 with an explicit scale_factor in the field's canonical units"
+                        )
+                elif dtype.kind != "f" or any(
+                    key in requested for key in ("scale_factor", "add_offset")
+                ):
+                    raise ValueError(
+                        "scale_factor/add_offset require int16 physical storage"
+                    )
             if dtype.kind == "f" and dtype.itemsize not in (4, 8):
                 raise ValueError("Physical floating storage must be float32 or float64")
             options = {
@@ -549,7 +575,11 @@ def _encoding(dataset, encoding=None, *, legacy=False):
                 "_FillValue": (
                     np.nan
                     if dtype.kind == "f"
-                    else _netcdf4().default_fillvals[dtype.str[1:]]
+                    else (
+                        -32768
+                        if dtype == np.dtype("int16") and not legacy
+                        else _netcdf4().default_fillvals[dtype.str[1:]]
+                    )
                 ),
             }
         else:
@@ -591,6 +621,12 @@ def _encoding(dataset, encoding=None, *, legacy=False):
             raise ValueError(f"Unsupported CF numeric dtype for {name!r}")
         options.update(requested)
         options["dtype"] = dtype
+        if not legacy and name in physical and dtype == np.dtype("int16"):
+            options.setdefault("add_offset", 0.0)
+            if options.get("_FillValue") is None:
+                raise ValueError(
+                    "Int16 physical packing requires a reserved _FillValue"
+                )
         if datetime and dtype != np.dtype("float64"):
             raise ValueError("CF times require float64 storage")
         if (
@@ -598,6 +634,9 @@ def _encoding(dataset, encoding=None, *, legacy=False):
             or not 0 <= options.get("complevel", 4) <= 9
         ):
             raise ValueError("complevel must be an integer from zero to nine")
+        for key in ("zlib", "shuffle", "fletcher32"):
+            if key in options and not isinstance(options[key], (bool, np.bool_)):
+                raise ValueError(f"{key} must be a boolean")
         if "chunksizes" in options:
             chunks = options["chunksizes"]
             if len(chunks) != var.ndim or any(
@@ -627,11 +666,80 @@ def _encoding(dataset, encoding=None, *, legacy=False):
             ):
                 raise ValueError(f"Unrepresentable fill value for {name!r}")
             options["_FillValue"] = cast
+        for key in ("scale_factor", "add_offset"):
+            if key in options:
+                options[key] = float(options[key])
         result[name] = options
     return result
 
 
-def _stored_values(values, options, *, quantity=None):
+def _valid_limits(attrs):
+    keys = [key for key in ("valid_range", "valid_min", "valid_max") if key in attrs]
+    if not keys:
+        return None
+    if "valid_range" in keys:
+        limits = np.asarray(attrs["valid_range"])
+        if len(keys) != 1 or limits.shape != (2,):
+            raise ValueError(
+                "valid_range must be two bounds without valid_min/valid_max"
+            )
+        low, high = limits
+    else:
+        low, high = attrs.get("valid_min", -np.inf), attrs.get("valid_max", np.inf)
+    if (
+        not np.isscalar(low)
+        or not np.isscalar(high)
+        or np.isnan(low)
+        or np.isnan(high)
+        or low > high
+    ):
+        raise ValueError("Invalid physical valid range")
+    return float(low), float(high)
+
+
+def _storage_attributes(attrs, options):
+    attrs = attrs.copy()
+    limits = _valid_limits(attrs)
+    if limits is None:
+        return attrs
+    scale, offset = options.get("scale_factor", 1), options.get("add_offset", 0)
+    dtype = options["dtype"]
+    code_limits = np.iinfo(dtype) if dtype.kind == "i" else np.finfo(dtype)
+    converted = []
+    with np.errstate(over="ignore", invalid="ignore"):
+        for value in limits:
+            code = (value - offset) / scale
+            if dtype.kind == "i":
+                code = np.rint(code)
+            converted.append(np.clip(code, code_limits.min, code_limits.max))
+    low, high = converted
+    fill = options.get("_FillValue")
+    if dtype.kind == "i" and fill is not None:
+        low += low == fill
+        high -= high == fill
+    if low > high:
+        raise ValueError("Valid range has no representable nonmissing code")
+    if fill is not None and np.isfinite(fill) and low <= fill <= high:
+        raise ValueError("The fill code must be outside the stored valid range")
+    for key in ("valid_range", "valid_min", "valid_max"):
+        if key not in attrs:
+            continue
+        if key == "valid_range":
+            attrs[key] = np.asarray([low, high], dtype=dtype)
+        else:
+            attrs[key] = np.asarray(low if key == "valid_min" else high, dtype=dtype)[
+                ()
+            ]
+    return attrs
+
+
+def _stored_values(values, options, *, quantity=None, valid_limits=None):
+    if np.ma.isMaskedArray(values):
+        if values.dtype.kind not in "iuf":
+            raise ValueError("Physical data must be finite numbers or NaN")
+        # Masked integer arrays cannot hold NaN; preserve their mask before
+        # converting to an ndarray or applying gain/offset.
+        values = values.astype("float64").filled(np.nan)
     values = np.asarray(values)
     if values.dtype.kind not in "iuf" or np.isinf(values).any():
         raise ValueError("Physical data must be finite numbers or NaN")
@@ -639,6 +747,10 @@ def _stored_values(values, options, *, quantity=None):
         raise ValueError(
             "Negative physical rain rate/depth; explicitly invert modelling transforms first"
         )
+    if valid_limits is not None and (
+        np.any(values < valid_limits[0]) or np.any(values > valid_limits[1])
+    ):
+        raise ValueError("Physical values are outside their declared valid range")
     scale, offset = options.get("scale_factor", 1), options.get("add_offset", 0)
     dtype = options["dtype"]
     fill = options.get("_FillValue")
@@ -680,6 +792,18 @@ def _stored_values(values, options, *, quantity=None):
             and np.any(cast == fill)
         ):
             raise ValueError("Valid physical values collide with the output fill value")
+        if quantity is not None and cast.size:
+            decoded_limits = (
+                np.asarray([cast.min(), cast.max()], dtype="float64") * scale + offset
+            )
+            if not np.isfinite(decoded_limits).all():
+                raise ValueError(
+                    "Decoded physical values overflow the requested encoding"
+                )
+            if quantity != "reflectivity" and np.any(decoded_limits < 0):
+                raise ValueError(
+                    "Encoding would produce negative physical rain; choose a compatible offset"
+                )
         stored = np.where(missing, fill, stored).astype(dtype)
     return stored
 
@@ -715,6 +839,7 @@ class _CFWriter:
         self.overwrite, self.incremental = overwrite, incremental
         self.physical = physical_variables(dataset)
         self.count, self.closed = 0, False
+        self._code_ranges = {}
         self.expected = (
             1
             if incremental is None
@@ -784,7 +909,11 @@ class _CFWriter:
                     fill_value=fill if fill is not None else False,
                     **options,
                 )
-                attrs = var.attrs.copy() if name in self.physical else prepared[name][1]
+                attrs = (
+                    _storage_attributes(var.attrs, encoding[name])
+                    if name in self.physical
+                    else prepared[name][1]
+                )
                 if scale is not None:
                     attrs["scale_factor"] = scale
                 if offset is not None:
@@ -840,8 +969,33 @@ class _CFWriter:
                         values,
                         self.encoding[name],
                         quantity=unit_spec(var.attrs["units"])[0],
+                        valid_limits=_valid_limits(var.attrs),
                     ),
                 )
+            for name, (_, values) in prepared.items():
+                options = self.encoding[name]
+                fill = options.get("_FillValue")
+                if (
+                    fill is None
+                    or not np.isfinite(fill)
+                    or _valid_limits(self.dataset[name].attrs) is not None
+                ):
+                    continue
+                # Endpoint integer fill codes imply a safe default range.
+                if options["dtype"].kind == "i":
+                    limit = np.iinfo(options["dtype"])
+                    if fill in (limit.min, limit.max):
+                        continue
+                valid = values != fill
+                if valid.any():
+                    low, high = float(values[valid].min()), float(values[valid].max())
+                    previous = self._code_ranges.get(name, (low, high))
+                    low, high = min(low, previous[0]), max(high, previous[1])
+                    if low <= fill <= high:
+                        raise ValueError(
+                            "The fill code must be outside the stored valid range"
+                        )
+                    self._code_ranges[name] = (low, high)
             for name, (index, values) in prepared.items():
                 self.ncfile[name][index] = values
             self.count += 1
@@ -858,6 +1012,15 @@ class _CFWriter:
                 raise ValueError(
                     f"Incomplete forecast: wrote {self.count} of {self.expected} batches"
                 )
+            for name, (low, high) in self._code_ranges.items():
+                fill = self.encoding[name]["_FillValue"]
+                # CF/NUG readers may infer a one-sided range from the fill.
+                # Declare an explicit range when that would hide real values.
+                if (fill <= 0 and low < fill) or (fill > 0 and high > fill):
+                    self.ncfile[name].setncattr(
+                        "valid_range",
+                        np.asarray([low, high], dtype=self.encoding[name]["dtype"]),
+                    )
             self.ncfile.pysteps_write_status = "complete"
             self.ncfile.close()
             self.ncfile = None
@@ -894,8 +1057,11 @@ def export_netcdf_cf(
 
     All supported quantities are written by default. A subset retains its CF
     dependencies. Floating precision is preserved, with zlib level 4 and shuffle
-    by default. Encoding accepts float32/64, fill, compression and chunk options;
-    new integer packing profiles are a separate development stage. Existing
+    by default. Per-variable encoding accepts float32/64 or int16 with an
+    explicit positive scale_factor in canonical units, plus fill, offset,
+    compression and chunk options. Int16 defaults to _FillValue=-32768 and
+    add_offset=0. Missing codes are assigned after quantization with library
+    auto-packing disabled. Existing
     paths are protected unless ``overwrite=True``. Generic modelling transforms
     must be explicitly inverted before calling this function.
     """
@@ -1038,6 +1204,9 @@ def _legacy_forecast_writer(
         else _netcdf4().default_fillvals[dtype.str[1:]]
     )
     encoding = {variable: {"dtype": dtype, "_FillValue": fill, "complevel": complevel}}
+    for key in ("zlib", "shuffle", "fletcher32", "chunksizes"):
+        if key in kwargs:
+            encoding[variable][key] = kwargs[key]
     if scale_factor is not None:
         encoding[variable]["scale_factor"] = scale_factor
     if offset is not None:
