@@ -8,7 +8,18 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from pysteps.cascade.bandpass_filters import filter_gaussian
+from pysteps.cascade.decomposition import decomposition_fft
+from pysteps.noise.parametric import generate_calibrated_field
 from pysteps.nowcasts import parametric
+from pysteps.timeseries.parametric import (
+    ar2_correlation_time,
+    estimate_reference_correlation_time,
+    lagrangian_autocorrelation,
+)
+from pysteps.utils.spectral import fit_power_law_spectrum, rapsd_logarithmic
+from pysteps.utils.statistics import compute_field_statistics
+from pysteps.utils.transformation import dB_transform
 
 
 @pytest.fixture
@@ -283,3 +294,209 @@ def test_subinterval_times_resolve_to_white_noise(initial, targets):
     assert diagnostics["temporal_model"]["limited_below_timestep"].all()
     np.testing.assert_array_equal(diagnostics["model_correlations"], 0)
     np.testing.assert_array_equal(diagnostics["temporal_model"]["achieved_times"], 7.5)
+
+
+def test_simulation_example_end_to_end_parameter_recovery():
+    """Regress the fixed-seed gallery workflow through output parameter recovery."""
+    reference = json.loads(
+        (
+            Path(__file__).parent / "data/parametric_simulation_reference.json"
+        ).read_text()
+    )
+    case, expected = reference["case"], reference["expected"]
+    shape = tuple(case["shape"])
+    threshold_db = 10 * np.log10(case["rain_threshold"])
+    interval = np.timedelta64(round(case["timestep_minutes"] * 60), "s")
+
+    # Start from a generated field and its translated copies, as in the example.
+    # The test uses public functions without importing plotting code or running
+    # the example's Monte Carlo experiment.
+    transformed = generate_calibrated_field(
+        shape,
+        case["parameters"],
+        case["kmperpixel"],
+        case["scale_break_km"],
+        threshold_db,
+        seed=case["initial_seed"],
+    )
+    rain = 10 ** (transformed / 10)
+    rain[rain < case["rain_threshold"]] = 0
+    velocity = np.array(
+        [
+            np.full(shape, component)
+            for component in case["velocity_pixels_per_timestep"]
+        ]
+    )
+    history = xr.Dataset(
+        {
+            "rain": (
+                ("time", "y", "x"),
+                np.stack([np.roll(rain, -2, axis=1), np.roll(rain, -1, axis=1), rain]),
+                {"units": "mm/h"},
+            ),
+            "velocity_x": (("y", "x"), velocity[0], {"units": "pixels/timestep"}),
+            "velocity_y": (("y", "x"), velocity[1], {"units": "pixels/timestep"}),
+        },
+        coords={
+            "time": (
+                "time",
+                np.datetime64("2026-01-01T00:00:00") + np.arange(3) * interval,
+                {"stepsize": case["timestep_minutes"] * 60},
+            ),
+            "x": (
+                "x",
+                (np.arange(shape[1]) + 0.5) * case["kmperpixel"],
+                {"units": "km", "stepsize": case["kmperpixel"]},
+            ),
+            "y": (
+                "y",
+                (np.arange(shape[0]) + 0.5) * case["kmperpixel"],
+                {"units": "km", "stepsize": case["kmperpixel"]},
+            ),
+        },
+        attrs={"precip_var": "rain"},
+    )
+    output, diagnostics = parametric.simulate(
+        history,
+        timesteps=case["n_timesteps"],
+        parameters=case["parameters"],
+        reference_time=case["reference_time_minutes"],
+        reference_wavelength=case["reference_wavelength_km"],
+        temporal_exponent=case["temporal_exponent"],
+        alpha=case["alpha"],
+        n_cascade_levels=case["n_cascade_levels"],
+        rain_threshold=case["rain_threshold"],
+        scale_break=case["scale_break_km"],
+        n_ens_members=case["n_ens_members"],
+        seed=case["evolution_seed"],
+        return_diagnostics=True,
+    )
+    assert output.rain.dims == ("ens_number", "time", "y", "x")
+    assert output.rain.shape == (case["n_ens_members"], case["n_timesteps"], *shape)
+    assert output.rain.dtype == np.float64
+    assert np.isfinite(output.rain).all() and (output.rain >= 0).all()
+    assert np.all((output.rain == 0) | (output.rain >= case["rain_threshold"]))
+    assert output.rain.attrs["units"] == "mm/h"
+    assert output.rain.attrs["threshold"] == case["rain_threshold"]
+    assert output.rain.attrs["zerovalue"] == 0
+    assert "transform" not in output.rain.attrs
+    xr.testing.assert_identical(output.x.variable, history.x.variable)
+    xr.testing.assert_identical(output.y.variable, history.y.variable)
+    np.testing.assert_array_equal(output.ens_number, [1])
+    np.testing.assert_array_equal(
+        output.time,
+        history.time.values[-1] + np.arange(1, case["n_timesteps"] + 1) * interval,
+    )
+    assert output.time.attrs["stepsize"] == case["timestep_minutes"] * 60
+    assert output.forecast_reference_time == history.time.values[-1]
+    assert diagnostics["parameters"] == case["parameters"]
+
+    bandpass = filter_gaussian(shape, case["n_cascade_levels"])
+    wavelengths = case["kmperpixel"] / bandpass["central_freqs"]
+    np.testing.assert_allclose(wavelengths, expected["wavelengths_km"], rtol=1e-12)
+    np.testing.assert_allclose(
+        diagnostics["temporal_model"]["requested_times"],
+        case["reference_time_minutes"]
+        * (wavelengths / case["reference_wavelength_km"]) ** case["temporal_exponent"],
+        rtol=1e-12,
+    )
+    np.testing.assert_allclose(
+        diagnostics["model_correlations"],
+        expected["model_correlations"],
+        atol=1e-10,
+        rtol=1e-10,
+    )
+
+    # Recover statistics from every returned field, rather than accepting the
+    # supplied parameters in diagnostics as evidence of the generated behaviour.
+    fields = (
+        dB_transform(
+            output,
+            threshold=case["rain_threshold"],
+            zerovalue=threshold_db - 0.1,
+        )
+        .rain.isel(ens_number=0)
+        .values
+    )
+    recovered = []
+    cascades = []
+    for field in fields:
+        statistics = compute_field_statistics(
+            field, threshold_db, case["lower_truncation_dbr"]
+        )
+        frequency, power = rapsd_logarithmic(field)
+        spectrum = fit_power_law_spectrum(
+            frequency,
+            power,
+            scale_break=case["scale_break_km"] / case["kmperpixel"],
+        )
+        assert statistics["nonzero_fit"]["status"] == "ok"
+        assert spectrum["status"] == "ok"
+        recovered.append(
+            [
+                statistics["rain_fraction"],
+                statistics["latent_mean"],
+                statistics["latent_stdev"],
+                spectrum["beta_1"],
+                spectrum["beta_2"],
+            ]
+        )
+        cascades.append(
+            decomposition_fft(
+                field,
+                bandpass,
+                compute_stats=True,
+                normalize=True,
+            )["cascade_levels"]
+        )
+    recovered = np.asarray(recovered)
+    assert np.isfinite(recovered).all()
+    # Fixed seeds remove Monte Carlo sampling variability from this comparison.
+    # Allow two threshold-crossing pixels and small floating-point differences
+    # in fitted moments/slopes; these are numerical regression tolerances.
+    tolerances = [2 / np.prod(shape), 1e-4, 1e-4, 1e-4, 1e-4]
+    for column, (name, tolerance) in enumerate(
+        zip(expected["field_parameter_names"], tolerances)
+    ):
+        np.testing.assert_allclose(
+            recovered[:, column],
+            np.asarray(expected["field_parameters"])[:, column],
+            rtol=1e-5,
+            atol=tolerance,
+            err_msg=name,
+        )
+
+    # Include only simulated fields: the artificial initialization is excluded
+    # from the ten overlapping three-field histories, but its transient persists.
+    cascades = np.stack(cascades)
+    observed = np.mean(
+        [
+            lagrangian_autocorrelation(cascades[end - 2 : end + 1], velocity)
+            for end in range(2, len(cascades))
+        ],
+        axis=0,
+    )
+    assert np.isfinite(observed).all()
+    np.testing.assert_allclose(
+        observed, expected["mean_observed_correlations"], atol=1e-6, rtol=0
+    )
+    times = ar2_correlation_time(
+        observed[:, 0], observed[:, 1], case["timestep_minutes"]
+    )
+    reference_time = estimate_reference_correlation_time(
+        times,
+        wavelengths,
+        case["temporal_exponent"],
+        levels=(0, 1, 2),
+        reference_wavelength=case["reference_wavelength_km"],
+    )
+    # The reference describes this initialization and one-hour run, not stationary
+    # recovery of the prescribed 400 minutes. Do not make a bias factor a model
+    # requirement. High correlations amplify roundoff in the implied times, so
+    # check the lag pairs tightly and allow 0.1% on their nonlinear conversion.
+    np.testing.assert_allclose(
+        times, expected["implied_correlation_times_minutes"], rtol=1e-3, atol=1e-6
+    )
+    assert reference_time == pytest.approx(
+        expected["implied_reference_time_minutes"], rel=1e-3
+    )
