@@ -327,7 +327,7 @@ Stale PRs and issues that have had no activity for 12 months are first marked as
 **Important:**
 Each PR should only address a single issue (e.g., fix a bug, improve documentation, etc.).
 This will help to reduce the time needed to review the PR. 
-For changes out of the scope of the issue, please open new issue and associated PR.
+For changes out of the scope of the issue, please open a new issue and associated PR.
 
 
 **Testing your changes**
