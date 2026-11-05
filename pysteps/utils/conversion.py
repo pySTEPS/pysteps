@@ -81,6 +81,9 @@ def to_rainrate(dataset: xr.Dataset, zr_a=None, zr_b=None):
         elif metadata["transform"] == "sqrt":
             dataset = transformation.sqrt_transform(dataset, inverse=True)
 
+        elif metadata["transform"] == None:
+            pass
+
         else:
             raise ValueError(f'Unknown transformation {metadata["transform"]}')
 

@@ -413,7 +413,10 @@ class EnsembleKalmanFilter:
         return prob_matching_weight
 
     def dry_area_transformation(
-        self, ensemble_member: np.ndarray, idx_prec: np.ndarray
+        self,
+        ensemble_member: np.ndarray,
+        idx_prec: np.ndarray,
+        precip_threshold: float,
     ):
         """
         Replace areas without any precipitation in a given ensemble member and within a
@@ -430,6 +433,8 @@ class EnsembleKalmanFilter:
         idx_prec: np.ndarray
             Two-dimensional array of shape (y_len, x_len) that is set to True if the
             minimum number of ensemble members predict precipitation.
+        precip_threshold: float
+            (Transformed) threshold to distinguish between rainy and dri grid boxes.
 
         Returns
         -------
@@ -438,13 +443,9 @@ class EnsembleKalmanFilter:
             field combined with the transformed values in rain-free areas.
         """
 
-        wet_grid_boxes = np.logical_and(
-            idx_prec, ensemble_member >= self._config.precip_threshold
-        )
-        dry_grid_boxes = np.logical_and(
-            idx_prec, ensemble_member < self._config.precip_threshold
-        )
-        distances_area = ensemble_member <= self._config.precip_threshold
+        wet_grid_boxes = np.logical_and(idx_prec, ensemble_member >= precip_threshold)
+        dry_grid_boxes = np.logical_and(idx_prec, ensemble_member < precip_threshold)
+        distances_area = ensemble_member <= precip_threshold
 
         if np.logical_and(np.sum(dry_grid_boxes) > 0, np.sum(wet_grid_boxes) > 0):
 
@@ -457,11 +458,11 @@ class EnsembleKalmanFilter:
         loc, scale = self.estimate_distribution_moments(
             np.sqrt(ensemble_member[wet_grid_boxes]),
             p_lower,
-            np.sqrt(self._config.precip_threshold),
+            np.sqrt(precip_threshold),
         )
         truncnorm = stats.truncnorm(
             (-1e8 - loc) / scale,
-            (np.sqrt(self._config.precip_threshold) - loc) / scale,
+            (np.sqrt(precip_threshold) - loc) / scale,
             loc=loc,
             scale=scale,
         )
@@ -622,8 +623,8 @@ class MaskedEnKF(EnsembleKalmanFilter):
 
         # Read arguments from combination kwargs or set standard values if kwargs not
         # given
-        self.__iterative_prob_matching = self.__params.combination_kwargs.get(
-            "iterative_prob_matching", True
+        self.__prob_matching = self.__params.combination_kwargs.get(
+            "prob_matching", "none"
         )
         self.__inflation_factor_bg = self.__params.combination_kwargs.get(
             "inflation_factor_bg", 1.0
@@ -662,7 +663,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
         print("========================================")
         print("")
 
-        print(f"Iterative probability matching:     {self.__iterative_prob_matching}")
+        print(f"Probability matching:               {self.__prob_matching}")
         print(f"Background inflation factor:        {self.__inflation_factor_bg}")
         print(f"Observation inflation factor:       {self.__inflation_factor_obs}")
         print(f"Background offset:                  {self.__offset_bg}")
@@ -820,7 +821,7 @@ class MaskedEnKF(EnsembleKalmanFilter):
         print(f"Sampling probability: {self.__sampling_probability:1.4f}")
 
         # Apply probability matching to the analysis ensemble
-        if self.__iterative_prob_matching:
+        if self.__prob_matching == "iterative":
 
             def worker(j):
                 # Get the combined distribution based on the input weight
@@ -873,8 +874,8 @@ class DistancesEnKF(EnsembleKalmanFilter):
         self.__use_linear_space = self.__params.combination_kwargs.get(
             "use_linear_space", True
         )
-        self.__iterative_prob_matching = self.__params.combination_kwargs.get(
-            "iterative_prob_matching", True
+        self.__prob_matching = self.__params.combination_kwargs.get(
+            "prob_matching", "none"
         )
         self.__inflation_factor_bg = self.__params.combination_kwargs.get(
             "inflation_factor_bg", 1.0
@@ -893,7 +894,7 @@ class DistancesEnKF(EnsembleKalmanFilter):
         self.__ensure_full_nwp_weight = self.__params.combination_kwargs.get(
             "ensure_full_nwp_weight", True
         )
-        self.__local_maxima_adjustment = self.__params.local_maxima_adjustment.get(
+        self.__local_maxima_adjustment = self.__params.combination_kwargs.get(
             "local_maxima_adjustment", True
         )
         self.__local_maxima_residual = self.__params.combination_kwargs.get(
@@ -923,7 +924,7 @@ class DistancesEnKF(EnsembleKalmanFilter):
         print("")
 
         print(f"Computation in linear space:        {self.__use_linear_space}")
-        print(f"Iterative probability matching:     {self.__iterative_prob_matching}")
+        print(f"Probability matching:               {self.__prob_matching}")
         print(f"Background inflation factor:        {self.__inflation_factor_bg}")
         print(f"Observation inflation factor:       {self.__inflation_factor_obs}")
         print(f"Background offset:                  {self.__offset_bg}")
@@ -991,7 +992,7 @@ class DistancesEnKF(EnsembleKalmanFilter):
         # Perform the replacement of areas without precipitation.
         def worker(j):
             forecast_ens_stacked[j] = self.dry_area_transformation(
-                forecast_ens_stacked[j], idx_prec
+                forecast_ens_stacked[j], idx_prec, thr_prec
             )
 
         dask_worker_collection = []
@@ -1129,7 +1130,7 @@ class DistancesEnKF(EnsembleKalmanFilter):
             dask_worker_collection = None
 
         # Apply probability matching to the analysis ensemble.
-        if self.__iterative_prob_matching:
+        if self.__prob_matching == "iterative":
 
             def worker(j):
                 # Get the combined distribution based on the input weight.

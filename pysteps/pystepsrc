@@ -25,7 +25,7 @@
             }
         },
         "dwd": {
-            "root_path": "/data/pysteps/pysteps-data/radar/dwd/RY",
+            "root_path": "/media/x22859/users/mrempel/pysteps_main/pysteps-data/radar/dwd/RY",
             "path_fmt": "%Y/%m/%d",
             "fn_pattern": "%Y%m%d_%H%M_RY",
             "fn_ext": "h5",
@@ -133,7 +133,7 @@
             }
         },
         "dwd_nwp": {
-            "root_path": "/data/pysteps/pysteps-data/nwp/dwd",
+            "root_path": "/media/x22859/users/mrempel/pysteps_main/pysteps-data/nwp/dwd",
             "path_fmt": "%Y/%m/%d",
             "fn_ext": "grib2",
             "fn_pattern": "%Y%m%d_%H%M_PR_GSP_060_120",
@@ -141,7 +141,7 @@
             "timestep": 5,
             "importer_kwargs": {
                 "varname": "lsprate",
-                "grid_file_path": "/data/pysteps/pysteps-data/aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
+                "grid_file_path": "/media/x22859/users/mrempel/pysteps_main/pysteps-data/aux/grid_files/dwd/icon/R19B07/icon_grid_0047_R19B07_L.nc"
             }
             
         },
