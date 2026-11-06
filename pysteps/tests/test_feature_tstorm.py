@@ -38,7 +38,8 @@ def test_feature_tstorm_detection(
 
     if not dry_input:
         input_dataset = get_precipitation_fields(0, 0, True, None, source)
-        input_dataset = to_reflectivity(input_dataset)
+        # This legacy fixture uses interval rain as a proxy for reflectivity.
+        input_dataset = to_reflectivity(input_dataset, legacy=True)
         precip_var = input_dataset.attrs["precip_var"]
         input_precip = input_dataset[precip_var].values.squeeze()
     else:

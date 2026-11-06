@@ -23,8 +23,8 @@ def test_decompose_recompose():
     filename = os.path.join(root_path, rel_path, "2_20180616_120000.prcp-cscn.nc")
     precip_dataset = pysteps.io.import_bom_rf3(filename)
 
-    # Convert to rain rate from mm
-    precip_dataset = pysteps.utils.to_rainrate(precip_dataset)
+    # The undated legacy field declares its accumulation duration in accutime.
+    precip_dataset = pysteps.utils.to_rainrate(precip_dataset, legacy=True)
 
     # Log-transform the data
     precip_dataset = pysteps.utils.dB_transform(

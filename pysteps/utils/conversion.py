@@ -400,6 +400,8 @@ def to_reflectivity(dataset, zr_a=None, zr_b=None, *, legacy=False, name=None):
     Preserve positive trace values. A positive rain threshold supplies a finite no-
     detection floor for dry zero; otherwise require an explicit dry-value policy.
     Treat physical dBZ separately from statistical log transforms of rain.
+    Converting interval mean rain to dBZ requires legacy=True to permit the
+    historical approximation; it does not recover instantaneous reflectivity.
     """
     dataset, variable, quantity = _prepare(dataset)
     if quantity == "reflectivity":

@@ -87,6 +87,10 @@ Z-R relationship or infer a no-detection floor. Use explicit conversion
 parameters when converting reflectivity to rainfall. Invert optional modelling
 transforms, such as dBR, before exporting physical fields.
 
+Converting interval mean rain back to dBZ cannot recover instantaneous
+reflectivity. ``to_reflectivity(..., legacy=True)`` permits the historical
+approximation when an existing workflow explicitly needs that proxy.
+
 Dataset requirements
 --------------------
 
