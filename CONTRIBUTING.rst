@@ -314,7 +314,9 @@ The discussions will help clarify the best way to approach the suggested changes
 and associate it with a milestone.
 
 **AI statement**
-AI-generated code must clearly be indicated as "co-authored" by AI; only a human can take responsibility for a contribution.
+AI-assisted or generated code must clearly be indicated as such using the "Assisted-by:" (light help) or 
+"Generated-by:" (substantial AI output) tokens. 
+Only a human can take responsibility for a contribution.
 
 **Creating a Pull Request**
 Once your proposed changes are ready, you need to create a pull request (PR) linked to the associated issue. 
