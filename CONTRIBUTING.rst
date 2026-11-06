@@ -350,7 +350,7 @@ testing for applications and libraries.
 Check the `pytests official documentation <https://docs.pytest.org/en/latest/index.html>`_ for more information.
 
 The tests should be placed under the
-`pysteps.tests <https://github.com/pySTEPS/pysteps/tree/master/pysteps/tests>`_
+`pysteps.tests <https://github.com/pySTEPS/pysteps/tree/main/pysteps/tests>`_
 module.
 The file should follow the **test_*.py** naming convention and have a
 descriptive name.
