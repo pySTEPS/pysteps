@@ -20,6 +20,17 @@ from typing import Any, Callable
 import numpy as np
 import xarray as xr
 
+from pysteps.dataset_metadata import (
+    cadence_seconds,
+    cumulative_to_intervals,
+    linked,
+    normalize_units,
+    replace_time_series,
+    set_time_metadata,
+    temporal_method,
+    time_bounds,
+    unit_spec,
+)
 from pysteps.xarray_helpers import compute_lat_lon
 
 _aggregation_methods: dict[str, Callable[..., Any]] = {
@@ -35,77 +46,195 @@ _aggregation_methods: dict[str, Callable[..., Any]] = {
 
 
 def aggregate_fields_time(
-    dataset: xr.Dataset, time_window_min, ignore_nan=False
-) -> xr.Dataset:
-    """Aggregate fields in time.
-
-    It attempts to aggregate the given dataset in the time direction in an integer
-    number of sections of length = ``time_window_min``.
-    If such a aggregation is not possible, an error is raised.
-    The data is aggregated by a method chosen based on the unit of the precipitation
-    data in the dataset. ``mean`` is used when the unit is ``mm/h`` and ``sum``
-    is used when the unit is ``mm``. For other units an error is raised.
+    dataset, time_window_min, ignore_nan=False, *, integration=None, legacy=False
+):
+    """
+    Aggregate contiguous physical intervals into complete time windows.
 
     Parameters
     ----------
-    dataset: xarray.Dataset
-        Dataset containing a time series of (ensemble) input fields
-        as described in the documentation of :py:mod:`pysteps.io.importers`.
-        They must be evenly spaced in time.
-    time_window_min: float or None
-        The length in minutes of the time window that is used to
-        aggregate the fields.
-        The time spanned by the t dimension of R must be a multiple of
-        time_window_min.
-        If set to None, it returns a copy of the original R and metadata.
-    ignore_nan: bool, optional
-        If True, ignore nan values.
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    time_window_min : float or None
+        Positive aggregation duration in minutes. Return the input unchanged if
+        None.
+    ignore_nan : bool, optional
+        Allow partial coverage and attach a coverage fraction. Entirely missing
+        windows remain missing. Default is False.
+    integration : {None, 'constant'}, optional
+        Required for point rates: declare each sample constant over the
+        preceding sampling interval. Omit for interval products.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
 
     Returns
     -------
-    dataset: xarray.Dataset
-        The new dataset.
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
 
-    See also
-    --------
-    pysteps.utils.dimension.aggregate_fields_space,
-    pysteps.utils.dimension.aggregate_fields
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Sum interval depths and use duration-weighted means for interval rates.
+    Difference cumulative totals first. Reject gaps, overlaps, incomplete windows,
+    transformed values, and reflectivity.
     """
-
     if time_window_min is None:
         return dataset
-
-    precip_var = dataset.attrs["precip_var"]
-    metadata = dataset[precip_var].attrs
-
-    unit = metadata["units"]
-
-    timestamps = dataset["time"].values
-
-    # assumes that frames are evenly spaced
-    delta = (timestamps[1] - timestamps[0]) / np.timedelta64(1, "m")
-    if delta == time_window_min:
-        return dataset
-    if time_window_min % delta:
-        raise ValueError("time_window_size does not equally split dataset")
-
-    window_size = int(time_window_min / delta)
-
-    # specify the operator to be used to aggregate
-    # the values within the time window
-    if unit == "mm/h":
-        method = "mean"
-    elif unit == "mm":
-        method = "sum"
+    target = float(time_window_min) * 60
+    if not np.isfinite(target) or target <= 0:
+        raise ValueError("Aggregation window must be positive minutes")
+    dataset = dataset.copy(deep=False)
+    variable = dataset.attrs["precip_var"]
+    if dataset[variable].attrs.get("transform") is not None:
+        raise ValueError(
+            "Return the field to physical values before temporal aggregation"
+        )
+    dataset = normalize_units(dataset, variable)
+    quantity = unit_spec(dataset[variable].attrs["units"])[0]
+    if quantity not in ("rate", "depth"):
+        raise ValueError("Temporal aggregation supports rain rates and depths, not dBZ")
+    cadence_seconds(dataset.time)
+    method = temporal_method(dataset, variable)
+    if method == "point":
+        if integration != "constant":
+            raise ValueError("Point-rate aggregation requires integration='constant'")
+        cadence = cadence_seconds(dataset.time, require=True)
+        ends = dataset.time.values.astype("datetime64[us]")
+        bounds = np.column_stack(
+            [ends - np.timedelta64(int(round(cadence * 1e6)), "us"), ends]
+        )
+        dataset[variable].attrs.pop("accutime", None)
     else:
-        raise ValueError(f"can only aggregate units of 'mm/h' or 'mm' not {unit}")
-
-    if ignore_nan:
-        method = "".join(("nan", method))
-
-    return aggregate_fields(
-        dataset, window_size, dim="time", method=method, velocity_method="sum"
+        if integration is not None:
+            raise ValueError("Do not override the support of an interval product")
+        bounds = time_bounds(dataset, variable, legacy=legacy)
+        if bounds is None:
+            raise ValueError("Temporal aggregation requires explicit interval bounds")
+        dataset = set_time_metadata(dataset, variable, bounds, method)
+        if quantity == "depth":
+            dataset = cumulative_to_intervals(dataset, variable)
+            bounds = time_bounds(dataset, variable)
+    durations = (bounds[:, 1] - bounds[:, 0]) / np.timedelta64(1, "s")
+    first = 1 if durations[0] == 0 else 0
+    if first == len(durations):
+        raise ValueError("No nonzero interval is available for aggregation")
+    bounds = bounds[first:]
+    durations = durations[first:]
+    if len(bounds) > 1 and not np.array_equal(bounds[1:, 0], bounds[:-1, 1]):
+        raise ValueError(
+            "Aggregation requires contiguous nonoverlapping intervals; resolve gaps/overlap first"
+        )
+    groups = []
+    start, accumulated = 0, 0.0
+    for index, duration in enumerate(durations):
+        accumulated += duration
+        if accumulated > target + 1e-6:
+            raise ValueError("Aggregation window would split a source interval")
+        if np.isclose(accumulated, target, rtol=0, atol=1e-6):
+            groups.append((start + first, index + first + 1))
+            start, accumulated = index + 1, 0.0
+    if accumulated > 1e-6 or not groups:
+        raise ValueError(
+            "Aggregation requires complete windows; trailing coverage is incomplete"
+        )
+    outputs, coverage = [], []
+    related_outputs = {}
+    links = (linked(dataset[variable], "ancillary_variables") or "").split()
+    for auxiliary in links:
+        if auxiliary in dataset and "time" in dataset[auxiliary].dims:
+            meanings = dataset[auxiliary].attrs.get("flag_meanings", "").split()
+            if meanings != ["not_detected", "detected"]:
+                raise ValueError(
+                    f"No temporal aggregation policy for ancillary {auxiliary!r}"
+                )
+    related_names = [
+        name
+        for name in [*links, "quality", "velocity_x", "velocity_y"]
+        if name in dataset and "time" in dataset[name].dims
+    ]
+    all_bounds = (
+        np.asarray(time_bounds(dataset, variable))
+        if method != "point"
+        else np.column_stack(
+            [
+                dataset.time.values - np.timedelta64(int(round(cadence * 1e6)), "us"),
+                dataset.time.values,
+            ]
+        )
     )
+    for begin, end in groups:
+        window = dataset[variable].isel(time=slice(begin, end))
+        weights = xr.DataArray(
+            (all_bounds[begin:end, 1] - all_bounds[begin:end, 0])
+            / np.timedelta64(1, "s"),
+            dims="time",
+            coords={"time": window.time},
+        )
+        valid = window.notnull()
+        valid_duration = weights.where(valid, 0).sum("time")
+        if quantity == "rate":
+            numerator = (window * weights).sum("time", skipna=ignore_nan)
+            denominator = valid_duration if ignore_nan else target
+            value = numerator / xr.where(denominator > 0, denominator, np.nan)
+        else:
+            value = window.sum("time", skipna=ignore_nan).where(valid.any("time"))
+        outputs.append(value)
+        coverage.append(valid_duration / target)
+        for name in related_names:
+            auxiliary = dataset[name].isel(time=slice(begin, end))
+            if name.startswith("velocity_"):
+                reduced = auxiliary.sum("time", skipna=False)
+            elif name == "quality":
+                reduced = auxiliary.min("time", skipna=ignore_nan)
+            else:
+                reduced = auxiliary.max("time", skipna=ignore_nan)
+            related_outputs.setdefault(name, []).append(reduced)
+    result_bounds = np.array(
+        [[all_bounds[a, 0], all_bounds[b - 1, 1]] for a, b in groups]
+    )
+    result_time = result_bounds[:, 1]
+
+    def combine(parts):
+        """Stack aggregated intervals in the original physical dimension order."""
+        combined = xr.concat(parts, dim=xr.IndexVariable("time", result_time))
+        return combined.transpose(
+            *[dim for dim in dataset[variable].dims if dim in combined.dims]
+        )
+
+    related = {
+        name: combine(parts).assign_attrs(dataset[name].attrs)
+        for name, parts in related_outputs.items()
+    }
+    result = replace_time_series(
+        dataset, variable, combine(outputs), result_time, result_bounds, related=related
+    )
+    result = set_time_metadata(
+        result, variable, result_bounds, "mean" if quantity == "rate" else "sum"
+    )
+    if ignore_nan:
+        name = variable + "_coverage_fraction"
+        if name in result:
+            raise ValueError("Coverage variable already exists")
+        combined = combine(coverage)
+        result[name] = (combined.dims, combined.data)
+        result[name].attrs = {
+            "long_name": "fraction of aggregation interval with valid data",
+            "units": "1",
+        }
+        attrs = result[variable].attrs
+        attrs["ancillary_variables"] = " ".join(
+            filter(None, [attrs.get("ancillary_variables"), name])
+        )
+        attrs["pysteps_missing_policy"] = (
+            "ignore missing coverage; see coverage fraction"
+        )
+    return result
 
 
 def aggregate_fields_space(
@@ -250,6 +379,16 @@ def aggregate_fields(
     if np.ndim(dim) == 0:
         dim = [dim]
 
+    if any(
+        d == "time"
+        or d in dataset.coords
+        and dataset[d].attrs.get("standard_name") == "time"
+        for d in dim
+    ):
+        raise ValueError(
+            "Use aggregate_fields_time to preserve temporal support and integration assumptions"
+        )
+
     if np.ndim(window_size) == 0:
         window_size = [window_size for _ in dim]
 
@@ -329,42 +468,35 @@ def aggregate_fields(
         )
 
     for d, ws in zip(dim, window_size):
-        if d == "time":
-            # for accumulation we use last timestamp else first timestamp
-            if dataset[dataset.attrs["precip_var"]].attrs["units"] == "mm":
-                dataset[d] = dataset_ref[d].isel(
-                    {
-                        d: slice(
-                            ws - 1,
-                            dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws,
-                            ws,
-                        )
-                    }
-                )
-            else:
-                dataset[d] = dataset_ref[d].isel(
-                    {d: slice(0, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws)}
-                )
-        else:
-            dataset[d] = (
-                dataset_ref[d]
-                .rolling({d: ws})
-                .reduce(_aggregation_methods["mean"])
-                .isel(
-                    {
-                        d: slice(
-                            ws - 1,
-                            dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws,
-                            ws,
-                        )
-                    }
-                )
+        dataset[d] = (
+            dataset_ref[d]
+            .rolling({d: ws})
+            .reduce(_aggregation_methods["mean"])
+            .isel(
+                {d: slice(ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws)}
             )
+        )
 
     for d, ws in zip(dim, window_size):
         if "stepsize" in dataset[d].attrs:
             dataset[d].attrs["stepsize"] = dataset[d].attrs["stepsize"] * ws
 
+    if {"x", "y"}.intersection(dim) and "lat" in dataset and "lon" in dataset:
+        projection = dataset.attrs.get("projection")
+        if projection is None:
+            from pysteps.dataset_metadata import dataset_crs
+
+            projection = dataset_crs(dataset, dataset.attrs["precip_var"]).to_wkt()
+        lat, lon = compute_lat_lon(
+            dataset.x.values,
+            dataset.y.values,
+            projection,
+            coordinate_unit=dataset.x.attrs["units"],
+        )
+        dataset = dataset.assign_coords(
+            lat=(("y", "x"), lat, dataset_ref.lat.attrs),
+            lon=(("y", "x"), lon, dataset_ref.lon.attrs),
+        )
     return dataset
 
 
@@ -400,6 +532,7 @@ def clip_domain(dataset: xr.Dataset, extent=None):
 def _pad_domain(
     dataset: xr.Dataset, dim_to_pad: str, idx_buffer: int, zerovalue: float
 ) -> xr.Dataset:
+    """Pad one spatial dimension and refresh any geographic coordinates."""
     delta = dataset[dim_to_pad].attrs["stepsize"]
     end_values = (
         dataset[dim_to_pad].values[0] - delta * idx_buffer,
@@ -414,9 +547,17 @@ def _pad_domain(
         mode="linear_ramp",
         end_values={dim_to_pad: end_values},
     )
-    dataset.lat.data[:], dataset.lon.data[:] = compute_lat_lon(
-        dataset.x.values, dataset.y.values, dataset.attrs["projection"]
-    )
+    if "lat" in dataset and "lon" in dataset:
+        lat, lon = compute_lat_lon(
+            dataset.x.values,
+            dataset.y.values,
+            dataset.attrs["projection"],
+            coordinate_unit=dataset.x.attrs["units"],
+        )
+        dataset = dataset.assign_coords(
+            lat=(("y", "x"), lat, dataset_ref.lat.attrs),
+            lon=(("y", "x"), lon, dataset_ref.lon.attrs),
+        )
     if "velocity_x" in dataset_ref:
         dataset["velocity_x"].data = (
             dataset_ref["velocity_x"]

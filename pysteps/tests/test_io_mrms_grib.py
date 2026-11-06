@@ -43,8 +43,8 @@ test_attrs = [
     (precip_dataset.y.isel(y=0).values, 54.995, 1e-10),
     (precip_dataset.x.attrs["stepsize"], 0.01, 1e-4),
     (precip_dataset.y.attrs["stepsize"], -0.01, 1e-4),
-    (precip_dataset.x.attrs["units"], "degrees", None),
-    (precip_dataset.y.attrs["units"], "degrees", None),
+    (precip_dataset.x.attrs["units"], "degrees_east", None),
+    (precip_dataset.y.attrs["units"], "degrees_north", None),
 ]
 
 

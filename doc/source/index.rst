@@ -33,6 +33,7 @@ __ https://github.com/pySTEPS/pysteps
    Installation <user_guide/install_pysteps>
    Gallery <../auto_examples/index>
    My first nowcast (Colab Notebook) <https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb>
+   CF NetCDF I/O <user_guide/cf_netcdf>
    API Reference <pysteps_reference/index>
    Example data <user_guide/example_data>
    Configuration file (pystepsrc) <user_guide/set_pystepsrc>

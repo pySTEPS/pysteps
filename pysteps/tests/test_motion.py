@@ -40,6 +40,12 @@ def not_raises(_exception):
 
 
 reference_dataset = get_precipitation_fields(num_prev_files=0)
+# Synthetic sequences define their own time axis and must not copy dated bounds.
+reference_coords = {
+    name: coord
+    for name, coord in reference_dataset.coords.items()
+    if "time" not in coord.dims
+}
 precip_var = reference_dataset.attrs["precip_var"]
 reference_data = reference_dataset[precip_var].values[0]
 reference_field = np.ma.masked_array(reference_data, reference_data == -15.0)
@@ -223,7 +229,7 @@ def test_optflow_method_convergence(
                 reference_dataset[precip_var].attrs,
             )
         },
-        coords={**dict(reference_dataset.coords), "time": np.arange(num_times)},
+        coords={**reference_coords, "time": np.arange(num_times)},
         attrs={**reference_dataset.attrs},
     )
 
@@ -305,7 +311,7 @@ def test_no_precipitation(optflow_method_name, num_times):
     zero_precip = np.zeros((num_times,) + reference_field.shape)
     dataset = xr.Dataset(
         data_vars={precip_var: (["time", "y", "x"], zero_precip)},
-        coords={**dict(reference_dataset.coords), "time": np.arange(num_times)},
+        coords={**reference_coords, "time": np.arange(num_times)},
         attrs=reference_dataset.attrs,
     )
     motion_method = motion.get_method(optflow_method_name)
@@ -421,7 +427,7 @@ def test_vet_padding():
     precip_data[precip_obs.mask] = np.nan
     dataset = xr.Dataset(
         data_vars={precip_var: (["time", "y", "x"], precip_data)},
-        coords={**dict(reference_dataset.coords), "time": [0, 1]},
+        coords={**reference_coords, "time": [0, 1]},
         attrs=reference_dataset.attrs,
     )
 
@@ -511,7 +517,7 @@ def test_motion_masked_array(method, kwargs):
     ndarray[ndarray == -15] = np.nan
     dataset = xr.Dataset(
         data_vars={precip_var: (["time", "y", "x"], ndarray)},
-        coords={**dict(reference_dataset.coords), "time": [0, 1]},
+        coords={**reference_coords, "time": [0, 1]},
         attrs=reference_dataset.attrs,
     )
     uv_ndarray = motion_method(dataset, **kwargs)
@@ -521,7 +527,7 @@ def test_motion_masked_array(method, kwargs):
     mdarray.data[mdarray.mask] = -15
     dataset = xr.Dataset(
         data_vars={precip_var: (["time", "y", "x"], ndarray)},
-        coords={**dict(reference_dataset.coords), "time": [0, 1]},
+        coords={**reference_coords, "time": [0, 1]},
         attrs=reference_dataset.attrs,
     )
     uv_mdarray = motion_method(dataset, **kwargs)

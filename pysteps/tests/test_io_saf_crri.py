@@ -81,7 +81,7 @@ test_attrs = [
         "Agencia Estatal de Meteorología (AEMET)",
         None,
     ),
-    (precip_dataarray.attrs["accutime"], None, None),
+    (precip_dataarray.attrs.get("accutime"), None, None),
     (precip_dataarray.attrs["units"], "mm/h", None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
 ]

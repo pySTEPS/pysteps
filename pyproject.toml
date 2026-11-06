@@ -36,9 +36,9 @@ dependencies = [
     "opencv-python",
     "pandas",
     "pillow",
-    "pyproj",
+    "pyproj>=3.0",
     "scipy",
-    "xarray",
+    "xarray>=2025.1.2",
 ]
 
 [project.optional-dependencies]

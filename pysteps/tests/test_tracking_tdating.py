@@ -29,7 +29,7 @@ def test_tracking_tdating_dating_multistep(source, len_timesteps, output_splits_
     pytest.importorskip("skimage")
 
     dataset_input = get_precipitation_fields(0, len_timesteps, True, 4000, source)
-    dataset_input = to_reflectivity(dataset_input)
+    dataset_input = to_reflectivity(dataset_input, legacy=True)
 
     # First half of timesteps
     tracks_1, cells, labels = dating(
@@ -72,7 +72,7 @@ def test_tracking_tdating_dating(source, dry_input, output_splits_merges):
 
     if not dry_input:
         dataset_input = get_precipitation_fields(0, 2, True, 4000, source)
-        dataset_input = to_reflectivity(dataset_input)
+        dataset_input = to_reflectivity(dataset_input, legacy=True)
     else:
         dataset_input = xr.Dataset(
             data_vars={"precip_intensity": (["time", "y", "x"], np.zeros((3, 50, 50)))},

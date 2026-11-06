@@ -310,7 +310,7 @@ test_data_to_rainrate = [
 @pytest.mark.parametrize("dataset, expected", test_data_to_rainrate)
 def test_to_rainrate(dataset, expected):
     """Test the to_rainrate."""
-    actual = conversion.to_rainrate(dataset)
+    actual = conversion.to_rainrate(dataset, legacy=True)
     assert_dataset_equivalent(actual, expected)
 
 
@@ -584,7 +584,7 @@ test_data_to_raindepth = [
 @pytest.mark.parametrize("dataset, expected", test_data_to_raindepth)
 def test_to_raindepth(dataset, expected):
     """Test the to_raindepth."""
-    actual = conversion.to_raindepth(dataset)
+    actual = conversion.to_raindepth(dataset, legacy=True, integration="constant")
     assert_dataset_equivalent(actual, expected)
 
 
@@ -900,5 +900,13 @@ test_data_to_reflectivity = [
 @pytest.mark.parametrize("dataset, expected", test_data_to_reflectivity)
 def test_to_reflectivity(dataset, expected):
     """Test the to_reflectivity."""
-    actual = conversion.to_reflectivity(dataset)
+    actual = conversion.to_reflectivity(dataset, legacy=True)
+    expected = expected.copy(deep=True)
+    expected.reflectivity.attrs.pop("transform", None)
+    # dBZ is already the physical representation; identity no longer logs it
+    # again or replaces an existing no-detection value with a new floor.
+    if dataset[dataset.attrs["precip_var"]].attrs["units"] == "dBZ":
+        expected.reflectivity.attrs["zerovalue"] = dataset.reflectivity.attrs[
+            "zerovalue"
+        ]
     assert_dataset_equivalent(actual, expected)

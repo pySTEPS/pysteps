@@ -19,6 +19,7 @@ from pprint import pprint
 from pysteps.io import exporters, importers, interface
 
 _importer_methods = dict(
+    netcdf_cf=importers.import_netcdf_cf,
     bom_rf3=importers.import_bom_rf3,
     dwd_hdf5=importers.import_dwd_hdf5,
     dwd_radolan=importers.import_dwd_radolan,
@@ -35,6 +36,7 @@ _importer_methods = dict(
 )
 
 _exporter_methods = dict(
+    netcdf_cf=exporters.export_netcdf_cf,
     geotiff=exporters.initialize_forecast_exporter_geotiff,
     kineros=exporters.initialize_forecast_exporter_kineros,
     netcdf=exporters.initialize_forecast_exporter_netcdf,
@@ -143,6 +145,8 @@ def get_method(name, method_type):
         +--------------+------------------------------------------------------+
         |     Name     |              Description                             |
         +==============+======================================================+
+        | netcdf_cf    | CF-1.8 projected precipitation datasets.             |
+        +--------------+------------------------------------------------------+
         | bom_rf3      | NefCDF files used in the Boreau of Meterorology      |
         |              | archive containing precipitation intensity           |
         |              | composites.                                          |
@@ -192,7 +196,9 @@ def get_method(name, method_type):
         |             | Grid points are treated as individual rain gauges.    |
         |             | A separate file is produced for each ensemble member. |
         +-------------+-------------------------------------------------------+
-        | netcdf      | NetCDF files conforming to the CF 1.7 specification.  |
+        | netcdf      | CF-1.8 forecast initializer for array callbacks.     |
+        +-------------+-------------------------------------------------------+
+        | netcdf_cf   | Dataset-first CF-1.8 bulk writer.                    |
         +-------------+-------------------------------------------------------+
 
     method_type: {'importer', 'exporter'}

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11.0, <3.14.0"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'win32'",
@@ -1585,7 +1585,7 @@ requires-dist = [
     { name = "pip", marker = "extra == 'gdal'" },
     { name = "pyfftw", marker = "extra == 'optional'" },
     { name = "pygrib", marker = "extra == 'pygrib'" },
-    { name = "pyproj" },
+    { name = "pyproj", specifier = ">=3.0" },
     { name = "pywavelets", marker = "extra == 'optional'" },
     { name = "rasterio", marker = "extra == 'optional'" },
     { name = "scikit-image", marker = "extra == 'optional'" },
@@ -1593,7 +1593,7 @@ requires-dist = [
     { name = "scipy" },
     { name = "setuptools", marker = "extra == 'gdal'", specifier = ">=67" },
     { name = "wheel", marker = "extra == 'gdal'" },
-    { name = "xarray" },
+    { name = "xarray", specifier = ">=2025.1.2" },
 ]
 provides-extras = ["optional", "pygrib", "gdal"]
 
