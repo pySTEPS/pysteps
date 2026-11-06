@@ -52,8 +52,7 @@ def test_io_import_saf_crri_extent(extent, expected_extent, expected_shape, tole
 
 
 expected_proj = (
-    "+proj=geos +a=6378137.000000 +b=6356752.300000 "
-    "+lon_0=0.000000 +h=35785863.000000"
+    "+proj=geos +a=6378137.000000 +b=6356752.300000 +lon_0=0.000000 +h=35785863.000000"
 )
 
 test_geodata_crri = [
@@ -82,7 +81,7 @@ test_attrs = [
         "Agencia Estatal de Meteorología (AEMET)",
         None,
     ),
-    (precip_dataarray.attrs["accutime"], None, None),
+    (precip_dataarray.attrs.get("accutime"), None, None),
     (precip_dataarray.attrs["units"], "mm/h", None),
     (precip_dataarray.attrs["zerovalue"], 0.0, 1e-6),
 ]

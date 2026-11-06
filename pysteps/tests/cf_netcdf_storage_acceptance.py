@@ -18,7 +18,7 @@ from pysteps.dataset_metadata import (
     physical_variables,
     unit_spec,
 )
-from pysteps.tests.cf_netcdf_reference import reference_cases, EPOCH
+from pysteps.tests.cf_netcdf_reference import EPOCH, reference_cases
 
 
 def _verify(path, expected, encodings):

@@ -6,14 +6,14 @@ make existing incorrect behaviour a regression requirement.
 """
 
 import argparse
-from datetime import datetime
 import importlib.metadata
 import json
-from pathlib import Path
 import platform
 import subprocess
 import tempfile
 import warnings
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import xarray as xr

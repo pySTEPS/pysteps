@@ -63,7 +63,6 @@ doc/_build/
 # pyenv
 .python-version
 
-
 # Environments
 .env
 .venv
@@ -95,3 +94,11 @@ venv.bak/
 # Running local tests
 /tmp
 /pysteps/tests/tmp/
+/aux
+/mrms
+/nwp
+/radar
+/saf
+pystepsrc
+pystepsrc.1
+filename

@@ -9,8 +9,8 @@ Run with the optional acceptance dependencies scitools-iris and netCDF4::
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import warnings
+from pathlib import Path
 
 import cf_units
 import iris
@@ -90,8 +90,9 @@ def check_file(path):
             for method in ("point", "mean", "sum"):
                 if ": " + method in getattr(var, "cell_methods", ""):
                     assert any(m.method == method for m in cube.cell_methods)
-            x, y = cube.coord("projection_x_coordinate"), cube.coord(
-                "projection_y_coordinate"
+            x, y = (
+                cube.coord("projection_x_coordinate"),
+                cube.coord("projection_y_coordinate"),
             )
             assert x.coord_system is not None and x.coord_system == y.coord_system
             independent = CRS.from_user_input(x.coord_system.as_cartopy_crs())

@@ -12,8 +12,8 @@ import importlib.metadata
 import json
 from pathlib import Path
 
-import numpy as np
 import netCDF4
+import numpy as np
 import xarray as xr
 
 from pysteps.dataset_metadata import normalize_dataset, physical_variables

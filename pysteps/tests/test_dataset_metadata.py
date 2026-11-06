@@ -625,12 +625,13 @@ def test_point_products_do_not_reinterpret_scan_duration_as_accumulation():
 
 def test_legacy_exporter_accepts_normalized_wkt_and_keeps_full_crs(tmp_path):
     """Verify legacy exporter accepts normalized wkt and keeps full crs."""
+    import netCDF4
+
     from pysteps.io.exporters import (
-        initialize_forecast_exporter_netcdf,
         close_forecast_files,
+        initialize_forecast_exporter_netcdf,
     )
     from pysteps.xarray_helpers import geodata_from_dataset
-    import netCDF4
 
     ds = case("instantaneous_rate")
     metadata = {**geodata_from_dataset(ds), "unit": "mm/h"}
@@ -656,6 +657,7 @@ def test_bom_duration_extraction_preserves_fractional_minutes_and_days(
 ):
     """Verify bom duration extraction preserves fractional minutes and days."""
     import netCDF4
+
     from pysteps.io.importers import _import_bom_rf3_geodata
 
     path = tmp_path / "bom.nc"

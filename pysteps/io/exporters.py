@@ -97,9 +97,9 @@ from importlib.metadata import version as get_version
 
 import numpy as np
 
-from pysteps.exceptions import MissingOptionalDependency
 from pysteps.dataset_metadata import cf_grid_mapping
-from pysteps.io.netcdf_cf import export_netcdf_cf, _legacy_forecast_writer
+from pysteps.exceptions import MissingOptionalDependency
+from pysteps.io.netcdf_cf import _legacy_forecast_writer, export_netcdf_cf
 
 try:
     from osgeo import gdal, osr
@@ -198,7 +198,7 @@ def initialize_forecast_exporter_geotiff(
 
     if not GDAL_IMPORTED:
         raise MissingOptionalDependency(
-            "gdal package is required for GeoTIFF " "exporters but it is not installed"
+            "gdal package is required for GeoTIFF exporters but it is not installed"
         )
 
     if incremental == "member":
@@ -531,8 +531,7 @@ def export_forecast_dataset(field, exporter):
 
     if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
-            "netCDF4 package is required for netcdf "
-            "exporters but it is not installed"
+            "netCDF4 package is required for netcdf exporters but it is not installed"
         )
 
     if exporter["incremental"] is None:

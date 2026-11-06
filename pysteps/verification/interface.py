@@ -166,8 +166,8 @@ def get_method(name, type="deterministic"):
     if type == "deterministic":
         from .detcatscores import det_cat_fct
         from .detcontscores import det_cont_fct
-        from .spatialscores import binary_mse, fss
         from .salscores import sal
+        from .spatialscores import binary_mse, fss
 
         # categorical
         if name in [
@@ -236,7 +236,7 @@ def get_method(name, type="deterministic"):
             raise ValueError("unknown ensemble method %s" % name)
 
     elif type == "probabilistic":
-        from .probscores import CRPS, reldiag, ROC_curve
+        from .probscores import CRPS, ROC_curve, reldiag
 
         if name == "crps":
             return CRPS

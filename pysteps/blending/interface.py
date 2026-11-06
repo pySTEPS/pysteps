@@ -13,9 +13,7 @@ blended nowcasts with NWP models.
 
 from functools import partial
 
-from pysteps.blending import linear_blending
-from pysteps.blending import steps
-from pysteps.blending import pca_ens_kalman_filter
+from pysteps.blending import linear_blending, pca_ens_kalman_filter, steps
 
 _blending_methods = dict()
 _blending_methods["linear_blending"] = linear_blending.forecast
@@ -68,5 +66,5 @@ def get_method(name):
         raise ValueError(
             f"Unknown blending method {name}."
             "The available methods are: "
-            f"{*list(_blending_methods.keys()),}"
+            f"{(*list(_blending_methods.keys()),)}"
         ) from None

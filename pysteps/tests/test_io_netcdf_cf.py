@@ -1,6 +1,7 @@
 """Check physical semantics and file ownership in the CF NetCDF APIs."""
 
 from datetime import datetime
+
 import netCDF4
 import numpy as np
 import pytest
@@ -129,6 +130,7 @@ def test_file_ownership_and_lazy_data(load, tmp_path, monkeypatch):
     """Verify file ownership and lazy data."""
     da = pytest.importorskip("dask.array")
     from dask.callbacks import Callback
+
     from pysteps.io import netcdf_cf
 
     path = tmp_path / "owned.nc"
@@ -651,7 +653,9 @@ def test_registered_cf_importer_stacks_archived_singleton_frames(name, tmp_path)
     variable = (
         source.attrs["precip_var"]
         if "precip_var" in source.attrs
-        else "precip_intensity" if name == "instantaneous_rate" else "precip_mean_rate"
+        else "precip_intensity"
+        if name == "instantaneous_rate"
+        else "precip_mean_rate"
     )
     np.testing.assert_allclose(actual[variable], source[variable], equal_nan=True)
     assert actual.time.attrs["stepsize"] == 450

@@ -34,6 +34,7 @@ from pysteps.dataset_metadata import (
     unit_spec,
     variable_metadata,
 )
+
 from . import transformation
 
 
@@ -441,7 +442,7 @@ def to_reflectivity(dataset, zr_a=None, zr_b=None, *, legacy=False, name=None):
             else "time"
         )
         result[result.attrs["precip_var"]].attrs["cell_methods"] = f"{time}: mean"
-        result[result.attrs["precip_var"]].attrs[
-            "pysteps_zr_mean_assumption"
-        ] = "Z-R applied to mean rate"
+        result[result.attrs["precip_var"]].attrs["pysteps_zr_mean_assumption"] = (
+            "Z-R applied to mean rate"
+        )
     return result

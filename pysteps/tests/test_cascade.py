@@ -8,8 +8,7 @@ from numpy.testing import assert_array_almost_equal
 
 import pysteps
 from pysteps import nowcasts
-from pysteps.cascade.bandpass_filters import filter_gaussian
-from pysteps.cascade.bandpass_filters import filter_uniform
+from pysteps.cascade.bandpass_filters import filter_gaussian, filter_uniform
 from pysteps.cascade.decomposition import decomposition_fft, recompose_fft
 from pysteps.tests.helpers import smart_assert
 

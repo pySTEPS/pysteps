@@ -17,9 +17,9 @@ import xarray as xr
 from pyproj import CRS
 
 from pysteps import io
-from pysteps.dataset_metadata import normalize_dataset, physical_variables, linked
+from pysteps.dataset_metadata import linked, normalize_dataset, physical_variables
 from pysteps.tests.cf_netcdf_reference import reference_cases
-from pysteps.tests.cf_netcdf_stage2_acceptance import examples, archived_example
+from pysteps.tests.cf_netcdf_stage2_acceptance import archived_example, examples
 
 
 def _compare(expected, actual):

@@ -13,9 +13,9 @@ The workflow follows :doc:`plot_steps_nowcast`; see also the
 :ref:`cf-netcdf-user-guide` for storage and compatibility options.
 """
 
+import tempfile
 from datetime import datetime
 from pathlib import Path
-import tempfile
 
 import matplotlib.pyplot as plt
 import numpy as np

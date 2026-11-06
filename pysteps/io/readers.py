@@ -161,8 +161,9 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
 
 def _read_cf_frames(inputfns, importer, reference, timestep, **kwargs):
     """Stack explicitly dated singleton CF files without replacing their times."""
-    from pysteps.dataset_metadata import physical_variables, temporal_axis
     from pyproj import CRS
+
+    from pysteps.dataset_metadata import physical_variables, temporal_axis
 
     if kwargs.get("load") is False:
         reference.close()

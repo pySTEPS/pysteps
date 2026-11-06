@@ -20,7 +20,6 @@ from typing import Any, Callable
 import numpy as np
 import xarray as xr
 
-from pysteps.xarray_helpers import compute_lat_lon
 from pysteps.dataset_metadata import (
     cadence_seconds,
     cumulative_to_intervals,
@@ -32,6 +31,7 @@ from pysteps.dataset_metadata import (
     time_bounds,
     unit_spec,
 )
+from pysteps.xarray_helpers import compute_lat_lon
 
 _aggregation_methods: dict[str, Callable[..., Any]] = {
     "sum": np.sum,

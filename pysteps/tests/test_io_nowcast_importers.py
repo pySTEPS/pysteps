@@ -64,12 +64,12 @@ def test_import_netcdf(precip_dataset):
         precip_netcdf = io.import_netcdf_pysteps(tempfile.name, dtype="float64")
 
         assert isinstance(precip_netcdf, xr.Dataset)
-        assert (
-            precip_netcdf[precip_var].ndim == precip_dataarray.ndim
-        ), "Wrong number of dimensions"
-        assert (
-            precip_netcdf[precip_var].shape[0] == precip_dataarray.shape[0]
-        ), "Wrong number of lead times"
+        assert precip_netcdf[precip_var].ndim == precip_dataarray.ndim, (
+            "Wrong number of dimensions"
+        )
+        assert precip_netcdf[precip_var].shape[0] == precip_dataarray.shape[0], (
+            "Wrong number of lead times"
+        )
         assert precip_netcdf[precip_var].shape[1:] == field_shape, "Wrong field shape"
         assert np.allclose(
             precip_netcdf[precip_var].values, precip_dataarray.values, equal_nan=True

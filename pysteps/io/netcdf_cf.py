@@ -14,10 +14,10 @@ Legacy forecast callbacks use the same schema and validated region writes.
     export_netcdf_cf
 """
 
-from datetime import datetime, timezone
-from pathlib import Path
 import os
 import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import pyproj
@@ -646,7 +646,9 @@ def _encoding(dataset, encoding=None, *, legacy=False):
             fill = (
                 _netcdf4().default_fillvals[dtype.str[1:]]
                 if flags and dtype.kind == "i"
-                else np.nan if name in dataset.data_vars and dtype.kind == "f" else None
+                else np.nan
+                if name in dataset.data_vars and dtype.kind == "f"
+                else None
             )
             options = {"_FillValue": fill}
         if var.attrs.get("standard_name") == "realization":

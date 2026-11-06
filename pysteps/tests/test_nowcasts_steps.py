@@ -204,9 +204,9 @@ def test_steps_callback(tmp_path):
     assert precip_netcdf.shape[2:] == field_shape, "Wrong field shape"
 
     # assert that the saved output is the same as the original output
-    assert np.allclose(
-        precip_netcdf, precip_output, equal_nan=True
-    ), "Wrong output values"
+    assert np.allclose(precip_netcdf, precip_output, equal_nan=True), (
+        "Wrong output values"
+    )
 
     # assert that leadtimes and timestamps are as expected
     td = timedelta(minutes=timestep)
@@ -232,26 +232,26 @@ def run_and_assert_forecast(
     precip_forecast = dataset_forecast[precip_var].values
 
     assert precip_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in forecast output"
-    assert (
-        precip_forecast.shape[1] == n_timesteps
-    ), "Wrong amount of output time steps in forecast output"
+    assert precip_forecast.shape[0] == expected_n_ens_members, (
+        "Wrong amount of output ensemble members in forecast output"
+    )
+    assert precip_forecast.shape[1] == n_timesteps, (
+        "Wrong amount of output time steps in forecast output"
+    )
 
     # Transform the data back into mm/h
     dataset_forecast = converter(dataset_forecast)
     precip_forecast = dataset_forecast[precip_var].values
 
-    assert (
-        precip_forecast.ndim == 4
-    ), "Wrong amount of dimensions in converted forecast output"
-    assert (
-        precip_forecast.shape[0] == expected_n_ens_members
-    ), "Wrong amount of output ensemble members in converted forecast output"
-    assert (
-        precip_forecast.shape[1] == n_timesteps
-    ), "Wrong amount of output time steps in converted forecast output"
+    assert precip_forecast.ndim == 4, (
+        "Wrong amount of dimensions in converted forecast output"
+    )
+    assert precip_forecast.shape[0] == expected_n_ens_members, (
+        "Wrong amount of output ensemble members in converted forecast output"
+    )
+    assert precip_forecast.shape[1] == n_timesteps, (
+        "Wrong amount of output time steps in converted forecast output"
+    )
 
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
@@ -356,9 +356,9 @@ def test_steps_nowcast(
         metadata["zerovalue"]
     )
 
-    assert (
-        np.any(~np.isfinite(dataset_input[precip_var].values)) == False
-    ), "There are still infinite values in the input radar data"
+    assert np.any(~np.isfinite(dataset_input[precip_var].values)) == False, (
+        "There are still infinite values in the input radar data"
+    )
 
     ###
     # Determine the velocity fields

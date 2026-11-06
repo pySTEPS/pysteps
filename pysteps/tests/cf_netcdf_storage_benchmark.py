@@ -5,10 +5,10 @@ import hashlib
 import importlib.metadata
 import json
 import os
-from pathlib import Path
 import platform
 import statistics
 import time
+from pathlib import Path
 
 import netCDF4
 import numpy as np
@@ -93,7 +93,9 @@ def profiles(dataset):
                 (
                     tile
                     if dim in ("x", "y")
-                    else time_count if dim == "time" else member_count
+                    else time_count
+                    if dim == "time"
+                    else member_count
                 ),
             )
             for dim in field.dims
@@ -153,7 +155,9 @@ def _read(path, variable, pattern):
                 (
                     slice(None)
                     if dim == "time"
-                    else field.shape[n] // 2 if dim in ("y", "x") else 0
+                    else field.shape[n] // 2
+                    if dim in ("y", "x")
+                    else 0
                 )
                 for n, dim in enumerate(dims)
             )

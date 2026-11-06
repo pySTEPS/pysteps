@@ -211,13 +211,12 @@ import os
 from functools import partial
 from typing import Any
 
-from pysteps.io.netcdf_cf import import_netcdf_cf
-
 import numpy as np
 import numpy.typing as npt
 from matplotlib.pyplot import imread
 
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
+from pysteps.io.netcdf_cf import import_netcdf_cf
 from pysteps.utils import aggregate_fields
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 

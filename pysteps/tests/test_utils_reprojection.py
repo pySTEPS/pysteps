@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from pysteps.utils import reprojection as rpj
 from pysteps.tests.helpers import get_precipitation_fields
+from pysteps.utils import reprojection as rpj
 
 
 def build_precip_dataset(
@@ -151,15 +151,15 @@ def test_utils_reproject_grids(precip_dataset, nwp_dataset):
     nwp_dataarray = nwp_dataset[nwp_dataset.attrs["precip_var"]]
     precip_dataarray = precip_dataset[precip_dataset.attrs["precip_var"]]
     # The tests
-    assert (
-        nwp_dataset_reproj_dataarray.shape[0] == nwp_dataarray.shape[0]
-    ), "Time dimension has not the same length as source"
-    assert (
-        nwp_dataset_reproj_dataarray.shape[1] == precip_dataarray.shape[1]
-    ), "y dimension has not the same length as radar composite"
-    assert (
-        nwp_dataset_reproj_dataarray.shape[2] == precip_dataarray.shape[2]
-    ), "x dimension has not the same length as radar composite"
+    assert nwp_dataset_reproj_dataarray.shape[0] == nwp_dataarray.shape[0], (
+        "Time dimension has not the same length as source"
+    )
+    assert nwp_dataset_reproj_dataarray.shape[1] == precip_dataarray.shape[1], (
+        "y dimension has not the same length as radar composite"
+    )
+    assert nwp_dataset_reproj_dataarray.shape[2] == precip_dataarray.shape[2], (
+        "x dimension has not the same length as radar composite"
+    )
 
     assert float(nwp_dataset_reproj_dataarray.x.isel(x=0).values) == float(
         precip_dataarray.x.isel(x=0).values

@@ -26,6 +26,7 @@ Skill scores for spatial forecasts.
 """
 
 import collections
+
 import numpy as np
 from scipy.ndimage import uniform_filter
 
