@@ -369,6 +369,34 @@ def test_aggregation_retains_other_time_series_without_aggregating_them():
     np.testing.assert_array_equal(result.precip_intensity, ds.precip_intensity)
 
 
+@pytest.mark.parametrize("name", ["instantaneous_rate", "mean_rate"])
+def test_forecast_lead_zero_retains_initialization_time_and_support(name):
+    """Preserve initialization fields used by blended forecast products."""
+    source = case(name)
+    origin = source.time.values[-1]
+    cadence = source.time.values[1] - source.time.values[0]
+    result = convert_output_to_xarray_dataset(source, [0, 1, 2], np.ones((3, 2, 3)))
+    np.testing.assert_array_equal(result.time, origin + np.arange(3) * cadence)
+    assert result.forecast_reference_time == origin
+    validated = normalize_dataset(result)
+    np.testing.assert_array_equal(validated.time, result.time)
+    if name == "mean_rate":
+        np.testing.assert_array_equal(result.time_bnds[:, 1], result.time)
+        np.testing.assert_array_equal(
+            np.diff(result.time_bnds, axis=1).ravel(),
+            np.full(3, np.timedelta64(600, "s")),
+        )
+
+
+@pytest.mark.parametrize("leads", [[-1, 0], [0, 0], [1, 0]])
+def test_forecast_rejects_negative_or_nonincreasing_leads(leads):
+    """Reject invalid leads while allowing a distinct initialization field."""
+    with pytest.raises(ValueError, match="nonnegative and strictly increasing"):
+        convert_output_to_xarray_dataset(
+            case("instantaneous_rate"), leads, np.ones((2, 2, 3))
+        )
+
+
 def test_forecast_sparse_leads_keep_duration_and_have_valid_cf_links():
     """Verify forecast sparse leads keep duration and have valid cf links."""
     ds = case("mean_rate")

@@ -423,8 +423,8 @@ def convert_output_to_xarray_dataset(
     dataset : xarray.Dataset
         Dataset containing decoded physical fields and their CF metadata.
     timesteps : int or sequence of float
-        Number of forecast steps, or positive increasing leads in multiples of
-        the forecast timestep.
+        Number of forecast steps, or nonnegative increasing leads in multiples
+        of the forecast timestep. Lead zero retains the initialization field.
     output : numpy.ndarray
         Forecast values of shape (time, y, x) or (member, time, y, x), in the
         active variable units.
@@ -480,10 +480,12 @@ def convert_output_to_xarray_dataset(
         leads.ndim != 1
         or not len(leads)
         or not np.isfinite(leads).all()
-        or np.any(leads <= 0)
+        or np.any(leads < 0)
         or np.any(np.diff(leads) <= 0)
     ):
-        raise ValueError("Forecast lead times must be positive and strictly increasing")
+        raise ValueError(
+            "Forecast lead times must be nonnegative and strictly increasing"
+        )
     output = np.asarray(output)
     if output.ndim not in (3, 4) or output.shape[-3:] != (
         len(leads),
