@@ -1,4 +1,4 @@
-"""Storage oracles: inspect raw codes independently of every CF decoder."""
+"""Inspect raw storage codes independently of CF decoders."""
 
 from datetime import datetime
 
@@ -15,6 +15,7 @@ FILL = np.int16(-32768)
 
 
 def source(name="instantaneous_rate", values=None, dtype="float64"):
+    """Return a physical reference dataset with the requested values and dtype."""
     ds = reference_cases()[name].copy(deep=True)
     variable = {
         "interval_depth": "precip_accum",
@@ -34,10 +35,12 @@ def source(name="instantaneous_rate", values=None, dtype="float64"):
 
 
 def packing(variable, step=0.1, **kwargs):
+    """Build explicit int16 packing options for a physical variable."""
     return {variable: {"dtype": "int16", "scale_factor": step, **kwargs}}
 
 
 def assert_decoders(path, variable, expected, codes, step, offset=0, fill=FILL):
+    """Check raw codes and physical values with independent NetCDF decoders."""
     missing = np.isnan(expected)
     with netCDF4.Dataset(path) as raw:
         var = raw[variable]
@@ -72,6 +75,7 @@ def assert_decoders(path, variable, expected, codes, step, offset=0, fill=FILL):
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 @pytest.mark.parametrize("fill", [-32768, -9999])
 def test_int16_scale_and_missing_code_are_separate_operations(dtype, fill, tmp_path):
+    """Verify int16 scale and missing code are separate operations."""
     values = [[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]]
     ds, variable = source(values=values, dtype=dtype)
     snapshot = ds.copy(deep=True)
@@ -129,6 +133,7 @@ def test_int16_scale_and_missing_code_are_separate_operations(dtype, fill, tmp_p
 def test_precision_is_explicit_for_each_quantity_and_offset(
     name, step, offset, values, raw_codes, tmp_path
 ):
+    """Verify precision is explicit for each quantity and offset."""
     ds, variable = source(name, values)
     path = io.export_netcdf_cf(
         ds,
@@ -150,6 +155,7 @@ def test_precision_is_explicit_for_each_quantity_and_offset(
 
 @pytest.mark.parametrize("state, code", [(0.0, 0), (np.nan, -32768)])
 def test_all_dry_and_all_missing_are_not_interchangeable(state, code, tmp_path):
+    """Verify all dry and all missing are not interchangeable."""
     ds, variable = source(values=np.full((2, 3), state))
     path = io.export_netcdf_cf(ds, tmp_path / "uniform.nc", encoding=packing(variable))
     codes = np.full(ds[variable].shape, code, dtype="int16")
@@ -160,6 +166,7 @@ def test_all_dry_and_all_missing_are_not_interchangeable(state, code, tmp_path):
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_rounding_uses_ties_to_even_without_a_half_up_bias(dtype, tmp_path):
     # Binary-exact step and half steps make the tie expectations unambiguous.
+    """Verify rounding uses ties to even without a half up bias."""
     ds, variable = source(
         values=[[0.125, 0.375, 0.625], [0.875, 0.0, np.nan]], dtype=dtype
     )
@@ -174,6 +181,7 @@ def test_rounding_uses_ties_to_even_without_a_half_up_bias(dtype, tmp_path):
 
 
 def test_values_either_side_of_a_tie_and_upper_range(tmp_path):
+    """Verify values either side of a tie and upper range."""
     ds, variable = source(
         values=[
             [np.nextafter(0.375, -np.inf), 0.375, np.nextafter(0.375, np.inf)],
@@ -192,6 +200,7 @@ def test_values_either_side_of_a_tie_and_upper_range(tmp_path):
 
 @pytest.mark.parametrize("value", [3276.7, 3276.74])
 def test_range_check_uses_rounded_code_before_int16_cast(value, tmp_path):
+    """Verify range check uses rounded code before int16 cast."""
     ds, variable = source(values=np.full((2, 3), value))
     path = io.export_netcdf_cf(ds, tmp_path / "maximum.nc", encoding=packing(variable))
     with netCDF4.Dataset(path) as raw:
@@ -219,6 +228,7 @@ def test_range_check_uses_rounded_code_before_int16_cast(value, tmp_path):
 def test_overflow_fill_collision_and_invalid_rain_never_wrap(
     value, name, message, tmp_path
 ):
+    """Verify overflow fill collision and invalid rain never wrap."""
     ds, variable = source(name, np.full((2, 3), value))
     path = tmp_path / "protected.nc"
     path.write_bytes(b"previous completed forecast")
@@ -258,6 +268,7 @@ def test_overflow_fill_collision_and_invalid_rain_never_wrap(
     ],
 )
 def test_invalid_packing_schema_leaves_no_file(options, message, tmp_path):
+    """Verify invalid packing schema leaves no file."""
     ds, variable = source()
     with pytest.raises(ValueError, match=message):
         io.export_netcdf_cf(ds, tmp_path / "invalid.nc", encoding={variable: options})
@@ -266,6 +277,7 @@ def test_invalid_packing_schema_leaves_no_file(options, message, tmp_path):
 
 @pytest.mark.parametrize("fill, offset", [(0, 0.0), (-9999, 1000.0)])
 def test_custom_fill_collisions_are_checked_after_quantization(fill, offset, tmp_path):
+    """Verify custom fill collisions are checked after quantization."""
     values = [[0.0, 0.04, 0.06], [0.1, 1.26, np.nan]]
     ds, variable = source(values=values)
     with pytest.raises(ValueError, match="collide"):
@@ -278,6 +290,7 @@ def test_custom_fill_collisions_are_checked_after_quantization(fill, offset, tmp
 
 
 def test_fill_zero_is_legal_when_valid_codes_do_not_use_zero(tmp_path):
+    """Verify fill zero is legal when valid codes do not use zero."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     path = io.export_netcdf_cf(
         ds,
@@ -292,6 +305,7 @@ def test_fill_zero_is_legal_when_valid_codes_do_not_use_zero(tmp_path):
 
 
 def test_unpack_repack_and_float_reexport_do_not_double_scale(tmp_path):
+    """Verify unpack repack and float reexport do not double scale."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     first = io.export_netcdf_cf(ds, tmp_path / "first.nc", encoding=packing(variable))
     imported = io.import_netcdf_cf(first)
@@ -313,6 +327,7 @@ def test_unpack_repack_and_float_reexport_do_not_double_scale(tmp_path):
 
 @pytest.mark.parametrize("fill_view", [0.0, -9999.0])
 def test_finite_fill_view_is_restored_before_packing(fill_view, tmp_path):
+    """Verify finite fill view is restored before packing."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     ds.to_netcdf(tmp_path / "input.nc")
     view = io.import_netcdf_pysteps(
@@ -326,6 +341,7 @@ def test_finite_fill_view_is_restored_before_packing(fill_view, tmp_path):
 
 
 def test_supplied_detection_flags_preserve_unrounded_classification(tmp_path):
+    """Verify supplied detection flags preserve unrounded classification."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     status = np.where(
         np.isnan(ds[variable]), 9, np.where(ds[variable] > 0, 1, 0)
@@ -350,6 +366,7 @@ def test_supplied_detection_flags_preserve_unrounded_classification(tmp_path):
 
 
 def test_unsigned_source_marker_cannot_reinterpret_signed_dbz(tmp_path):
+    """Verify unsigned source marker cannot reinterpret signed dbz."""
     ds, variable = source("reflectivity")
     ds[variable].attrs["_Unsigned"] = "true"
     path = io.export_netcdf_cf(ds, tmp_path / "signed.nc", encoding=packing(variable))
@@ -361,6 +378,7 @@ def test_unsigned_source_marker_cannot_reinterpret_signed_dbz(tmp_path):
 
 @pytest.mark.parametrize("name", ["instantaneous_rate", "reflectivity"])
 def test_quantization_error_bound_across_every_nonmissing_int16_code(name, tmp_path):
+    """Verify quantization error bound across every nonmissing int16 code."""
     rng = np.random.default_rng(8192)
     integers = (
         np.arange(32768) if name == "instantaneous_rate" else np.arange(-32767, 32768)
@@ -413,6 +431,7 @@ def test_quantization_error_bound_across_every_nonmissing_int16_code(name, tmp_p
 
 @pytest.mark.parametrize("mode", [None, "timestep", "member"])
 def test_legacy_region_writes_pack_once_and_preserve_missing(mode, tmp_path):
+    """Verify legacy region writes pack once and preserve missing."""
     values = np.broadcast_to(
         np.array([[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]]), (2, 3, 2, 3)
     ).copy()
@@ -465,6 +484,7 @@ def test_legacy_region_writes_pack_once_and_preserve_missing(mode, tmp_path):
     "declared", [{"valid_range": [0.0, 2.0]}, {"valid_min": 0.0, "valid_max": 2.0}]
 )
 def test_validity_attributes_are_in_packed_domain(declared, tmp_path):
+    """Verify validity attributes are in packed domain."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     ds[variable].attrs.update(declared)
     path = io.export_netcdf_cf(
@@ -484,6 +504,7 @@ def test_validity_attributes_are_in_packed_domain(declared, tmp_path):
 
 
 def test_invalid_declared_physical_range_cannot_erase_valid_values_on_read(tmp_path):
+    """Verify invalid declared physical range cannot erase valid values on read."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     ds[variable].attrs["valid_range"] = np.array([0.0, 1.0])
     with pytest.raises(ValueError, match="declared valid range"):
@@ -493,6 +514,7 @@ def test_invalid_declared_physical_range_cannot_erase_valid_values_on_read(tmp_p
 
 @pytest.mark.parametrize("gain", [np.nan, np.inf])
 def test_invalid_source_gain_is_not_accepted_as_an_all_missing_field(gain, tmp_path):
+    """Verify invalid source gain is not accepted as an all missing field."""
     ds, variable = source()
     path = tmp_path / "invalid-source.nc"
     ds.to_netcdf(path)
@@ -506,6 +528,7 @@ def test_invalid_source_gain_is_not_accepted_as_an_all_missing_field(gain, tmp_p
 def test_compression_chunks_shuffle_and_checksum_do_not_change_codes(
     compressed, tmp_path
 ):
+    """Verify compression chunks shuffle and checksum do not change codes."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     path = io.export_netcdf_cf(
         ds,
@@ -534,6 +557,7 @@ def test_compression_chunks_shuffle_and_checksum_do_not_change_codes(
 
 @pytest.mark.parametrize("option", ["zlib", "shuffle", "fletcher32"])
 def test_filter_options_are_explicit_booleans(option, tmp_path):
+    """Verify filter options are explicit booleans."""
     ds, variable = source()
     with pytest.raises(ValueError, match="must be a boolean"):
         io.export_netcdf_cf(
@@ -543,6 +567,7 @@ def test_filter_options_are_explicit_booleans(option, tmp_path):
 
 
 def test_rate_units_normalize_before_applying_the_requested_storage_step(tmp_path):
+    """Verify rate units normalize before applying the requested storage step."""
     ds, variable = source("unit_alias_rate")
     path = io.export_netcdf_cf(ds, tmp_path / "units.nc", encoding=packing(variable))
     with netCDF4.Dataset(path) as raw:
@@ -552,6 +577,7 @@ def test_rate_units_normalize_before_applying_the_requested_storage_step(tmp_pat
 
 
 def test_multiple_variables_choose_their_own_precision_and_keep_time_axes(tmp_path):
+    """Verify multiple variables choose their own precision and keep time axes."""
     ds = reference_cases()["multiple_variables"]
     ds.attrs["precip_var"] = "precip_accum"
     path = io.export_netcdf_cf(
@@ -573,6 +599,7 @@ def test_multiple_variables_choose_their_own_precision_and_keep_time_axes(tmp_pa
 
 @pytest.mark.parametrize("mode", [None, "timestep", "member"])
 def test_legacy_writes_honour_compression_and_chunk_controls(mode, tmp_path):
+    """Verify legacy writes honour compression and chunk controls."""
     metadata = dict(
         projection="EPSG:2193",
         x1=1600000.0,
@@ -625,6 +652,7 @@ def test_legacy_writes_honour_compression_and_chunk_controls(mode, tmp_path):
 def test_masked_integer_callback_input_never_loses_its_mask(
     mode, hidden_value, tmp_path
 ):
+    """Verify masked integer callback input never loses its mask."""
     values = np.ones((2, 3, 2, 3), dtype="int16")
     values[..., 1, 2] = hidden_value
     mask = np.zeros(values.shape, dtype=bool)
@@ -674,6 +702,7 @@ def test_masked_integer_callback_input_never_loses_its_mask(
 
 @pytest.mark.parametrize("target", ["x", "time", "detection_status"])
 def test_rain_packing_options_do_not_rescale_coordinates_or_flags(target, tmp_path):
+    """Verify rain packing options do not rescale coordinates or flags."""
     ds, _ = source("reflectivity")
     with pytest.raises(ValueError, match="only for physical fields"):
         io.export_netcdf_cf(
@@ -683,6 +712,7 @@ def test_rain_packing_options_do_not_rescale_coordinates_or_flags(target, tmp_pa
 
 
 def test_custom_zero_fill_with_negative_codes_declares_explicit_valid_range(tmp_path):
+    """Verify custom zero fill with negative codes declares explicit valid range."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     path = io.export_netcdf_cf(
         ds,
@@ -706,6 +736,7 @@ def test_custom_zero_fill_with_negative_codes_declares_explicit_valid_range(tmp_
 
 
 def test_positive_fill_below_valid_codes_declares_explicit_valid_range(tmp_path):
+    """Verify positive fill below valid codes declares explicit valid range."""
     ds, variable = source(values=[[2.0, 3.0, 4.0], [5.0, 6.0, np.nan]])
     path = io.export_netcdf_cf(
         ds, tmp_path / "positive-fill.nc", encoding=packing(variable, _FillValue=10)
@@ -720,6 +751,7 @@ def test_positive_fill_below_valid_codes_declares_explicit_valid_range(tmp_path)
 
 @pytest.mark.parametrize("declared", [False, True])
 def test_custom_fill_inside_valid_code_extent_is_rejected(declared, tmp_path):
+    """Verify custom fill inside valid code extent is rejected."""
     ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
     if declared:
         ds[variable].attrs["valid_range"] = np.array([0.0, 2.0])
@@ -742,6 +774,7 @@ def test_custom_fill_inside_valid_code_extent_is_rejected(declared, tmp_path):
 def test_encoding_cannot_create_infinite_or_negative_decoded_rain(
     value, scale, offset, message, tmp_path
 ):
+    """Verify encoding cannot create infinite or negative decoded rain."""
     ds, variable = source(values=np.full((2, 3), value))
     with pytest.raises(ValueError, match=message):
         io.export_netcdf_cf(
@@ -756,6 +789,7 @@ def test_encoding_cannot_create_infinite_or_negative_decoded_rain(
 def test_derived_actual_range_is_not_carried_stale_into_packed_output(
     all_missing, tmp_path
 ):
+    """Verify derived actual range is not carried stale into packed output."""
     ds, variable = source(
         values=(
             np.full((2, 3), np.nan)

@@ -5,8 +5,9 @@ Reading and writing CF NetCDF
 
 Use ``pysteps.io.import_netcdf_cf`` and ``export_netcdf_cf`` to exchange physical
 rainfall and reflectivity on a regular projected grid. NetCDF4 is required;
-lazy reading also requires ``dask[array]``. The supported dataset contract is
-:ref:`cf-netcdf-io-contract` and the APIs are in the I/O reference.
+lazy reading also requires ``dask[array]``. Exports use CF-1.8 conventions.
+See :func:`pysteps.io.netcdf_cf.import_netcdf_cf` and
+:func:`pysteps.io.netcdf_cf.export_netcdf_cf` for all API options.
 
 Read, select and write
 ----------------------
@@ -60,7 +61,7 @@ Physical products and units
      - ``time: sum``; rainfall accumulated since a fixed starting time.
    * - Radar reflectivity
      - dBZ
-     - Point or explicitly declared interval support; negative values are valid.
+     - ``time: point``; negative values are valid.
 
 The file uses ``mm h-1`` for rate. Equivalent source units, such as ``m s-1``,
 are converted numerically as well as relabelled. Depth and cumulative depth
@@ -86,6 +87,32 @@ Z-R relationship or infer a no-detection floor. Use explicit conversion
 parameters when converting reflectivity to rainfall. Invert optional modelling
 transforms, such as dBR, before exporting physical fields.
 
+Dataset requirements
+--------------------
+
+Physical variables are identified by CF ``standard_name`` and units, rather
+than their names. Rates use ``lwe_precipitation_rate``, depths use
+``lwe_thickness_of_precipitation_amount``, and reflectivity uses
+``equivalent_reflectivity_factor``. Finite negative rain rates and depths and
+infinite physical values are rejected; negative reflectivity is valid.
+
+The active field has dimensions ``(time, y, x)`` or
+``(ens_number, time, y, x)``. Scalar valid-time and member coordinates become
+singleton axes. Other physical variables may retain separate time axes.
+Member coordinates use ``standard_name="realization"``; labels, including
+zero and nonconsecutive integers, are preserved.
+
+Times are decoded UTC ``datetime64`` values with microsecond resolution.
+Non-Gregorian calendars are unsupported. Interval products require a linked
+bounds array of shape ``(time, 2)`` containing start and end times. Imported
+midpoint labels are retained as auxiliary source times while computational
+times use interval ends. A scalar ``accutime`` cache is in minutes and must
+agree with the bounds; ``time.stepsize`` describes sampling in seconds.
+
+Threshold and dry-value attributes are optional for I/O. Reading a physical
+field does not supply model-specific thresholds or make it ready for every
+nowcast algorithm.
+
 Projection and metadata
 -----------------------
 
@@ -96,12 +123,31 @@ without duplicating the grid for every forecast time/member. Optional
 ``include_latlon=True`` writes geographic coordinates. Metre/kilometre source
 coordinates and projection offsets are normalized together.
 
-Supported acceptance cases include NZTM, UTM 60S, Belgian Lambert conformal,
-Australian national and radar Albers, spherical polar stereographic and Swiss
-Oblique Mercator. Reading does not reproject. Geographic-only, curvilinear,
-unstructured, vertical-volume, multiple-CRS and multiple-initialization
+Supported projection examples include NZTM, UTM 60S, Lambert conformal,
+Albers, spherical polar stereographic and Oblique Mercator. Reading does not
+reproject. Geographic-only, curvilinear, unstructured, vertical-volume,
+multiple-CRS and multiple-initialization
 products are outside this implementation's scope. Missing CRS or time metadata
 requires explicit supplied definitions; contradictory metadata is rejected.
+
+Supply known missing definitions through ``metadata``. For example, a field
+with valid physical units and grid coordinates but no CRS or observation time
+can be read with::
+
+    import numpy as np
+
+    dataset = io.import_netcdf_cf(
+        "undated.nc",
+        metadata={
+            "attrs": {"projection": "EPSG:2193"},
+            "coords": {"time": np.datetime64("2023-01-01T00:00:00")},
+        },
+    )
+
+Use the actual CRS and observation time for the source. The optional
+``metadata["variables"]`` mapping supplies missing attributes by variable
+name, such as units, CF identity or cell methods. Supplied definitions must
+agree with existing metadata and are recorded in processing history.
 
 Compact storage and missing values
 ----------------------------------
@@ -133,6 +179,14 @@ this distinction matters. Packing does not define a rainfall threshold.
 Runnable examples
 -----------------
 
+For an end-to-end radar workflow, see
+:doc:`../auto_examples/write_steps_netcdf`. It generates a four-member STEPS
+ensemble and writes it together with the three physical input fields in one
+NetCDF file, using separate observation and forecast time axes. Both rain-rate
+variables use int16 packing at 0.1 mm/h precision with compression. It then
+reads the file back, checks raw codes, missing masks, quantization error and
+metadata, and plots the stored fields.
+
 Download :download:`cf_netcdf_examples.py` and run::
 
     python cf_netcdf_examples.py --output /tmp/cf-user-examples
@@ -156,14 +210,13 @@ Compatibility and release notes
   observation time now require explicit repair. ``legacy=True`` enables
   documented legacy interpretation; it does not authorize contradictory
   definitions. ``metadata`` supplies missing ``attrs``, ``variables`` and
-  ``coords`` definitions with provenance; see :ref:`cf-netcdf-io-stage34`.
+  ``coords`` definitions with provenance, as illustrated above. Legacy interval
+  fields without bounds need an explicit ``accutime`` in minutes, interpreted
+  as the interval ending at the supplied valid time.
 * Rate/depth conversions now use bounds and distinguish cadence from duration.
   Point integration requires an explicit assumption. Scalar time and member
   coordinates remain singleton axes. Multi-variable files need clear selection.
 * Optional modelling transforms must be inverted before physical export;
   dBZ itself is a physical representation and needs no inverse transform.
-* The contribution requires xarray >= 2025.1.2 and pyproj >= 3.0. Iris and the
-  CF checker are acceptance tools, not runtime dependencies.
-
-Acceptance results and storage measurements are recorded in
-:ref:`cf-netcdf-io-stage67` and :ref:`cf-netcdf-io-stage5`.
+* CF NetCDF I/O requires xarray >= 2025.1.2 and pyproj >= 3.0. Iris and the
+  CF checker are development tools, not runtime dependencies.

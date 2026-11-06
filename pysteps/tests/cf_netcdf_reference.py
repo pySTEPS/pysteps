@@ -1,4 +1,4 @@
-"""Small, independent stage-1 CF datasets; no production I/O implementation.
+"""Build small, independent CF datasets for physical metadata checks.
 
 Generate reference NetCDF inputs with::
 
@@ -41,10 +41,12 @@ CASE_IDS = (
 
 
 def _times(seconds):
+    """Build reference timestamps from offsets in seconds."""
     return EPOCH + np.asarray(seconds, dtype="timedelta64[s]")
 
 
 def _grid(crs_input="EPSG:2193", descending=True):
+    """Build an independent projected reference grid and its CF metadata."""
     crs = CRS.from_user_input(crs_input)
     x = 1600000.0 + np.arange(3) * 1000.0
     y = 5900000.0 + np.arange(2) * 1000.0
@@ -102,6 +104,7 @@ def _grid(crs_input="EPSG:2193", descending=True):
 
 
 def _time_axis(ds, seconds, durations=None, name="time"):
+    """Attach a decoded reference time coordinate and optional interval bounds."""
     ds = ds.assign_coords(
         {name: (name, _times(seconds), {"standard_name": "time", "axis": "T"})}
     )
@@ -118,6 +121,7 @@ def _time_axis(ds, seconds, durations=None, name="time"):
 
 
 def _field(ds, name, values, units, standard_name, method="point", time="time"):
+    """Add a physical reference field with explicit units and temporal method."""
     ds[name] = (
         (time, "y", "x"),
         np.asarray(values, dtype="float64"),

@@ -24,6 +24,7 @@ from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 
 def examples():
+    """Build representative projected physical datasets for acceptance checks."""
     normalized = {
         name: normalize_dataset(
             dataset, "precip_accum" if name == "multiple_variables" else None
@@ -63,6 +64,7 @@ def examples():
 
 
 def archived_example():
+    """Load the archived rainfall example used for optional acceptance checks."""
     from pysteps import io, motion, rcparams
     from pysteps.nowcasts.extrapolation import forecast
     from pysteps.tests.helpers import _reference_dates, get_precipitation_fields
@@ -116,6 +118,7 @@ def archived_example():
 
 
 def run(directory, with_archive=False):
+    """Run the acceptance or benchmark workflow and return its report."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     datasets = examples()

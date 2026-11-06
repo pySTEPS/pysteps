@@ -1,4 +1,4 @@
-"""Compatibility reader for pySTEPS forecast NetCDF datasets.
+"""Read pySTEPS forecast NetCDF datasets through the compatibility interface.
 
 New physical CF files use :func:`pysteps.io.import_netcdf_cf`. Both readers
 return an xarray Dataset. Only the compatibility reader offers a finite-fill
@@ -18,15 +18,39 @@ __all__ = ["import_netcdf_pysteps"]
 def import_netcdf_pysteps(
     filename, dtype="double", fillna=np.nan, onerror="warn", **kwargs
 ):
-    """Compatibility entry point over :func:`import_netcdf_cf`.
+    """
+    Read forecast NetCDF through the compatibility CF importer.
 
-    Return a physical Dataset with the requested float32/64 dtype. Scientific
-    metadata missing from old files must be supplied through ``metadata``.
-    ``legacy=True`` is the default here. A finite ``fillna`` view carries a
-    linked validity mask; the CF exporter restores its missing values before
-    validation. ``onerror='warn'`` warns and returns ``(None, None)`` on errors;
-    ``onerror='raise'`` propagates the error. Eager/lazy ownership follows the
-    core importer, and lazy datasets must be closed by the caller.
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        Path to the NetCDF file.
+    dtype : str or numpy.dtype, optional
+        Physical output precision: float32/'single' or float64/'double'. Default
+        is 'double'.
+    fillna : float, optional
+        Finite replacement for missing values, or NaN to retain missing values.
+        Default is NaN.
+    onerror : {'warn', 'raise'}, optional
+        Warn and return (None, None), or propagate import errors. Default is
+        warn.
+    **kwargs : dict
+        Options forwarded to pysteps.io.netcdf_cf.import_netcdf_cf, including
+        variable, group, load, metadata, and legacy. Here legacy defaults to
+        True.
+
+    Returns
+    -------
+    out : xarray.Dataset or tuple
+        Physical dataset on success, or (None, None) after an error with
+        onerror="warn".
+
+    Notes
+    -----
+    Supply missing scientific definitions through metadata. A finite-fill view
+    carries a linked validity mask that the CF exporter restores before validation.
+    With load=False, the caller must close the dataset. Invalid onerror values
+    always raise ValueError.
     """
     import warnings
     from pysteps.dataset_metadata import physical_variables

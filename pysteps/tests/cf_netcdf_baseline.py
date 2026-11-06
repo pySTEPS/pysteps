@@ -25,9 +25,11 @@ from pysteps.utils import conversion, dimension
 
 
 def collect_baseline():
+    """Collect baseline observations of physical metadata and storage behavior."""
     observations = {}
 
     def observe(name, intended, operation):
+        """Record a baseline result or exception alongside its intended behavior."""
         try:
             actual = operation()
             if isinstance(actual, xr.Dataset):
@@ -37,6 +39,7 @@ def collect_baseline():
         observations[name] = {"intended": intended, "observed": actual}
 
     def simple(unit, values, **attributes):
+        """Build a minimal legacy field for baseline observations."""
         name = {
             "mm/h": "precip_intensity",
             "mm": "precip_accum",
@@ -65,6 +68,7 @@ def collect_baseline():
         )
 
     def aggregation():
+        """Measure the depth, duration, and rate produced by temporal aggregation."""
         ds = dimension.aggregate_fields_time(simple("mm", [1, 1]), 10)
         return {
             "depth_mm": float(ds.precip_accum[0, 0, 0]),
@@ -82,6 +86,10 @@ def collect_baseline():
     for marker in (False, True):
 
         def dbz(marker=marker):
+            """
+            Record reflectivity conversion with or without a statistical transform
+            marker.
+            """
             ds = simple("dBZ", [20], **({"transform": "dB"} if marker else {}))
             return float(conversion.to_rainrate(ds).precip_intensity[0, 0, 0])
 
@@ -97,6 +105,7 @@ def collect_baseline():
     )
 
     def alias():
+        """Record the handling of an alternative physical variable name."""
         ds = simple("mm/h", [1])
         ds.precip_intensity.attrs["units"] = "mm h-1"
         conversion.to_rainrate(ds)
@@ -106,6 +115,7 @@ def collect_baseline():
     cases = reference_cases()
 
     def bounded_depth():
+        """Exercise conversion with explicit depth interval bounds."""
         ds = cases["interval_depth"].copy(deep=True)
         ds.attrs["precip_var"] = "precip_accum"
         ds.precip_accum.attrs.update(threshold=0.1, zerovalue=0.0)
@@ -115,6 +125,7 @@ def collect_baseline():
     observe("bounds_without_accutime", "derive duration from CF bounds", bounded_depth)
 
     def forecast_bounds():
+        """Record forecast interval bounds for the baseline fixture."""
         ds = cases["interval_depth"].copy(deep=True)
         ds.attrs["precip_var"] = "precip_accum"
         ds.time.attrs["stepsize"] = (
@@ -160,6 +171,7 @@ def collect_baseline():
         directory = Path(directory)
 
         def serialize_none():
+            """Record serialization behavior for metadata containing None."""
             ds = xarray_helpers.convert_input_to_xarray_dataset(
                 np.ones((2, 3)),
                 None,
@@ -175,6 +187,7 @@ def collect_baseline():
         )
 
         def packed_missing():
+            """Inspect missing values after packing and independent decoding."""
             exporter = exporters.initialize_forecast_exporter_netcdf(
                 str(directory),
                 "packed",
@@ -212,6 +225,7 @@ def collect_baseline():
         cases["instantaneous_rate"].to_netcdf(directory / "input.nc")
 
         def importer_options():
+            """Record importer handling of dtype and missing-value options."""
             with nowcast_importers.import_netcdf_pysteps(
                 directory / "input.nc", dtype="single", fillna=-999
             ) as ds:

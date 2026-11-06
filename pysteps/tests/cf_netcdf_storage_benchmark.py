@@ -1,4 +1,4 @@
-"""Repeatable warm-cache CF storage measurements, without CI timing limits."""
+"""Measure CF storage with repeatable warm-cache reads and no CI timing limits."""
 
 import argparse
 import hashlib
@@ -21,6 +21,7 @@ from pysteps.tests.cf_netcdf_reference import EPOCH, reference_cases
 
 
 def synthetic(shape=(4, 8, 384, 512), seed=5128):
+    """Build reproducible synthetic ensemble rainfall for storage benchmarks."""
     members, times, height, width = shape
     rng = np.random.default_rng(seed)
     terrain = gaussian_filter(rng.standard_normal((height, width)), 8.0, mode="wrap")
@@ -80,10 +81,12 @@ def synthetic(shape=(4, 8, 384, 512), seed=5128):
 
 
 def profiles(dataset):
+    """Return storage profiles to compare on the supplied dataset."""
     variable = dataset.attrs["precip_var"]
     field = dataset[variable]
 
     def chunks(tile=256, time_count=1, member_count=1):
+        """Build chunk sizes for the requested spatial, time, and member extents."""
         return tuple(
             min(
                 field.sizes[dim],
@@ -137,6 +140,7 @@ def profiles(dataset):
 
 
 def _read(path, variable, pattern):
+    """Read a benchmark file using the requested access pattern."""
     with netCDF4.Dataset(path) as source:
         field = source[variable]
         dims = field.dimensions
@@ -157,6 +161,7 @@ def _read(path, variable, pattern):
 
 
 def _summary(samples):
+    """Summarize repeated benchmark measurements."""
     return {
         "median": statistics.median(samples),
         "minimum": min(samples),
@@ -166,6 +171,7 @@ def _summary(samples):
 
 
 def measure(dataset, directory, repeats=3):
+    """Measure storage size and read and write times for each profile."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     variable = dataset.attrs["precip_var"]
@@ -248,6 +254,7 @@ def measure(dataset, directory, repeats=3):
 
 
 def run(output, shape=(4, 8, 384, 512), repeats=3, with_archive=False):
+    """Run the acceptance or benchmark workflow and return its report."""
     if repeats < 1 or len(shape) != 4 or min(shape) < 1:
         raise ValueError(
             "Positive repeats and four positive shape entries are required"

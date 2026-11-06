@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-pysteps.converters
-==================
+pysteps.xarray_helpers
+======================
 
-Module with xarray helper functions.
+Convert legacy input arrays and forecast output to physical xarray datasets.
 
 .. autosummary::
     :toctree: ../generated/
 
-    convert_to_xarray_dataset
+    cf_parameters_from_unit
+    validate_dataset
+    compute_lat_lon
+    geodata_from_dataset
+    convert_input_to_xarray_dataset
+    convert_output_to_xarray_dataset
 """
 
 import warnings
@@ -37,25 +42,72 @@ from pysteps.dataset_metadata import (
 
 
 def cf_parameters_from_unit(unit):
-    """Default variable name and valid physical CF attributes."""
+    """
+    Return a default variable name and canonical CF attributes.
+
+    Parameters
+    ----------
+    unit : str
+        Supported physical units.
+
+    Returns
+    -------
+    name : str
+        Suggested variable name.
+    attrs : dict
+        Canonical units, standard_name, and long_name.
+    """
     return variable_metadata(unit)
 
 
 def _convert_proj4_to_grid_mapping(projection):
-    """Compatibility adapter; accepts any supported pyproj CRS input."""
+    """Adapt a supported CRS definition to the legacy grid-mapping tuple."""
     attrs = cf_grid_mapping(projection, projected=False)
     name = attrs.pop("grid_mapping_name")
     return name, name, attrs
 
 
 def validate_dataset(dataset, **kwargs):
-    """Shared I/O-level normalization; model readiness is an explicit option."""
+    """
+    Validate and normalize a physical dataset.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    **kwargs : dict
+        Options forwarded to pysteps.dataset_metadata.normalize_dataset,
+        including variable, legacy, require_model, and validate_values.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+    """
     return normalize_dataset(dataset, **kwargs)
 
 
 def compute_lat_lon(
     x_r: npt.ArrayLike, y_r: npt.ArrayLike, projection: str, coordinate_unit=None
 ) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+    """
+    Compute geographic coordinates at rectilinear grid centres.
+
+    Parameters
+    ----------
+    x_r, y_r : array_like
+        One-dimensional grid-centre coordinates along x and y.
+    projection : str or pyproj.CRS
+        Source CRS definition accepted by pyproj.
+    coordinate_unit : {None, 'm', 'km'}, optional
+        Units of projected coordinates. Default to the units of the source CRS.
+
+    Returns
+    -------
+    lat, lon : numpy.ndarray
+        Two-dimensional latitude and longitude arrays in degrees, of shape
+        (len(y_r), len(x_r)).
+    """
     x_2d, y_2d = np.meshgrid(x_r, y_r)
     crs = pyproj.CRS.from_user_input(projection)
     if coordinate_unit is not None and not crs.is_geographic:
@@ -71,7 +123,20 @@ def compute_lat_lon(
 
 
 def geodata_from_dataset(dataset):
-    """Build a plot_precip_field-style geodata dict from a dataset."""
+    """
+    Build plotting geodata from a dataset with grid metadata.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+
+    Returns
+    -------
+    out : dict
+        Projection, pixel sizes, domain edges, cartesian units, and y origin for
+        plot_precip_field.
+    """
     x = dataset.x.values
     y = dataset.y.values
     dx = dataset.x.attrs["stepsize"]
@@ -115,9 +180,10 @@ def convert_input_to_xarray_dataset(
         documentation of :py:mod:`pysteps.io.importers`.
     startdate: datetime, None
         Datetime object containing the start date and time for the nowcast
-    timestep: int, None
-        The timestep in seconds between 2 consecutive fields, mandatory if
-        the precip has 3 or more dimensions
+    timestep: float, optional
+        Sampling interval in seconds, including fractional seconds. Required
+        when precip has a time dimension. Accumulation duration is supplied
+        separately by metadata['accutime'] in minutes.
 
     Returns
     -------
@@ -349,12 +415,48 @@ def convert_output_to_xarray_dataset(
     accumulation="interval",
     ensemble_ids=None,
 ):
-    """Label computed forecast values with explicit valid times and support.
+    """
+    Label forecast values with valid times and explicit temporal support.
 
-    Interval products retain a known fixed duration, independent of selected
-    lead gaps. Variable durations require ``interval_seconds`` explicitly.
-    ``accumulation='cumulative'`` declares already computed running totals from
-    forecast initialization; this function does not integrate forecast values.
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    timesteps : int or sequence of float
+        Number of forecast steps, or positive increasing leads in multiples of
+        the forecast timestep.
+    output : numpy.ndarray
+        Forecast values of shape (time, y, x) or (member, time, y, x), in the
+        active variable units.
+    timestep_seconds : float, optional
+        Forecast step length in seconds. Default to regular input cadence; an
+        explicit value must agree with known input cadence.
+    interval_seconds : float or array_like, optional
+        Positive duration of each forecast interval in seconds. Default to a
+        known fixed input duration; supply explicitly for varying durations.
+    accumulation : {'interval', 'cumulative'}, optional
+        Declare interval depths or already computed running totals from
+        initialization. Default is interval. Cumulative support requires depth
+        values.
+    ensemble_ids : array_like, optional
+        Member labels matching the output ensemble axis. Reuse matching input
+        labels or generate sequential labels by default.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Use the last observation time as forecast initialization. This function labels
+    values without integrating them. Point forecasts have no interval bounds.
+    Unforecast physical products and their ancillary time series are removed.
     """
     variable = dataset.attrs["precip_var"]
     cadence = cadence_seconds(dataset.time)

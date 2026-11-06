@@ -15,6 +15,7 @@ from pysteps.tests.cf_netcdf_reference import (
 
 @pytest.mark.parametrize("case_id", CASE_IDS)
 def test_reference_file_preserves_physical_values_and_masks(case_id, tmp_path):
+    """Verify reference file preserves physical values and masks."""
     cases = reference_cases()
     # Each case is serialized independently from the future production exporter.
     path = tmp_path / f"{case_id}.nc"
@@ -31,6 +32,7 @@ def test_reference_file_preserves_physical_values_and_masks(case_id, tmp_path):
 
 
 def test_duration_is_distinct_from_cadence_and_supports_fractional_minutes():
+    """Verify duration is distinct from cadence and supports fractional minutes."""
     cases = reference_cases()
     mean = cases["mean_rate"]
     durations = np.diff(mean.time_bnds.values, axis=1) / np.timedelta64(1, "s")
@@ -46,6 +48,7 @@ def test_duration_is_distinct_from_cadence_and_supports_fractional_minutes():
 
 
 def test_cumulative_amounts_require_differencing_not_summing():
+    """Verify cumulative amounts require differencing not summing."""
     ds = reference_cases()["cumulative_depth"]
     np.testing.assert_array_equal(ds.precip_cumulative[:, 0, 1], [1.5, 3.0, 6.0])
     np.testing.assert_array_equal(np.diff(ds.precip_cumulative[:, 0, 1]), [1.5, 3.0])
@@ -53,6 +56,7 @@ def test_cumulative_amounts_require_differencing_not_summing():
 
 
 def test_dbz_negative_zero_no_detection_and_missing_are_distinct():
+    """Verify dbz negative zero no detection and missing are distinct."""
     ds = reference_cases()["reflectivity"]
     assert "transform" not in ds.reflectivity.attrs
     assert ds.reflectivity[0, 0, 0] == -10
@@ -65,6 +69,7 @@ def test_dbz_negative_zero_no_detection_and_missing_are_distinct():
 
 
 def test_multiple_variables_keep_their_own_time_support_and_member_ids():
+    """Verify multiple variables keep their own time support and member ids."""
     cases = reference_cases()
     multi = cases["multiple_variables"]
     assert multi.precip_intensity.dims == ("time", "y", "x")
@@ -75,6 +80,7 @@ def test_multiple_variables_keep_their_own_time_support_and_member_ids():
 
 
 def test_units_scale_numerically_and_missing_is_not_dry():
+    """Verify units scale numerically and missing is not dry."""
     cases = reference_cases()
     np.testing.assert_allclose(
         cases["unit_alias_rate"].precip_intensity * 3600000,
@@ -86,6 +92,7 @@ def test_units_scale_numerically_and_missing_is_not_dry():
 
 
 def test_reference_inventory(tmp_path):
+    """Verify reference inventory."""
     inventory = write_reference_files(tmp_path)
     assert tuple(inventory) == CASE_IDS
     assert all(

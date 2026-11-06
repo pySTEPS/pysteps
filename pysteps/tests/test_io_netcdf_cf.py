@@ -1,4 +1,4 @@
-"""Scientific and resource-ownership checks for the CF NetCDF file APIs."""
+"""Check physical semantics and file ownership in the CF NetCDF APIs."""
 
 from datetime import datetime
 import netCDF4
@@ -13,6 +13,7 @@ from pysteps.tests.cf_netcdf_reference import CASE_IDS, EPOCH, reference_cases
 
 
 def reference(name, active=None):
+    """Return a reference dataset with an optional active physical field."""
     ds = reference_cases()[name]
     if active or name == "multiple_variables":
         ds.attrs["precip_var"] = active or "precip_accum"
@@ -21,6 +22,7 @@ def reference(name, active=None):
 
 @pytest.mark.parametrize("name", CASE_IDS)
 def test_import_independently_written_reference(name, tmp_path):
+    """Verify import independently written reference."""
     source = reference(name)
     path = tmp_path / "external.nc"
     source.to_netcdf(path)
@@ -37,6 +39,7 @@ def test_import_independently_written_reference(name, tmp_path):
 
 @pytest.mark.parametrize("name", CASE_IDS)
 def test_export_independent_reader_and_import_roundtrip(name, tmp_path):
+    """Verify export independent reader and import roundtrip."""
     source = reference(name)
     snapshot = source.copy(deep=True)
     expected = normalize_dataset(source)
@@ -76,6 +79,7 @@ def test_export_independent_reader_and_import_roundtrip(name, tmp_path):
 def test_packed_external_masks_are_applied_before_single_decode(
     units, factor, tmp_path
 ):
+    """Verify packed external masks are applied before single decode."""
     ds = reference("instantaneous_rate").drop_vars(["lat", "lon"])
     path = tmp_path / "packed.nc"
     ds.to_netcdf(path)
@@ -122,6 +126,7 @@ def test_packed_external_masks_are_applied_before_single_decode(
 
 @pytest.mark.parametrize("load", [True, False])
 def test_file_ownership_and_lazy_data(load, tmp_path, monkeypatch):
+    """Verify file ownership and lazy data."""
     da = pytest.importorskip("dask.array")
     from dask.callbacks import Callback
     from pysteps.io import netcdf_cf
@@ -132,10 +137,12 @@ def test_file_ownership_and_lazy_data(load, tmp_path, monkeypatch):
     real_open = xr.open_dataset
 
     def tracked_open(*args, **kwargs):
+        """Open the source dataset and track its close operation."""
         ds = real_open(*args, **kwargs)
         close = ds._close
 
         def tracked_close():
+            """Record source closure and call the original close operation."""
             closed.append(True)
             close()
 
@@ -159,6 +166,7 @@ def test_file_ownership_and_lazy_data(load, tmp_path, monkeypatch):
 
 
 def test_lazy_zero_cumulative_origin_does_not_load_rainfall(tmp_path, monkeypatch):
+    """Verify lazy zero cumulative origin does not load rainfall."""
     pytest.importorskip("dask.array")
     from dask.callbacks import Callback
 
@@ -181,6 +189,7 @@ def test_lazy_zero_cumulative_origin_does_not_load_rainfall(tmp_path, monkeypatc
     accessed = []
 
     def tracked(self, key):
+        """Record backend access while preserving the original operation."""
         accessed.append(self.variable_name)
         return getitem(self, key)
 
@@ -192,6 +201,7 @@ def test_lazy_zero_cumulative_origin_does_not_load_rainfall(tmp_path, monkeypatc
 
 
 def test_group_selection_and_errors_close_sources(tmp_path, monkeypatch):
+    """Verify group selection and errors close sources."""
     from pysteps.io import netcdf_cf
 
     path = tmp_path / "groups.nc"
@@ -202,10 +212,12 @@ def test_group_selection_and_errors_close_sources(tmp_path, monkeypatch):
     closed = []
 
     def tracked(*args, **kwargs):
+        """Record backend access while preserving the original operation."""
         ds = real_open(*args, **kwargs)
         close = ds._close
 
         def done():
+            """Close the source dataset and record the close operation."""
             closed.append(True)
             close()
 
@@ -219,6 +231,7 @@ def test_group_selection_and_errors_close_sources(tmp_path, monkeypatch):
 
 
 def test_missing_metadata_can_be_supplied_but_never_contradicted(tmp_path):
+    """Verify missing metadata can be supplied but never contradicted."""
     ds = reference("instantaneous_rate").drop_vars(["crs", "lat", "lon"])
     ds.precip_intensity.attrs.pop("grid_mapping")
     ds = ds.isel(time=0, drop=True)
@@ -242,6 +255,7 @@ def test_missing_metadata_can_be_supplied_but_never_contradicted(tmp_path):
 
 @pytest.mark.parametrize("load", [True, False])
 def test_core_rejects_invalid_physical_values_eagerly_or_at_export(load, tmp_path):
+    """Verify core rejects invalid physical values eagerly or at export."""
     ds = reference("instantaneous_rate")
     ds.precip_intensity.data[0, 0, 0] = -0.1
     path = tmp_path / "negative.nc"
@@ -257,6 +271,7 @@ def test_core_rejects_invalid_physical_values_eagerly_or_at_export(load, tmp_pat
 
 
 def test_variable_subsets_keep_required_links_and_correct_active_field(tmp_path):
+    """Verify variable subsets keep required links and correct active field."""
     ds = reference("multiple_variables")
     path = io.export_netcdf_cf(ds, tmp_path / "subset.nc", variables="precip_intensity")
     actual = io.import_netcdf_cf(path)
@@ -275,6 +290,7 @@ def test_variable_subsets_keep_required_links_and_correct_active_field(tmp_path)
 
 @pytest.mark.parametrize("include", [False, True])
 def test_optional_geolocation_and_float_precision(include, tmp_path):
+    """Verify optional geolocation and float precision."""
     ds = reference("projected_without_latlon")
     ds["precip_intensity"] = ds.precip_intensity.astype("float32")
     path = io.export_netcdf_cf(ds, tmp_path / "grid.nc", include_latlon=include)
@@ -292,6 +308,7 @@ def test_optional_geolocation_and_float_precision(include, tmp_path):
 
 @pytest.mark.parametrize("crs", ["EPSG:2193", "EPSG:32760", "EPSG:3577"])
 def test_nztm_utm_and_australian_national_albers(crs, tmp_path):
+    """Verify nztm utm and australian national albers."""
     ds = reference("projected_without_latlon")
     ds.crs.attrs = CRS(crs).to_cf()
     if crs == "EPSG:3577":
@@ -309,6 +326,7 @@ def test_nztm_utm_and_australian_national_albers(crs, tmp_path):
 
 
 def test_midpoint_subsecond_and_shared_source_times(tmp_path):
+    """Verify midpoint subsecond and shared source times."""
     ds = reference("mean_rate")
     shift = np.timedelta64(123456, "us")
     ds.time_bnds.data[:] += shift
@@ -324,6 +342,7 @@ def test_midpoint_subsecond_and_shared_source_times(tmp_path):
 
 @pytest.mark.parametrize("fill", [0.0, -9999.0])
 def test_legacy_finite_fill_view_restores_missing_on_export(fill, tmp_path):
+    """Verify legacy finite fill view restores missing on export."""
     source = reference("instantaneous_rate")
     path = tmp_path / "source.nc"
     source.to_netcdf(path)
@@ -342,6 +361,7 @@ def test_legacy_finite_fill_view_restores_missing_on_export(fill, tmp_path):
 
 
 def test_onerror_dtype_and_incomplete_status(tmp_path):
+    """Verify onerror dtype and incomplete status."""
     path = tmp_path / "source.nc"
     reference("instantaneous_rate").to_netcdf(path)
     with pytest.raises(ValueError, match="dtype"):
@@ -357,6 +377,7 @@ def test_onerror_dtype_and_incomplete_status(tmp_path):
 
 
 def test_invalid_export_is_atomic_and_overwrite_is_explicit(tmp_path):
+    """Verify invalid export is atomic and overwrite is explicit."""
     ds = reference("instantaneous_rate")
     path = tmp_path / "forecast.nc"
     path.write_bytes(b"prior output")
@@ -385,6 +406,7 @@ def test_invalid_export_is_atomic_and_overwrite_is_explicit(tmp_path):
 def test_unsafe_or_unsupported_encodings_fail_before_creation(
     encoding, message, tmp_path
 ):
+    """Verify unsafe or unsupported encodings fail before creation."""
     with pytest.raises(ValueError, match=message):
         io.export_netcdf_cf(
             reference("instantaneous_rate"), tmp_path / "bad.nc", encoding=encoding
@@ -393,6 +415,7 @@ def test_unsafe_or_unsupported_encodings_fail_before_creation(
 
 
 def legacy(tmp_path, mode, *, unit="mm/h", encoding=None):
+    """Initialize a legacy forecast exporter for the requested write mode."""
     return io.initialize_forecast_exporter_netcdf(
         str(tmp_path),
         "legacy",
@@ -421,6 +444,7 @@ def legacy(tmp_path, mode, *, unit="mm/h", encoding=None):
 @pytest.mark.parametrize("mode", [None, "timestep", "member"])
 @pytest.mark.parametrize("unit", ["mm/h", "mm", "dBZ"])
 def test_legacy_write_modes_have_identical_schema_and_masks(mode, unit, tmp_path):
+    """Verify legacy write modes have identical schema and masks."""
     writer = legacy(tmp_path, mode, unit=unit)
     values = np.arange(36, dtype=float).reshape(2, 3, 2, 3) / 10
     if unit == "dBZ":
@@ -459,6 +483,7 @@ def test_legacy_write_modes_have_identical_schema_and_masks(mode, unit, tmp_path
     "failure", ["incomplete", "shape", "negative", "too_many", "overflow"]
 )
 def test_incremental_failures_close_and_remove_unpublished_files(failure, tmp_path):
+    """Verify incremental failures close and remove unpublished files."""
     writer = legacy(
         tmp_path,
         "timestep",
@@ -485,11 +510,13 @@ def test_incremental_failures_close_and_remove_unpublished_files(failure, tmp_pa
 
 
 def test_registry_exposes_new_apis():
+    """Verify registry exposes new apis."""
     assert io.get_method("netcdf_cf", "importer") is io.import_netcdf_cf
     assert io.get_method("netcdf_cf", "exporter") is io.export_netcdf_cf
 
 
 def test_auxiliary_flags_preserve_missing_codes_with_classic_storage(tmp_path):
+    """Verify auxiliary flags preserve missing codes with classic storage."""
     source = reference("reflectivity")
     path = io.export_netcdf_cf(source, tmp_path / "flags.nc")
     with netCDF4.Dataset(path) as raw:
@@ -509,6 +536,7 @@ def test_auxiliary_flags_preserve_missing_codes_with_classic_storage(tmp_path):
 
 
 def test_bounds_inherit_the_same_time_serialization(tmp_path):
+    """Verify bounds inherit the same time serialization."""
     path = io.export_netcdf_cf(reference("interval_depth"), tmp_path / "bounds.nc")
     with netCDF4.Dataset(path) as raw:
         assert "units" not in raw["time_bnds"].ncattrs()
@@ -521,6 +549,7 @@ def test_bounds_inherit_the_same_time_serialization(tmp_path):
 
 @pytest.mark.parametrize("link", ["bounds", "grid_mapping", "ancillary_variables"])
 def test_import_rejects_dangling_links_before_xarray_can_drop_them(link, tmp_path):
+    """Verify import rejects dangling links before xarray can drop them."""
     ds = reference("instantaneous_rate")
     target = ds.time if link == "bounds" else ds.precip_intensity
     target.attrs[link] = "missing_dependency"
@@ -531,6 +560,7 @@ def test_import_rejects_dangling_links_before_xarray_can_drop_them(link, tmp_pat
 
 
 def test_scalar_cf_time_and_realization_are_retained_as_singleton_axes(tmp_path):
+    """Verify scalar cf time and realization are retained as singleton axes."""
     ds = reference("ensemble_rate").isel(time=0, ens_number=0)
     ds.precip_intensity.attrs["coordinates"] = "time ens_number"
     path = tmp_path / "scalar.nc"
@@ -543,6 +573,7 @@ def test_scalar_cf_time_and_realization_are_retained_as_singleton_axes(tmp_path)
 
 
 def test_kilometre_bounds_normalize_numerically_and_in_metadata(tmp_path):
+    """Verify kilometre bounds normalize numerically and in metadata."""
     ds = reference("projected_without_latlon")
     for axis in ("x", "y"):
         coordinate = ds[axis]
@@ -572,6 +603,7 @@ def test_kilometre_bounds_normalize_numerically_and_in_metadata(tmp_path):
 def test_write_failure_preserves_existing_output_and_closes_handle(
     tmp_path, monkeypatch
 ):
+    """Verify write failure preserves existing output and closes handle."""
     from pysteps.io.netcdf_cf import _CFWriter
 
     path = tmp_path / "existing.nc"
@@ -579,6 +611,7 @@ def test_write_failure_preserves_existing_output_and_closes_handle(
     captured = []
 
     def fail(self, arrays):
+        """Raise a deliberate write failure to test cleanup of temporary output."""
         captured.append(self)
         raise OSError("simulated disk failure")
 
@@ -591,6 +624,7 @@ def test_write_failure_preserves_existing_output_and_closes_handle(
 
 
 def test_concurrent_publication_cannot_overwrite_an_existing_file(tmp_path):
+    """Verify concurrent publication cannot overwrite an existing file."""
     exporter = legacy(tmp_path, None)
     io.export_forecast_dataset(np.ones((2, 3, 2, 3)), exporter)
     path = tmp_path / "legacy.nc"
@@ -603,6 +637,7 @@ def test_concurrent_publication_cannot_overwrite_an_existing_file(tmp_path):
 
 @pytest.mark.parametrize("name", ["instantaneous_rate", "mean_rate"])
 def test_registered_cf_importer_stacks_archived_singleton_frames(name, tmp_path):
+    """Verify registered cf importer stacks archived singleton frames."""
     source = reference(name)
     files = []
     for index in range(3):
@@ -630,6 +665,7 @@ def test_registered_cf_importer_stacks_archived_singleton_frames(name, tmp_path)
 
 
 def test_cf_archive_missing_frame_remains_missing_with_its_support(tmp_path):
+    """Verify cf archive missing frame remains missing with its support."""
     source = reference("mean_rate")
     files = []
     for index in (0, 2):
@@ -648,6 +684,7 @@ def test_cf_archive_missing_frame_remains_missing_with_its_support(tmp_path):
 
 @pytest.mark.parametrize("scale", [0.1, -0.1])
 def test_packed_valid_range_is_applied_before_unit_normalization(scale, tmp_path):
+    """Verify packed valid range is applied before unit normalization."""
     source = reference("instantaneous_rate").drop_vars(["lat", "lon"])
     path = tmp_path / "range.nc"
     source.to_netcdf(path)
@@ -683,6 +720,7 @@ def test_packed_valid_range_is_applied_before_unit_normalization(scale, tmp_path
 
 
 def test_partial_geolocation_is_completed_when_requested(tmp_path):
+    """Verify partial geolocation is completed when requested."""
     source = reference("instantaneous_rate").drop_vars("lon")
     path = io.export_netcdf_cf(source, tmp_path / "geolocation.nc", include_latlon=True)
     actual = io.import_netcdf_cf(path)
@@ -691,6 +729,7 @@ def test_partial_geolocation_is_completed_when_requested(tmp_path):
 
 
 def test_physical_valid_range_scales_with_direct_dataset_units(tmp_path):
+    """Verify physical valid range scales with direct dataset units."""
     source = reference("unit_alias_rate")
     source.precip_intensity.attrs["valid_range"] = np.array([0.0, 1.0])
     path = io.export_netcdf_cf(source, tmp_path / "scaled-range.nc")
@@ -714,6 +753,7 @@ def test_physical_valid_range_scales_with_direct_dataset_units(tmp_path):
 def test_coordinate_and_fill_encodings_cannot_break_the_profile(
     encoding, message, tmp_path
 ):
+    """Verify coordinate and fill encodings cannot break the profile."""
     with pytest.raises(ValueError, match=message):
         io.export_netcdf_cf(
             reference("ensemble_rate"), tmp_path / "invalid.nc", encoding=encoding
@@ -722,6 +762,7 @@ def test_coordinate_and_fill_encodings_cannot_break_the_profile(
 
 
 def test_inactive_fields_are_serialized_in_cf_dimension_order(tmp_path):
+    """Verify inactive fields are serialized in cf dimension order."""
     source = reference("multiple_variables")
     source["precip_intensity"] = source.precip_intensity.transpose("y", "x", "time")
     path = io.export_netcdf_cf(source, tmp_path / "order.nc")
@@ -735,6 +776,7 @@ def test_inactive_fields_are_serialized_in_cf_dimension_order(tmp_path):
 
 
 def test_flag_metadata_is_not_silently_cast_out_of_range(tmp_path):
+    """Verify flag metadata is not silently cast out of range."""
     source = reference("reflectivity")
     source.detection_status.attrs["flag_values"] = np.array(
         [0, 1, 2**40], dtype="int64"
@@ -746,6 +788,7 @@ def test_flag_metadata_is_not_silently_cast_out_of_range(tmp_path):
 
 
 def test_incomplete_earth_model_requires_an_explicit_noncontradictory_crs(tmp_path):
+    """Verify incomplete earth model requires an explicit noncontradictory crs."""
     source = reference("projected_without_latlon")
     attrs = source.crs.attrs
     for key in (
@@ -769,6 +812,7 @@ def test_incomplete_earth_model_requires_an_explicit_noncontradictory_crs(tmp_pa
 
 
 def test_finite_fill_view_rejects_dtype_overflow(tmp_path):
+    """Verify finite fill view rejects dtype overflow."""
     path = tmp_path / "input.nc"
     reference("instantaneous_rate").to_netcdf(path)
     with pytest.raises(ValueError, match="fillna cannot be represented"):

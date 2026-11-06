@@ -124,6 +124,7 @@ def check_file(path):
 
 
 def main():
+    """Parse command-line options and run the documented file checks."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directories", nargs="+", type=Path)
     parser.add_argument("--output", required=True, type=Path)

@@ -1,4 +1,4 @@
-"""Scientific regression checks for stage 2 shared physical metadata."""
+"""Check physical values and shared metadata for scientific regressions."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -25,6 +25,7 @@ from pysteps.xarray_helpers import (
 
 
 def case(name, variable=None):
+    """Return a copy of a reference case with an optional active variable."""
     ds = reference_cases()[name]
     if variable is None:
         variable = (
@@ -47,6 +48,7 @@ def case(name, variable=None):
 
 @pytest.mark.parametrize("name", CASE_IDS)
 def test_reference_normalization_keeps_values_geometry_and_missing(name):
+    """Verify reference normalization keeps values geometry and missing."""
     source = reference_cases()[name]
     snapshot = source.copy(deep=True)
     result = case(name)
@@ -65,6 +67,7 @@ def test_reference_normalization_keeps_values_geometry_and_missing(name):
 
 
 def test_selecting_second_time_axis_preserves_unselected_fields_and_links():
+    """Verify selecting second time axis preserves unselected fields and links."""
     original = reference_cases()["multiple_variables"]
     result = normalize_dataset(original, "precip_accum")
     assert result.precip_accum.dims == ("time", "y", "x")
@@ -78,6 +81,7 @@ def test_selecting_second_time_axis_preserves_unselected_fields_and_links():
 
 
 def test_io_validation_does_not_invent_model_parameters():
+    """Verify io validation does not invent model parameters."""
     result = case("all_missing")
     attrs = result.precip_intensity.attrs
     assert "threshold" not in attrs and "zerovalue" not in attrs
@@ -117,6 +121,7 @@ def test_io_validation_does_not_invent_model_parameters():
     ],
 )
 def test_contradictory_metadata_fails_without_guessing(name, mutate, match):
+    """Verify contradictory metadata fails without guessing."""
     ds = reference_cases()[name]
     mutate(ds)
     with pytest.raises(ValueError, match=match):
@@ -127,6 +132,7 @@ def test_contradictory_metadata_fails_without_guessing(name, mutate, match):
     "value,allowed", [(-0.001, False), (np.inf, False), (np.nan, True), (0.04, True)]
 )
 def test_rain_physical_values(value, allowed):
+    """Verify rain physical values."""
     ds = reference_cases()["instantaneous_rate"]
     ds.precip_intensity.data[0, 0, 0] = value
     if allowed:
@@ -137,6 +143,7 @@ def test_rain_physical_values(value, allowed):
 
 
 def test_midpoint_labels_keep_source_times_and_use_interval_end():
+    """Verify midpoint labels keep source times and use interval end."""
     ds = reference_cases()["mean_rate"]
     original = ds.time.values.copy()
     ds = ds.assign_coords(
@@ -150,6 +157,7 @@ def test_midpoint_labels_keep_source_times_and_use_interval_end():
 
 
 def test_crs_coordinate_kilometres_are_scaled_with_mapping_offsets():
+    """Verify crs coordinate kilometres are scaled with mapping offsets."""
     ds = reference_cases()["instantaneous_rate"]
     ds = ds.assign_coords(
         x=("x", ds.x.values / 1000, {**ds.x.attrs, "units": "km"}),
@@ -170,6 +178,7 @@ def test_crs_coordinate_kilometres_are_scaled_with_mapping_offsets():
 
 
 def test_projection_parameters_preserve_sphere_and_polar_origin():
+    """Verify projection parameters preserve sphere and polar origin."""
     attrs = cf_grid_mapping(
         "+proj=stere +lat_0=-90 +lon_0=20 +lat_ts=-60 +R=6371000 +units=m"
     )
@@ -178,6 +187,7 @@ def test_projection_parameters_preserve_sphere_and_polar_origin():
 
 
 def test_legacy_input_helper_handles_epsg_single_pixels_and_timezone():
+    """Verify legacy input helper handles epsg single pixels and timezone."""
     metadata = dict(
         unit="mm/h",
         x1=1600000.0,
@@ -199,6 +209,7 @@ def test_legacy_input_helper_handles_epsg_single_pixels_and_timezone():
 
 
 def test_depth_mean_conversion_uses_each_interval_and_preserves_missing():
+    """Verify depth mean conversion uses each interval and preserves missing."""
     original = case("interval_depth")
     rates = to_rainrate(original)
     np.testing.assert_allclose(rates.precip_intensity[:, 0, 1], [12, 12, 12])
@@ -212,6 +223,7 @@ def test_depth_mean_conversion_uses_each_interval_and_preserves_missing():
 
 
 def test_variable_duration_threshold_is_a_linked_field_not_a_wrong_scalar():
+    """Verify variable duration threshold is a linked field not a wrong scalar."""
     ds = case("interval_depth")
     ds.precip_accum.attrs.update(threshold=0.1, zerovalue=0.0)
     result = to_rainrate(ds)
@@ -223,6 +235,7 @@ def test_variable_duration_threshold_is_a_linked_field_not_a_wrong_scalar():
 
 
 def test_point_integration_is_explicit_and_does_not_use_cadence():
+    """Verify point integration is explicit and does not use cadence."""
     ds = case("instantaneous_rate")
     with pytest.raises(ValueError, match="integration"):
         to_raindepth(ds)
@@ -237,6 +250,7 @@ def test_point_integration_is_explicit_and_does_not_use_cadence():
 
 
 def test_legacy_duration_is_opt_in_and_bounds_win():
+    """Verify legacy duration is opt in and bounds win."""
     ds = case("interval_depth").drop_vars("time_bnds")
     ds.time.attrs.pop("bounds")
     ds.precip_accum.attrs["accutime"] = 7.5
@@ -252,6 +266,7 @@ def test_legacy_duration_is_opt_in_and_bounds_win():
 
 @pytest.mark.parametrize("marker", [None, "dB"])
 def test_dbz_representation_is_not_an_optional_statistical_transform(marker):
+    """Verify dbz representation is not an optional statistical transform."""
     ds = case("reflectivity")
     ds.reflectivity.attrs["transform"] = marker
     result = to_rainrate(ds)
@@ -263,6 +278,7 @@ def test_dbz_representation_is_not_an_optional_statistical_transform(marker):
 
 
 def test_conversion_does_not_overwrite_other_products_or_reuse_packing():
+    """Verify conversion does not overwrite other products or reuse packing."""
     ds = case("multiple_variables", "precip_accum")
     with pytest.raises(ValueError, match="overwrite"):
         to_rainrate(ds)
@@ -273,6 +289,7 @@ def test_conversion_does_not_overwrite_other_products_or_reuse_packing():
 
 
 def test_reflectivity_identity_and_zr_trace_values():
+    """Verify reflectivity identity and zr trace values."""
     ds = case("reflectivity")
     result = to_reflectivity(ds)
     np.testing.assert_array_equal(result.reflectivity, ds.reflectivity)
@@ -288,6 +305,7 @@ def test_reflectivity_identity_and_zr_trace_values():
 
 
 def test_aggregation_updates_duration_and_uses_weighted_means():
+    """Verify aggregation updates duration and uses weighted means."""
     depths = case("interval_depth")
     aggregated = aggregate_fields_time(depths, 15)
     np.testing.assert_allclose(aggregated.precip_accum[:, 0, 1], [3, 3])
@@ -303,6 +321,7 @@ def test_aggregation_updates_duration_and_uses_weighted_means():
 
 
 def test_aggregation_differences_cumulative_totals_and_rejects_resets():
+    """Verify aggregation differences cumulative totals and rejects resets."""
     cumulative = case("cumulative_depth")
     intervals = cumulative_to_intervals(cumulative)
     np.testing.assert_allclose(intervals.precip_cumulative[:, 0, 1], [1.5, 1.5, 3])
@@ -314,6 +333,7 @@ def test_aggregation_differences_cumulative_totals_and_rejects_resets():
 
 
 def test_aggregation_missing_coverage_stays_missing_or_is_explicit():
+    """Verify aggregation missing coverage stays missing or is explicit."""
     ds = case("interval_depth")
     ds.precip_accum.data[0, 0, 1] = np.nan
     default = aggregate_fields_time(ds, 15)
@@ -330,6 +350,7 @@ def test_aggregation_missing_coverage_stays_missing_or_is_explicit():
 
 
 def test_overlapping_mean_rates_and_implicit_point_integration_are_rejected():
+    """Verify overlapping mean rates and implicit point integration are rejected."""
     with pytest.raises(ValueError, match="overlap"):
         aggregate_fields_time(case("mean_rate"), 15)
     with pytest.raises(ValueError, match="integration"):
@@ -341,6 +362,7 @@ def test_overlapping_mean_rates_and_implicit_point_integration_are_rejected():
 
 
 def test_aggregation_retains_other_time_series_without_aggregating_them():
+    """Verify aggregation retains other time series without aggregating them."""
     ds = case("multiple_variables", "precip_accum")
     result = aggregate_fields_time(ds, 30)
     assert result.precip_accum.shape[0] == 1
@@ -348,6 +370,7 @@ def test_aggregation_retains_other_time_series_without_aggregating_them():
 
 
 def test_forecast_sparse_leads_keep_duration_and_have_valid_cf_links():
+    """Verify forecast sparse leads keep duration and have valid cf links."""
     ds = case("mean_rate")
     result = convert_output_to_xarray_dataset(ds, [1, 2, 4], np.ones((3, 2, 3)))
     duration = np.diff(result.time_bnds.values, axis=1) / np.timedelta64(1, "s")
@@ -364,6 +387,7 @@ def test_forecast_sparse_leads_keep_duration_and_have_valid_cf_links():
 
 
 def test_forecast_variable_durations_require_a_product_definition():
+    """Verify forecast variable durations require a product definition."""
     ds = case("interval_depth")
     with pytest.raises(ValueError, match="timestep"):
         convert_output_to_xarray_dataset(ds, 2, np.ones((2, 2, 3)))
@@ -378,6 +402,7 @@ def test_forecast_variable_durations_require_a_product_definition():
 
 
 def test_forecast_preserves_member_ids_and_drops_unforecast_detection_flags():
+    """Verify forecast preserves member ids and drops unforecast detection flags."""
     ds = case("ensemble_rate")
     result = convert_output_to_xarray_dataset(ds, 1, np.ones((2, 1, 2, 3)))
     np.testing.assert_array_equal(result.ens_number, [0, 7])
@@ -388,6 +413,7 @@ def test_forecast_preserves_member_ids_and_drops_unforecast_detection_flags():
 
 
 def test_normalization_is_serializable_and_does_not_change_physical_values(tmp_path):
+    """Verify normalization is serializable and does not change physical values."""
     ds = case("interval_depth")
     path = tmp_path / "normalized.nc"
     ds.to_netcdf(path)
@@ -399,6 +425,7 @@ def test_normalization_is_serializable_and_does_not_change_physical_values(tmp_p
 
 
 def test_varying_threshold_fields_convert_back_with_the_quantity():
+    """Verify varying threshold fields convert back with the quantity."""
     ds = case("interval_depth")
     ds.precip_accum.attrs.update(threshold=0.1, zerovalue=0.0)
     means = to_rainrate(ds)
@@ -410,6 +437,7 @@ def test_varying_threshold_fields_convert_back_with_the_quantity():
 
 
 def test_declared_dbz_floor_is_dry_but_an_unflagged_negative_detection_is_not():
+    """Verify declared dbz floor is dry but an unflagged negative detection is not."""
     ds = case("reflectivity").drop_vars("detection_status")
     ds.reflectivity.attrs.pop("ancillary_variables")
     ds.reflectivity.attrs["zerovalue"] = -32.0
@@ -420,6 +448,7 @@ def test_declared_dbz_floor_is_dry_but_an_unflagged_negative_detection_is_not():
 
 
 def test_legacy_partial_mapping_uses_declared_sphere_instead_of_default_datum():
+    """Verify legacy partial mapping uses declared sphere instead of default datum."""
     ds = reference_cases()["polar_sphere"]
     full = ds.crs.attrs.copy()
     ds.crs.attrs = {
@@ -444,6 +473,7 @@ def test_legacy_partial_mapping_uses_declared_sphere_instead_of_default_datum():
 
 
 def test_legacy_names_and_explicit_duration_normalize_with_provenance():
+    """Verify legacy names and explicit duration normalize with provenance."""
     ds = (
         reference_cases()["interval_depth"]
         .isel(time=slice(0, 2))
@@ -471,6 +501,7 @@ def test_legacy_names_and_explicit_duration_normalize_with_provenance():
     "problem", ["object", "infinite_threshold", "multi_origin", "too_precise"]
 )
 def test_unsupported_metadata_and_precision_are_rejected(problem):
+    """Verify unsupported metadata and precision are rejected."""
     ds = reference_cases()["instantaneous_rate"]
     if problem == "object":
         ds.attrs["unsupported"] = {"nested": "object"}
@@ -491,6 +522,7 @@ def test_unsupported_metadata_and_precision_are_rejected(problem):
 
 
 def test_coordinate_aliases_singletons_and_none_metadata_are_normalized(tmp_path):
+    """Verify coordinate aliases singletons and none metadata are normalized."""
     ds = reference_cases()["ensemble_rate"].rename(
         x="easting", y="northing", ens_number="member"
     )
@@ -506,6 +538,7 @@ def test_coordinate_aliases_singletons_and_none_metadata_are_normalized(tmp_path
 
 
 def test_zero_initial_cumulative_amount_is_not_divided_by_zero():
+    """Verify zero initial cumulative amount is not divided by zero."""
     ds = case("cumulative_depth")
     # A new first total at the origin is zero; valid amounts thereafter are unchanged.
     origin = ds.forecast_reference_time.values
@@ -522,6 +555,7 @@ def test_zero_initial_cumulative_amount_is_not_divided_by_zero():
 
 
 def test_singleton_forecast_can_be_used_with_its_known_cadence():
+    """Verify singleton forecast can be used with its known cadence."""
     first = convert_output_to_xarray_dataset(
         case("instantaneous_rate"), 1, np.ones((1, 2, 3))
     )
@@ -531,6 +565,7 @@ def test_singleton_forecast_can_be_used_with_its_known_cadence():
 
 
 def test_same_axis_inactive_product_is_retained_on_its_original_times():
+    """Verify same axis inactive product is retained on its original times."""
     ds = case("interval_depth")
     ds["second_depth"] = ds.precip_accum * 2
     ds.second_depth.attrs = ds.precip_accum.attrs.copy()
@@ -542,6 +577,7 @@ def test_same_axis_inactive_product_is_retained_on_its_original_times():
 
 
 def test_shared_time_bounds_keep_consistent_encoding_for_point_and_mean(tmp_path):
+    """Verify shared time bounds keep consistent encoding for point and mean."""
     ds = reference_cases()["mean_rate"]
     ds["point_rate"] = ds.precip_mean_rate.copy(deep=True)
     ds.point_rate.attrs["cell_methods"] = "time: point"
@@ -551,6 +587,7 @@ def test_shared_time_bounds_keep_consistent_encoding_for_point_and_mean(tmp_path
 
 
 def test_geographic_auxiliary_coordinates_cannot_contradict_the_grid():
+    """Verify geographic auxiliary coordinates cannot contradict the grid."""
     ds = reference_cases()["instantaneous_rate"]
     ds.lat.data += 1
     with pytest.raises(ValueError, match="Geographic coordinates conflict"):
@@ -558,6 +595,7 @@ def test_geographic_auxiliary_coordinates_cannot_contradict_the_grid():
 
 
 def test_spatial_aggregation_recomputes_geolocation_at_new_centres():
+    """Verify spatial aggregation recomputes geolocation at new centres."""
     from pysteps.utils.dimension import aggregate_fields
     from pysteps.xarray_helpers import compute_lat_lon
 
@@ -576,6 +614,7 @@ def test_spatial_aggregation_recomputes_geolocation_at_new_centres():
 
 
 def test_point_products_do_not_reinterpret_scan_duration_as_accumulation():
+    """Verify point products do not reinterpret scan duration as accumulation."""
     ds = reference_cases()["instantaneous_rate"]
     ds.precip_intensity.attrs["accutime"] = 5
     result = normalize_dataset(ds)
@@ -585,6 +624,7 @@ def test_point_products_do_not_reinterpret_scan_duration_as_accumulation():
 
 
 def test_legacy_exporter_accepts_normalized_wkt_and_keeps_full_crs(tmp_path):
+    """Verify legacy exporter accepts normalized wkt and keeps full crs."""
     from pysteps.io.exporters import (
         initialize_forecast_exporter_netcdf,
         close_forecast_files,
@@ -614,6 +654,7 @@ def test_legacy_exporter_accepts_normalized_wkt_and_keeps_full_crs(tmp_path):
 def test_bom_duration_extraction_preserves_fractional_minutes_and_days(
     duration, tmp_path
 ):
+    """Verify bom duration extraction preserves fractional minutes and days."""
     import netCDF4
     from pysteps.io.importers import _import_bom_rf3_geodata
 
@@ -640,6 +681,7 @@ def test_bom_duration_extraction_preserves_fractional_minutes_and_days(
 
 
 def test_compact_projected_dataset_can_be_padded_without_latlon():
+    """Verify compact projected dataset can be padded without latlon."""
     from pysteps.utils.dimension import square_domain
 
     ds = case("projected_without_latlon").isel(y=slice(0, 1))
@@ -650,6 +692,7 @@ def test_compact_projected_dataset_can_be_padded_without_latlon():
 
 
 def test_midpoint_relabelling_cannot_move_shared_point_observations():
+    """Verify midpoint relabelling cannot move shared point observations."""
     ds = reference_cases()["mean_rate"]
     ds = ds.assign_coords(
         time=("time", ds.time.values - np.timedelta64(300, "s"), ds.time.attrs)
@@ -662,6 +705,7 @@ def test_midpoint_relabelling_cannot_move_shared_point_observations():
 
 @pytest.mark.parametrize("value", [True, 1 + 2j, np.ones((2, 2))])
 def test_nonserializable_attribute_types_are_rejected(value):
+    """Verify nonserializable attribute types are rejected."""
     ds = reference_cases()["instantaneous_rate"]
     ds.attrs["unsupported"] = value
     with pytest.raises(ValueError, match="nonserializable metadata"):
@@ -670,6 +714,7 @@ def test_nonserializable_attribute_types_are_rejected(value):
 
 @pytest.mark.parametrize("target", ["time_bnds", "forecast_reference_time"])
 def test_bounds_and_forecast_origin_cannot_silently_lose_precision(target):
+    """Verify bounds and forecast origin cannot silently lose precision."""
     ds = reference_cases()["cumulative_depth"]
     original = ds[target]
     ds[target] = (
@@ -683,6 +728,7 @@ def test_bounds_and_forecast_origin_cannot_silently_lose_precision(target):
 
 @pytest.mark.parametrize("unit", ["m s-1", "cm"])
 def test_legacy_exporter_does_not_relabel_unscaled_values(unit, tmp_path):
+    """Verify legacy exporter does not relabel unscaled values."""
     from pysteps.io.exporters import initialize_forecast_exporter_netcdf
 
     with pytest.raises(ValueError, match="normalize units before export"):

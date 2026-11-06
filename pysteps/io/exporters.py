@@ -427,13 +427,13 @@ def initialize_forecast_exporter_netcdf(
         Fill_value for missing data. Defaults to None, which means that the
         standard netCDF4 fill_value is used.
     scale_factor: float, optional
-        Packing uses stored_value = (physical_value - offset) / scale_factor;
-        decoded values equal stored_value * scale_factor + offset.
-        Defaults to None. The scale_factor
-        can be used to reduce data storage.
+        Positive packing scale in physical units per stored code. Encode as
+        stored_value = (physical_value - offset) / scale_factor, rounding
+        integer output to the nearest code. Decode as
+        physical_value = stored_value * scale_factor + offset. Default is None.
     offset: float, optional
-        The offset to offset the data as: stored_value = (physical_value - offset) / scale_factor;
-        decoded physical_value = stored_value * scale_factor + offset. Defaults to None.
+        Packing offset in physical units, subtracted before division by
+        scale_factor. Default is None, equivalent to zero when packing.
     complevel: int, optional
         Compression level for zlib compression, ranging from 0 (no
         compression) to 9 (slowest, most compression). Higher values
@@ -449,13 +449,28 @@ def initialize_forecast_exporter_netcdf(
     comment: str
         Any comments about the data or storage protocol that should be
         included in the netCDF file. Defaults to " ".
+    ensemble_ids: array_like, optional
+        Member labels matching n_ens_members. Default to integers from 1 to
+        n_ens_members.
+    include_latlon: bool, optional
+        Include geographic coordinates derived from the projected grid.
+        Default is False.
+    overwrite: bool, optional
+        Replace an existing output on successful close. Default is False.
+    zlib, shuffle, fletcher32: bool, optional
+        Enable compression, byte shuffling, and the Fletcher32 checksum.
+        Defaults are True, True, and False, respectively.
+    chunksizes: tuple of int, optional
+        Storage chunk sizes in output dimension order. Default to chunks
+        isolating members and times, with spatial tiles up to 256 by 256.
 
     Returns
     -------
     exporter: dict
-        The return value is a dictionary containing an exporter object. This c
-        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
-        to write datasets into the given file format.
+        Exporter state for
+        :py:func:`pysteps.io.exporters.export_forecast_dataset`. Call
+        :py:func:`pysteps.io.exporters.close_forecast_files` after writing all
+        declared batches to publish the completed file.
     """
 
     return _legacy_forecast_writer(
@@ -686,11 +701,12 @@ def _export_kineros(field, exporter):
 
 
 def _export_netcdf(field, exporter):
+    """Write the next forecast batch through the shared CF writer."""
     exporter["_cf_writer"].write(field)
 
 
 def _convert_proj4_to_grid_mapping(projection):
-    """Legacy variable names over the shared complete CRS metadata builder."""
+    """Return legacy mapping names and complete CF projection attributes."""
     attrs = cf_grid_mapping(projection, projected=False)
     mapping = attrs.pop("grid_mapping_name")
     name = {

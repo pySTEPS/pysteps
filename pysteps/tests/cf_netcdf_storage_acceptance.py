@@ -22,6 +22,7 @@ from pysteps.tests.cf_netcdf_reference import reference_cases, EPOCH
 
 
 def _verify(path, expected, encodings):
+    """Check raw storage and independently decoded values against expectations."""
     fields = {}
     with (
         xr.open_dataset(path, decode_coords="all") as external,
@@ -102,6 +103,7 @@ def _verify(path, expected, encodings):
 
 
 def external_input(directory):
+    """Write an independently packed input and verify its decoded import."""
     source = reference_cases()["instantaneous_rate"].drop_vars("precip_intensity")
     source.attrs["precip_var"] = "external_rate"
     path = directory / "external_packed.nc"
@@ -148,6 +150,7 @@ def external_input(directory):
 
 
 def run(output, with_archive=False):
+    """Run the acceptance or benchmark workflow and return its report."""
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     inputs = output / "independent-inputs"

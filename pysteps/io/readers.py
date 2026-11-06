@@ -37,10 +37,10 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
         :py:mod:`pysteps.io.archive` module.
     importer: function
         A function implemented in the :py:mod:`pysteps.io.importers` module.
-    timestep: int, optional
-        The timestep in seconds, this value is optional if more than 1 inputfns
-        are given.
-    kwargs: dict
+    timestep: float, optional
+        Sampling interval in seconds, including fractional seconds. Infer it
+        from the supplied dates when more than one date is available.
+    **kwargs: dict
         Optional keyword arguments for the importer.
 
     Returns
@@ -51,6 +51,13 @@ def read_timeseries(inputfns, importer, timestep=None, **kwargs) -> xr.Dataset |
         precipitation and quality fields are filled with nan values. If all
         input file names are None or if the length of the file name list is
         zero, None is returned.
+
+    Notes
+    -----
+    CF archive files must contain a single valid time matching the supplied
+    archive date. Use eager imports; import multi-time or lazy files directly
+    with :func:`pysteps.io.netcdf_cf.import_netcdf_cf`. Missing interval frames
+    require a known fixed duration, independent of the sampling interval.
 
     """
 

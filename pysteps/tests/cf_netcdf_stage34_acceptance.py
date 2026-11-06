@@ -2,7 +2,7 @@
 
 Run ``python -m pysteps.tests.cf_netcdf_stage34_acceptance --output /tmp/cf-io``.
 Add ``--with-archive`` for the configured local MCH archive. Generated exports
-are independently inspectable with the versioned CF checker in the work log.
+can also be inspected with an external CF-1.8 checker.
 """
 
 import argparse
@@ -23,6 +23,7 @@ from pysteps.tests.cf_netcdf_stage2_acceptance import examples, archived_example
 
 
 def _compare(expected, actual):
+    """Compare physical values, masks, and metadata after a round trip."""
     for name in physical_variables(expected):
         np.testing.assert_allclose(
             expected[name], actual[name], rtol=0, atol=0, equal_nan=True
@@ -42,6 +43,7 @@ def _compare(expected, actual):
 
 
 def run(directory, with_archive=False):
+    """Run the acceptance or benchmark workflow and return its report."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     independent = directory / "independent-inputs"

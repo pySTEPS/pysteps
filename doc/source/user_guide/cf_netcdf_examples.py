@@ -1,4 +1,4 @@
-"""Runnable physical-quantity and ensemble CF NetCDF round trips.
+"""Run physical-quantity and ensemble CF NetCDF round trips.
 
 Usage: python cf_netcdf_examples.py --output /tmp/cf-user-examples
 Requires pySTEPS with xarray, pyproj and netCDF4; no radar archive is needed.
@@ -123,6 +123,7 @@ def example_datasets():
 
 
 def main():
+    """Parse command-line options and run the documented file checks."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

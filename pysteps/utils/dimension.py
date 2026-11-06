@@ -48,13 +48,41 @@ _aggregation_methods: dict[str, Callable[..., Any]] = {
 def aggregate_fields_time(
     dataset, time_window_min, ignore_nan=False, *, integration=None, legacy=False
 ):
-    """Aggregate contiguous physical intervals into complete windows.
+    """
+    Aggregate contiguous physical intervals into complete time windows.
 
-    Depths are summed and interval mean rates are duration-weighted. Running
-    totals are differenced first. Point rates require integration='constant',
-    declaring each sample constant over the preceding sampling interval.
-    Explicit ignore_nan=True returns partial-coverage values with a linked
-    coverage fraction; an entirely missing window always remains missing.
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    time_window_min : float or None
+        Positive aggregation duration in minutes. Return the input unchanged if
+        None.
+    ignore_nan : bool, optional
+        Allow partial coverage and attach a coverage fraction. Entirely missing
+        windows remain missing. Default is False.
+    integration : {None, 'constant'}, optional
+        Required for point rates: declare each sample constant over the
+        preceding sampling interval. Omit for interval products.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Sum interval depths and use duration-weighted means for interval rates.
+    Difference cumulative totals first. Reject gaps, overlaps, incomplete windows,
+    transformed values, and reflectivity.
     """
     if time_window_min is None:
         return dataset
@@ -173,6 +201,7 @@ def aggregate_fields_time(
     result_time = result_bounds[:, 1]
 
     def combine(parts):
+        """Stack aggregated intervals in the original physical dimension order."""
         combined = xr.concat(parts, dim=xr.IndexVariable("time", result_time))
         return combined.transpose(
             *[dim for dim in dataset[variable].dims if dim in combined.dims]
@@ -503,6 +532,7 @@ def clip_domain(dataset: xr.Dataset, extent=None):
 def _pad_domain(
     dataset: xr.Dataset, dim_to_pad: str, idx_buffer: int, zerovalue: float
 ) -> xr.Dataset:
+    """Pad one spatial dimension and refresh any geographic coordinates."""
     delta = dataset[dim_to_pad].attrs["stepsize"]
     end_values = (
         dataset[dim_to_pad].values[0] - delta * idx_buffer,

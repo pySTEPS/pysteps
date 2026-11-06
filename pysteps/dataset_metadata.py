@@ -1,7 +1,11 @@
-"""Shared physical metadata for the v2 dataset contract (no file I/O).
+"""
+pysteps.dataset_metadata
+========================
+
+Validate and normalize physical metadata for the shared dataset contract.
 
 ``normalize_dataset`` is the I/O-level validator. Model-specific requirements
-are checked separately with ``require_model=True``. Numerical conversions and
+are checked with ``require_model=True``. Numerical conversions and
 the existing importer adapters also use the smaller helpers in this module.
 """
 
@@ -53,7 +57,28 @@ _PACKING = {
 
 
 def unit_spec(unit):
-    """Return (quantity, canonical unit, multiplier) for a supported unit."""
+    """
+    Return the quantity, canonical unit, and conversion multiplier.
+
+    Parameters
+    ----------
+    unit : str
+        Physical units of the input field.
+
+    Returns
+    -------
+    quantity : str
+        One of 'rate', 'depth', or 'reflectivity'.
+    canonical : str
+        Canonical units: 'mm/h', 'mm', or 'dBZ'.
+    multiplier : float
+        Factor multiplying input values to obtain canonical values.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     if not isinstance(unit, str):
         raise ValueError("A physical units string is required")
     unit = " ".join(unit.strip().split())
@@ -67,7 +92,24 @@ def unit_spec(unit):
 
 
 def variable_metadata(unit, method=None):
-    """Return a default name and valid CF attributes; names are not identifiers."""
+    """
+    Return a default variable name and physical CF attributes.
+
+    Parameters
+    ----------
+    unit : str
+        Supported physical units.
+    method : str, optional
+        Temporal method used to describe the rate. Defaults to 'sum' for depth
+        and 'point' otherwise.
+
+    Returns
+    -------
+    name : str
+        Suggested name; variable names do not determine physical meaning.
+    attrs : dict
+        Canonical units, standard_name, and long_name attributes.
+    """
     quantity, canonical, _ = unit_spec(unit)
     method = method or ("sum" if quantity == "depth" else "point")
     if quantity == "rate":
@@ -89,12 +131,33 @@ def variable_metadata(unit, method=None):
 
 
 def linked(variable, key):
-    """CF links may live in attrs or in encoding after decode_coords='all'."""
+    """
+    Return a CF link from attributes or decoded encoding.
+
+    Parameters
+    ----------
+    variable : xarray.DataArray or xarray.Variable
+        Variable whose metadata contain the link.
+    key : str
+        Link attribute, such as 'bounds' or 'grid_mapping'.
+
+    Returns
+    -------
+    out : str or None
+        Link value, preferring attributes over encoding, or None if absent.
+    """
     return variable.attrs.get(key, variable.encoding.get(key))
 
 
 def clear_packing(variable):
-    """Discard quantity-dependent source encoding after changing physical values."""
+    """
+    Remove source packing metadata in place after changing values.
+
+    Parameters
+    ----------
+    variable : xarray.DataArray
+        Variable whose attributes and encoding are updated.
+    """
     variable.encoding = {
         k: v for k, v in variable.encoding.items() if k not in _PACKING
     }
@@ -103,6 +166,26 @@ def clear_packing(variable):
 
 
 def temporal_axis(dataset, variable):
+    """
+    Return the unique time dimension of a physical variable.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+
+    Returns
+    -------
+    out : str
+        Dimension identified by its time standard_name or its name.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     candidates = [
         dim
         for dim in dataset[variable].dims
@@ -115,6 +198,32 @@ def temporal_axis(dataset, variable):
 
 
 def temporal_method(dataset, variable, time=None):
+    """
+    Return the supported temporal cell method for a physical variable.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+    time : str, optional
+        Time dimension name. Infer it from the variable, falling back to 'time'.
+
+    Returns
+    -------
+    out : str
+        Temporal method: 'point', 'mean', or 'sum'.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Absent cell_methods imply 'sum' for depth and 'point' otherwise.
+    """
     quantity = unit_spec(dataset[variable].attrs["units"])[0]
     try:
         time = time or temporal_axis(dataset, variable)
@@ -134,7 +243,25 @@ def temporal_method(dataset, variable, time=None):
 
 
 def utc_datetime(value):
-    """Convert an aware datetime to UTC before dropping its timezone."""
+    """
+    Convert a time value to a timezone-free UTC datetime64.
+
+    Parameters
+    ----------
+    value : datetime or datetime64 or str
+        Time value. Convert timezone-aware datetimes to UTC before removing the
+        timezone.
+
+    Returns
+    -------
+    out : numpy.datetime64
+        Time with microsecond resolution.
+
+    Raises
+    ------
+    ValueError
+        If the converted time is NaT.
+    """
     if isinstance(value, datetime) and value.tzinfo is not None:
         value = value.astimezone(timezone.utc).replace(tzinfo=None)
     result = np.datetime64(value, "us")
@@ -144,6 +271,25 @@ def utc_datetime(value):
 
 
 def checked_times(coordinate):
+    """
+    Validate and return strictly increasing microsecond timestamps.
+
+    Parameters
+    ----------
+    coordinate : xarray.DataArray
+        Nonempty one-dimensional datetime64 coordinate using a supported
+        Gregorian calendar.
+
+    Returns
+    -------
+    out : numpy.ndarray
+        Time values with dtype datetime64[us], preserving input precision.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     values = np.asarray(coordinate.values)
     if (
         values.ndim != 1
@@ -171,6 +317,28 @@ def checked_times(coordinate):
 
 
 def cadence_seconds(coordinate, *, require=False):
+    """
+    Return the regular sampling cadence in seconds, when available.
+
+    Parameters
+    ----------
+    coordinate : xarray.DataArray
+        Time coordinate; a singleton may declare stepsize in seconds.
+    require : bool, optional
+        Raise an error if no regular cadence can be determined. Default is
+        False.
+
+    Returns
+    -------
+    out : float or None
+        Cadence in seconds, or None for irregular or unspecified singleton
+        sampling.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     values = checked_times(coordinate)
     cached = coordinate.attrs.get("stepsize")
     delta = np.diff(values) / np.timedelta64(1, "s")
@@ -196,11 +364,42 @@ def cadence_seconds(coordinate, *, require=False):
 
 
 def time_bounds(dataset, variable, *, legacy=False, validate_values=True):
-    """Return validated bounds or None; only explicit legacy mode uses accutime."""
+    """
+    Return validated interval bounds without inferring them from cadence.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+    validate_values : bool, optional
+        Check that a zero-duration initial cumulative field contains only zero
+        or missing values. Default is True.
+
+    Returns
+    -------
+    out : numpy.ndarray or None
+        Decoded datetime64[us] bounds of shape (time, 2), or None if absent.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Only legacy=True allows accutime in minutes to supply absent bounds. Existing
+    bounds take precedence and must agree with any accutime cache.
+    """
     time = temporal_axis(dataset, variable)
     values = checked_times(dataset[time])
     name = linked(dataset[time], "bounds")
     if name is None:
+        # Legacy duration is in minutes; cadence does not define bounds.
         duration = dataset[variable].attrs.get("accutime")
         if not legacy or duration is None:
             return None
@@ -248,7 +447,30 @@ def time_bounds(dataset, variable, *, legacy=False, validate_values=True):
 
 
 def interval_durations(dataset, variable, *, legacy=False):
-    """Duration in seconds, aligned to the variable's time axis."""
+    """
+    Return positive interval durations in seconds.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+
+    Returns
+    -------
+    out : xarray.DataArray or float
+        Durations aligned with the time coordinate, or a scalar for legacy
+        fields without a time axis.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     try:
         time = temporal_axis(dataset, variable)
     except ValueError:
@@ -270,11 +492,49 @@ def interval_durations(dataset, variable, *, legacy=False):
 
 
 def is_cumulative(bounds):
+    """
+    Check whether multiple intervals share a common starting time.
+
+    Parameters
+    ----------
+    bounds : numpy.ndarray
+        Interval bounds of shape (time, 2).
+
+    Returns
+    -------
+    out : bool
+        True if at least two intervals have the same origin.
+    """
     return len(bounds) > 1 and np.all(bounds[:, 0] == bounds[0, 0])
 
 
 def set_time_metadata(dataset, variable, bounds=None, method=None):
-    """Refresh links and duration/cadence caches without inventing intervals."""
+    """
+    Update time links, serialization, and duration caches.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+    bounds : numpy.ndarray, optional
+        Decoded interval bounds of shape (time, 2). Omit to retain existing
+        bounds.
+    method : str, optional
+        Temporal cell method to replace or append.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Notes
+    -----
+    Updates metadata on the supplied dataset and returns it. Cadence is stored in
+    seconds and constant positive accutime in minutes. No intervals are inferred
+    from sampling cadence.
+    """
     time = temporal_axis(dataset, variable)
     attrs = dataset[time].attrs.copy()
     attrs.update(standard_name="time", axis="T")
@@ -323,7 +583,27 @@ def set_time_metadata(dataset, variable, bounds=None, method=None):
 
 
 def cf_grid_mapping(projection, *, projected=True):
-    """Full CF mapping, including the origin omitted by some pyproj versions."""
+    """
+    Build complete CF grid mapping attributes from a CRS.
+
+    Parameters
+    ----------
+    projection : str or pyproj.CRS
+        Any CRS definition accepted by pyproj.CRS.from_user_input.
+    projected : bool, optional
+        Require a projected CRS. If False, also allow geographic CRS
+        definitions. Default is True.
+
+    Returns
+    -------
+    out : dict
+        CF projection attributes including WKT and earth-model information.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     crs = pyproj.CRS.from_user_input(projection)
     source = crs.source_crs if crs.is_bound else crs
     if not source.is_projected and (projected or not source.is_geographic):
@@ -343,6 +623,7 @@ def cf_grid_mapping(projection, *, projected=True):
 
 
 def _check_mapping_attrs(attrs, crs):
+    """Check supplied CF projection attributes against the declared CRS."""
     expected = cf_grid_mapping(crs)
     for key, value in attrs.items():
         if key not in expected or key in ("crs_wkt", "long_name"):
@@ -363,6 +644,7 @@ def _check_mapping_attrs(attrs, crs):
 
 
 def _mapping_crs(attrs):
+    """Reconstruct a CRS and reject conflicting CF or WKT definitions."""
     if (
         "crs_wkt" not in attrs
         and "earth_radius" not in attrs
@@ -381,6 +663,29 @@ def _mapping_crs(attrs):
 
 
 def dataset_crs(dataset, variable, *, legacy=False):
+    """
+    Return the CRS of a physical variable after checking its definition.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+
+    Returns
+    -------
+    out : pyproj.CRS
+        Validated CRS from the CF grid mapping or explicit legacy projection.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     name = linked(dataset[variable], "grid_mapping")
     projection = dataset.attrs.get("projection")
     if name:
@@ -406,7 +711,21 @@ def dataset_crs(dataset, variable, *, legacy=False):
 
 
 def rename_with_links(dataset, mapping):
-    """xarray.rename does not rewrite CF links or cell_methods."""
+    """
+    Rename variables and update CF links and cell methods.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    mapping : dict
+        Mapping from existing variable or dimension names to new names.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+    """
     dataset = dataset.rename(mapping)
     for name in dataset.variables:
         for store in (dataset[name].attrs, dataset[name].encoding):
@@ -426,6 +745,23 @@ def rename_with_links(dataset, mapping):
 
 
 def physical_variables(dataset, *, legacy=False):
+    """
+    List supported physical fields using their CF standard names.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+
+    Returns
+    -------
+    out : list of str
+        Physical data variable names in dataset order; legacy mode also
+        recognizes documented historical variable names.
+    """
     candidates = []
     for name, variable in dataset.data_vars.items():
         standard = variable.attrs.get("standard_name")
@@ -445,6 +781,30 @@ def physical_variables(dataset, *, legacy=False):
 
 
 def select_variable(dataset, variable=None, *, legacy=False):
+    """
+    Select an explicitly named or unambiguous physical field.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str, optional
+        Selected name. Default to dataset.attrs["precip_var"], then the sole
+        supported physical field.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+
+    Returns
+    -------
+    out : str
+        Selected physical variable name.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    """
     candidates = physical_variables(dataset, legacy=legacy)
     variable = variable or dataset.attrs.get("precip_var")
     if variable is not None:
@@ -461,7 +821,36 @@ def select_variable(dataset, variable=None, *, legacy=False):
 def replace_time_series(
     dataset, variable, values, times, bounds=None, *, related=None, keep_other=True
 ):
-    """Replace one time series, preserving unprocessed fields on a separate axis."""
+    """
+    Replace a time series while preserving other fields on their own axis.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+    values : xarray.DataArray or numpy.ndarray
+        Replacement physical values with the new time-axis length.
+    times : array_like
+        Replacement valid times, converted to datetime64[us].
+    bounds : numpy.ndarray, optional
+        Replacement interval bounds of shape (time, 2).
+    related : dict, optional
+        Replacement ancillary DataArrays keyed by variable name.
+    keep_other : bool, optional
+        Retain unprocessed time series on an auxiliary axis. Default is True.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Notes
+    -----
+    Replace values positionally to avoid alignment with old timestamps. Remove stale
+    packing and links to ancillary time series that were not replaced.
+    """
     time = temporal_axis(dataset, variable)
     related = related or {}
     dependencies = set((linked(dataset[variable], "ancillary_variables") or "").split())
@@ -528,7 +917,31 @@ def replace_time_series(
 
 
 def cumulative_to_intervals(dataset, variable=None):
-    """Difference running totals sharing one origin; reject resets/overlap."""
+    """
+    Difference cumulative depths using explicit common-origin bounds.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str, optional
+        Physical depth variable. Default to the active or sole physical field.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Return a shallow copy unchanged when bounds already describe nonoverlapping
+    intervals. Reject decreasing totals, resets, and unsupported overlaps.
+    """
     dataset = dataset.copy(deep=False)
     variable = variable or dataset.attrs.get("precip_var") or select_variable(dataset)
     if unit_spec(dataset[variable].attrs["units"])[0] != "depth":
@@ -561,7 +974,31 @@ def cumulative_to_intervals(dataset, variable=None):
 
 
 def normalize_units(dataset, variable):
-    """Normalize physical values without changing a variable's name or support."""
+    """
+    Normalize physical values and metadata to canonical units.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str
+        Name of the physical variable in the dataset.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Update the supplied dataset without changing variable names or temporal support.
+    Scale thresholds and dry values consistently and discard stale source packing.
+    """
     attrs = dataset[variable].attrs.copy()
     quantity, canonical, scale = unit_spec(attrs.get("units"))
     standard = attrs.get("standard_name")
@@ -596,10 +1033,42 @@ def normalize_units(dataset, variable):
 def normalize_dataset(
     dataset, variable=None, *, legacy=False, require_model=False, validate_values=True
 ):
-    """Return a validated copy of an already decoded CF dataset.
+    """
+    Return a validated copy of a decoded physical CF dataset.
 
-    No file opening, packing decoding, regridding or modelling assumptions are
-    hidden here. ``legacy`` only permits documented name/CRS/duration caches.
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    variable : str, optional
+        Active physical field; use the dataset selector or sole supported field
+        by default.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+    require_model : bool, optional
+        Also require metadata needed for modelling, including thresholds and dry
+        values. Default is False.
+    validate_values : bool, optional
+        Scan physical values as well as metadata. Set False to defer these scans
+        for lazy imports. Default is True.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Shallow copy with normalized units, coordinates, CF links, and active
+        variable metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    This function performs no file I/O, packing decoding, or regridding. It
+    preserves missing values and requires explicit physical and temporal
+    definitions.
     """
     dataset = dataset.copy(deep=False)
     active = select_variable(dataset, variable, legacy=legacy)

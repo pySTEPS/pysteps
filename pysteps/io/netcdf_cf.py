@@ -1,7 +1,17 @@
-"""CF-1.8 precipitation NetCDF I/O using the shared v2 dataset contract.
+"""
+pysteps.io.netcdf_cf
+====================
 
-The bulk API writes floating physical fields. Legacy forecast callbacks use the
-same schema and region writes, retaining their explicit encoding options.
+Read and write physical precipitation fields using the CF-1.8 conventions.
+
+The bulk API supports floating fields and explicitly packed int16 fields.
+Legacy forecast callbacks use the same schema and validated region writes.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    import_netcdf_cf
+    export_netcdf_cf
 """
 
 from datetime import datetime, timezone
@@ -31,6 +41,7 @@ _STORAGE = ("dtype", "_FillValue", "missing_value", "scale_factor", "add_offset"
 
 
 def _netcdf4():
+    """Import netCDF4 or raise MissingOptionalDependency."""
     try:
         import netCDF4
     except ImportError as error:
@@ -41,6 +52,7 @@ def _netcdf4():
 
 
 def _float_dtype(dtype):
+    """Validate and return a float32 or float64 NumPy dtype."""
     try:
         dtype = np.dtype(dtype)
     except (TypeError, ValueError) as error:
@@ -51,6 +63,7 @@ def _float_dtype(dtype):
 
 
 def _history(dataset, message):
+    """Append a timestamped message to dataset history in place."""
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
     dataset.attrs["history"] = "\n".join(
         filter(None, [dataset.attrs.get("history"), f"{stamp}: {message}"])
@@ -58,6 +71,7 @@ def _history(dataset, message):
 
 
 def _supply(attrs, updates, label):
+    """Add missing attributes in place and reject conflicting definitions."""
     for key, value in updates.items():
         if key in attrs and attrs[key] is not None:
             if key == "projection":
@@ -133,6 +147,7 @@ def _metadata(dataset, metadata, variable, legacy):
 
 def _cf_coordinates(dataset, *, legacy=False):
     # Check links before coordinate decoding can discard a dangling reference.
+    """Promote linked coordinates and expand scalar time and member axes."""
     coords = set()
     for name, var in dataset.variables.items():
         for key in _LINKS:
@@ -257,14 +272,49 @@ def import_netcdf_cf(
     legacy=False,
     metadata=None,
 ):
-    """Read a supported projected CF field or ensemble into an xarray Dataset.
+    """
+    Read projected CF physical fields into an xarray Dataset.
 
-    Eager reads (default) close the source before returning. With ``load=False``
-    arrays use optional dask and the caller must close the returned dataset.
-    Lazy import validates metadata immediately; physical-value scans occur when
-    explicitly validating or exporting the loaded data. No thresholds, times,
-    accumulation durations or CRS are invented. ``metadata`` supplies missing
-    definitions using ``attrs``, ``variables`` and ``coords`` mappings.
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        Path to the NetCDF file.
+    variable : str, optional
+        Active physical variable. Default to the dataset selector or sole
+        physical field.
+    group : str, optional
+        NetCDF group to read. Default is the root group.
+    dtype : str or numpy.dtype, optional
+        Physical output precision: float32/'single' or float64/'double'. Default
+        is 'double'.
+    load : bool, optional
+        Load arrays and close the file before returning. Default is True. False
+        requires dask and leaves file ownership with the caller.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+    metadata : dict, optional
+        Missing definitions supplied through attrs, variables, and coords
+        mappings. Existing definitions must agree with supplied values.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Decoded dataset in canonical physical units, with source storage
+        recorded as provenance rather than output encoding.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    MissingOptionalDependency
+        If netCDF4, or dask for lazy loading, is unavailable.
+
+    Notes
+    -----
+    With load=False, close the returned dataset after use. Metadata are validated
+    immediately; physical-value scans are deferred. Missing thresholds, times,
+    interval durations, and CRS definitions are not inferred.
     """
     _netcdf4()
     dtype = _float_dtype(dtype)
@@ -325,7 +375,7 @@ def import_netcdf_cf(
                     dataset[name].attrs["pysteps_source_" + key.lstrip("_")] = original[
                         key
                     ]
-            # Decoded storage is provenance, never an implicit output encoding.
+            # Retain source storage as provenance; export chooses its own encoding.
             dataset[name].encoding = {}
         dataset.encoding["pysteps_source_encoding"] = source_encoding
         if load:
@@ -342,6 +392,7 @@ def import_netcdf_cf(
 
 
 def _restore_validity(dataset):
+    """Restore missing physical values from linked compatibility masks."""
     dataset = dataset.copy(deep=False)
     for name in physical_variables(dataset, legacy=True):
         attrs = dataset[name].attrs.copy()
@@ -360,6 +411,7 @@ def _restore_validity(dataset):
 
 
 def _subset(dataset, variables):
+    """Select physical fields together with their transitive CF dependencies."""
     if variables is None:
         return dataset
     names = [variables] if isinstance(variables, str) else list(variables)
@@ -400,6 +452,7 @@ def _subset(dataset, variables):
 
 
 def _prepare(dataset, variables=None, include_latlon=False, validate_values=True):
+    """Normalize and validate the export schema and physical metadata."""
     dataset = _subset(_restore_validity(dataset), variables)
     dataset = _cf_coordinates(dataset)
     dataset = normalize_dataset(dataset, validate_values=validate_values)
@@ -511,6 +564,7 @@ def _prepare(dataset, variables=None, include_latlon=False, validate_values=True
 
 
 def _encoding(dataset, encoding=None, *, legacy=False):
+    """Validate storage options and build explicit per-variable encodings."""
     encoding = encoding or {}
     if set(encoding) - set(dataset.variables):
         raise ValueError("Encoding refers to variables outside the export")
@@ -674,6 +728,7 @@ def _encoding(dataset, encoding=None, *, legacy=False):
 
 
 def _valid_limits(attrs):
+    """Return physical validity limits, or None when undeclared."""
     keys = [key for key in ("valid_range", "valid_min", "valid_max") if key in attrs]
     if not keys:
         return None
@@ -698,6 +753,7 @@ def _valid_limits(attrs):
 
 
 def _storage_attributes(attrs, options):
+    """Convert physical validity attributes to the stored code domain."""
     attrs = attrs.copy()
     limits = _valid_limits(attrs)
     if limits is None:
@@ -734,11 +790,12 @@ def _storage_attributes(attrs, options):
 
 
 def _stored_values(values, options, *, quantity=None, valid_limits=None):
+    """Encode physical values while preserving masks and checking code ranges."""
     if np.ma.isMaskedArray(values):
         if values.dtype.kind not in "iuf":
             raise ValueError("Physical data must be finite numbers or NaN")
-        # Masked integer arrays cannot hold NaN; preserve their mask before
-        # converting to an ndarray or applying gain/offset.
+        # Preserve integer-array masks before conversion: NaN cannot represent
+        # missing values in the original integer dtype.
         values = values.astype("float64").filled(np.nan)
     values = np.asarray(values)
     if values.dtype.kind not in "iuf" or np.isinf(values).any():
@@ -809,6 +866,7 @@ def _stored_values(values, options, *, quantity=None, valid_limits=None):
 
 
 def _coordinate_data(var):
+    """Encode coordinate values and attributes without physical-field packing."""
     attrs = var.attrs.copy()
     if np.issubdtype(var.dtype, np.datetime64):
         values = var.values.astype("datetime64[us]")
@@ -829,11 +887,12 @@ def _coordinate_data(var):
 
 
 class _CFWriter:
-    """One validated schema, bounded region writes, and atomic publication."""
+    """Write validated batches to a temporary file and publish on completion."""
 
     def __init__(
         self, dataset, filename, encoding, *, overwrite=False, incremental=None
     ):
+        """Validate auxiliary values and initialize the temporary NetCDF schema."""
         self.dataset, self.encoding = dataset, encoding
         self.filename = Path(filename)
         self.overwrite, self.incremental = overwrite, incremental
@@ -927,6 +986,7 @@ class _CFWriter:
             raise
 
     def write(self, arrays):
+        """Validate and write the next complete batch of physical values."""
         try:
             if self.closed or self.count >= self.expected:
                 raise ValueError(
@@ -1005,6 +1065,7 @@ class _CFWriter:
             raise
 
     def finish(self):
+        """Publish the completed file atomically and return its Path."""
         if self.closed:
             raise ValueError("Writer is already closed")
         try:
@@ -1027,6 +1088,8 @@ class _CFWriter:
             if self.overwrite:
                 os.replace(self.path, self.filename)
             else:
+                # Publish without replacing a destination created by another
+                # process after the initial existence check.
                 os.link(self.path, self.filename)
                 self.path.unlink()
             self.closed = True
@@ -1036,6 +1099,7 @@ class _CFWriter:
             raise
 
     def abort(self):
+        """Close the temporary file and remove unpublished output."""
         if self.ncfile is not None:
             self.ncfile.close()
             self.ncfile = None
@@ -1053,17 +1117,51 @@ def export_netcdf_cf(
     include_latlon=False,
     overwrite=False,
 ):
-    """Atomically export physical fields as CF-1.8 NETCDF4; return its Path.
+    """
+    Export physical fields atomically as CF-1.8 NETCDF4.
 
-    All supported quantities are written by default. A subset retains its CF
-    dependencies. Floating precision is preserved, with zlib level 4 and shuffle
-    by default. Per-variable encoding accepts float32/64 or int16 with an
-    explicit positive scale_factor in canonical units, plus fill, offset,
-    compression and chunk options. Int16 defaults to _FillValue=-32768 and
-    add_offset=0. Missing codes are assigned after quantization with library
-    auto-packing disabled. Existing
-    paths are protected unless ``overwrite=True``. Generic modelling transforms
-    must be explicitly inverted before calling this function.
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    filename : str or pathlib.Path
+        Destination path. Its parent directory must exist.
+    variables : str or sequence of str, optional
+        Physical fields to export, retaining their CF dependencies. Default is
+        all supported physical fields.
+    encoding : dict, optional
+        Per-variable storage options keyed by variable name. Accept dtype,
+        _FillValue, scale_factor, add_offset, zlib, complevel, shuffle,
+        chunksizes, and fletcher32.
+    include_latlon : bool, optional
+        Include geographic coordinates derived from the projected grid. Default
+        is False.
+    overwrite : bool, optional
+        Replace an existing destination on successful completion. Default is
+        False.
+
+    Returns
+    -------
+    out : pathlib.Path
+        Path of the completed file.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+    FileExistsError
+        If the destination exists and overwrite is False.
+    MissingOptionalDependency
+        If netCDF4 is unavailable.
+
+    Notes
+    -----
+    Preserve floating precision by default, using zlib level 4 and shuffle. Physical
+    int16 storage requires an explicit positive scale_factor in canonical units and
+    defaults to add_offset=0 and _FillValue=-32768. Packing uses stored =
+    round((physical - add_offset) / scale_factor). Preserve missing masks before
+    quantization and reject overflow or fill collisions. Invert modelling transforms
+    before export.
     """
     _netcdf4()
     filename = Path(filename)
@@ -1098,6 +1196,7 @@ def _legacy_forecast_writer(
     complevel=9,
     **kwargs,
 ):
+    """Adapt legacy forecast options to the shared CF schema and batch writer."""
     from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
     if incremental not in (None, "timestep", "member"):

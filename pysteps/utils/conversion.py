@@ -1,9 +1,20 @@
-"""Conversions between physical rain rate, interval depth and reflectivity.
+"""
+pysteps.utils.conversion
+========================
+
+Convert between physical rain rate, interval depth, and reflectivity.
 
 Time support is retained when converting depths to interval mean rates. An
 instantaneous rate requires an explicit constant-in-time integration rule to
 produce a depth. ``legacy=True`` permits an explicit accutime duration for old
 in-memory fields lacking CF bounds; cadence is never used as a duration.
+
+.. autosummary::
+    :toctree: ../generated/
+
+    to_rainrate
+    to_raindepth
+    to_reflectivity
 """
 
 import numpy as np
@@ -27,6 +38,7 @@ from . import transformation
 
 
 def _prepare(dataset):
+    """Copy the dataset, invert statistical transforms, and validate physical units."""
     dataset = dataset.copy(deep=True)
     variable = dataset.attrs.get("precip_var") or select_variable(dataset)
     dataset.attrs["precip_var"] = variable
@@ -58,6 +70,7 @@ def _prepare(dataset):
 
 
 def _interval_support(dataset, variable, legacy):
+    """Return explicit durations and record legacy interval support when needed."""
     duration = interval_durations(dataset, variable, legacy=legacy)
     if legacy:
         try:
@@ -76,6 +89,7 @@ def _interval_support(dataset, variable, legacy):
 
 
 def _coefficients(dataset, variable, zr_a, zr_b):
+    """Validate Z-R coefficients and record their values and sources."""
     attrs = dataset[variable].attrs
     a = float(zr_a if zr_a is not None else attrs.get("zr_a", 200.0))
     b = float(zr_b if zr_b is not None else attrs.get("zr_b", 1.6))
@@ -132,6 +146,7 @@ def _scale_metadata(dataset, variable, function, unit):
 
 
 def _finish(dataset, variable, values, unit, method=None, name=None):
+    """Install converted values and refresh quantity, packing, and time metadata."""
     default, metadata = variable_metadata(unit, method)
     target = name or default
     if target != variable and target in dataset:
@@ -170,10 +185,41 @@ def _finish(dataset, variable, values, unit, method=None, name=None):
 
 
 def to_rainrate(dataset, zr_a=None, zr_b=None, *, legacy=False, name=None):
-    """Convert to mm/h, preserving interval support when input is a depth.
+    """
+    Convert the active physical field to rain rate in mm/h.
 
-    Z-R parameters come from arguments, metadata, or the recorded historical
-    defaults (200, 1.6). No-detection flags/floors are preserved as dry values.
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    zr_a : float, optional
+        Positive coefficient a in Z = a R**b. Use variable metadata, then 200,
+        when omitted.
+    zr_b : float, optional
+        Positive exponent b in Z = a R**b. Use variable metadata, then 1.6, when
+        omitted.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+    name : str, optional
+        Output variable name. Default to the canonical name for the target
+        quantity; reject collisions with another field.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Retain interval support when converting depth to mean rate. Preserve no-
+    detection flags and floors as dry values and record the source of Z-R
+    coefficients. Unprocessed physical fields remain in the result.
     """
     dataset, variable, quantity = _prepare(dataset)
     values = dataset[variable]
@@ -222,11 +268,47 @@ def to_raindepth(
     legacy=False,
     name=None,
 ):
-    """Convert to mm using interval support or explicit constant-rate integration.
+    """
+    Convert the active physical field to precipitation depth in mm.
 
-    ``integration='constant'`` declares a backward constant rate over the
-    requested duration, ending at each valid time. A duration is never inferred
-    from cadence. For array-only legacy fields accutime supplies the duration.
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    zr_a : float, optional
+        Positive coefficient a in Z = a R**b. Use variable metadata, then 200,
+        when omitted.
+    zr_b : float, optional
+        Positive exponent b in Z = a R**b. Use variable metadata, then 1.6, when
+        omitted.
+    integration : {None, 'constant'}, optional
+        For point rates, explicitly declare a constant rate over the preceding
+        duration. Do not override support for interval mean rates.
+    duration_seconds : float, optional
+        Positive integration duration for point rates. Never infer this duration
+        from sampling cadence.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+    name : str, optional
+        Output variable name. Default to the canonical name for the target
+        quantity; reject collisions with another field.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Use explicit interval support for mean rates. For legacy fields, accutime in
+    minutes may supply missing durations. Point-rate integration ends at each valid
+    time.
     """
     dataset, variable, quantity = _prepare(dataset)
     if quantity == "depth":
@@ -282,11 +364,41 @@ def to_raindepth(
 
 
 def to_reflectivity(dataset, zr_a=None, zr_b=None, *, legacy=False, name=None):
-    """Convert physical rain to dBZ without conflating dBZ with log rain.
+    """
+    Convert the active physical field to reflectivity in dBZ.
 
-    Finite positive trace values are not thresholded away. A supplied positive
-    rain threshold defines a finite no-detection floor for zero rain; otherwise
-    converting dry zero to a finite dBZ value requires an explicit policy.
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Dataset containing decoded physical fields and their CF metadata.
+    zr_a : float, optional
+        Positive coefficient a in Z = a R**b. Use variable metadata, then 200,
+        when omitted.
+    zr_b : float, optional
+        Positive exponent b in Z = a R**b. Use variable metadata, then 1.6, when
+        omitted.
+    legacy : bool, optional
+        Allow explicit legacy names, projection metadata, or accutime durations
+        where supported. Default is False.
+    name : str, optional
+        Output variable name. Default to the canonical name for the target
+        quantity; reject collisions with another field.
+
+    Returns
+    -------
+    out : xarray.Dataset
+        Dataset with updated values and metadata.
+
+    Raises
+    ------
+    ValueError
+        If metadata are missing, inconsistent, or unsupported.
+
+    Notes
+    -----
+    Preserve positive trace values. A positive rain threshold supplies a finite no-
+    detection floor for dry zero; otherwise require an explicit dry-value policy.
+    Treat physical dBZ separately from statistical log transforms of rain.
     """
     dataset, variable, quantity = _prepare(dataset)
     if quantity == "reflectivity":
