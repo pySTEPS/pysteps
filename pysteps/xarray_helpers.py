@@ -398,3 +398,14 @@ def convert_output_to_xarray_dataset(
     )
 
     return dataset
+
+
+def validate_dataset(dataset: xr.Dataset) -> xr.Dataset:
+    if "y" not in dataset.coords:
+        raise ValueError("The dataset requires a y-coordinate")
+    if "x" not in dataset.coords:
+        raise ValueError("The dataset requires a x-coordinate")
+    if "time" not in dataset.coords:
+        raise ValueError("The dataset requires a time coordinate")
+    if "precip_var" not in dataset.attrs:
+        raise ValueError("The dataset requires a to level 'precip_var' attributes")
