@@ -38,6 +38,14 @@ from pysteps.exceptions import MissingOptionalDependency
 __all__ = ["import_netcdf_cf", "export_netcdf_cf"]
 _LINKS = ("bounds", "grid_mapping", "coordinates", "ancillary_variables")
 _STORAGE = ("dtype", "_FillValue", "missing_value", "scale_factor", "add_offset")
+_PACKING_FLOAT_DTYPE = np.dtype("float64")
+_VALIDITY_ATTRIBUTES = (
+    "_FillValue",
+    "missing_value",
+    "valid_range",
+    "valid_min",
+    "valid_max",
+)
 
 
 def _netcdf4():
@@ -216,6 +224,56 @@ def _cf_coordinates(dataset, *, legacy=False):
     return dataset
 
 
+def _same_numeric_type(left, right):
+    """Return whether two NumPy dtypes represent the same NetCDF numeric type."""
+    left, right = np.dtype(left), np.dtype(right)
+    return left.kind == right.kind and left.itemsize == right.itemsize
+
+
+def _validate_source_storage(dataset, source_encoding):
+    """Validate CF packed-attribute types before using decoded source values."""
+    for name, original in source_encoding.items():
+        packed_dtype = np.dtype(original.get("dtype", dataset[name].dtype))
+        terms = {
+            key: original[key]
+            for key in ("scale_factor", "add_offset")
+            if key in original
+        }
+        term_dtypes = []
+        for key, value in terms.items():
+            if not np.isscalar(value) or not np.isfinite(value):
+                raise ValueError(
+                    "Source scale_factor and add_offset must be finite scalars"
+                )
+            term_dtypes.append(np.asarray(value).dtype)
+        if len(term_dtypes) == 2 and not _same_numeric_type(*term_dtypes):
+            raise ValueError(
+                "Source scale_factor and add_offset must have the same numeric type"
+            )
+        if term_dtypes and not _same_numeric_type(term_dtypes[0], packed_dtype):
+            if term_dtypes[0] not in (np.dtype("float32"), np.dtype("float64")):
+                raise ValueError(
+                    "Source packing attributes must use the packed dtype, float32, or float64"
+                )
+            if packed_dtype.kind != "i" or packed_dtype.itemsize not in (1, 2, 4):
+                raise ValueError(
+                    "Floating source packing attributes require a byte, int16, or int32 variable"
+                )
+
+        attributes = dataset[name].attrs
+        for key in _VALIDITY_ATTRIBUTES:
+            if key in original:
+                value = original[key]
+            elif key in attributes:
+                value = attributes[key]
+            else:
+                continue
+            if not _same_numeric_type(np.asarray(value).dtype, packed_dtype):
+                raise ValueError(
+                    f"Source {key} must have the same numeric type as the packed variable"
+                )
+
+
 def _source_validity(dataset, source_encoding):
     """Apply declared raw valid ranges in the decoded affine domain exactly once."""
     dataset = dataset.copy(deep=False)
@@ -233,7 +291,8 @@ def _source_validity(dataset, source_encoding):
         if "valid_range" in keys and len(keys) != 1:
             raise ValueError("valid_range cannot be combined with valid_min/valid_max")
         original = source_encoding.setdefault(name, {})
-        scale, offset = original.get("scale_factor", 1), original.get("add_offset", 0)
+        scale = original.get("scale_factor", 1.0)
+        offset = original.get("add_offset", 0.0)
         if not np.isfinite([scale, offset]).all() or scale == 0:
             raise ValueError("Declared valid ranges need finite nonzero source scaling")
         lower, upper = -np.inf, np.inf
@@ -343,14 +402,7 @@ def import_netcdf_cf(
             name: {key: var.encoding[key] for key in _STORAGE if key in var.encoding}
             for name, var in source.variables.items()
         }
-        for original in source_encoding.values():
-            for key in ("scale_factor", "add_offset"):
-                if key in original and (
-                    not np.isscalar(original[key]) or not np.isfinite(original[key])
-                ):
-                    raise ValueError(
-                        "Source packing gain and offset must be finite scalars"
-                    )
+        _validate_source_storage(source, source_encoding)
         dataset = _metadata(source, metadata, variable, legacy)
         dataset = _cf_coordinates(dataset, legacy=legacy)
         dataset = _source_validity(dataset, source_encoding)
@@ -678,7 +730,7 @@ def _encoding(dataset, encoding=None, *, legacy=False):
         options.update(requested)
         options["dtype"] = dtype
         if not legacy and name in physical and dtype == np.dtype("int16"):
-            options.setdefault("add_offset", 0.0)
+            options.setdefault("add_offset", _PACKING_FLOAT_DTYPE.type(0.0))
             if options.get("_FillValue") is None:
                 raise ValueError(
                     "Int16 physical packing requires a reserved _FillValue"
@@ -700,7 +752,7 @@ def _encoding(dataset, encoding=None, *, legacy=False):
                 for size, length in zip(chunks, var.shape)
             ):
                 raise ValueError(f"Invalid chunksizes for {name!r}")
-        for key, default in (("scale_factor", 1), ("add_offset", 0)):
+        for key, default in (("scale_factor", 1.0), ("add_offset", 0.0)):
             value = options.get(key, default)
             if (
                 not np.isscalar(value)
@@ -724,7 +776,9 @@ def _encoding(dataset, encoding=None, *, legacy=False):
             options["_FillValue"] = cast
         for key in ("scale_factor", "add_offset"):
             if key in options:
-                options[key] = float(options[key])
+                # CF requires both attributes to have one unpacked numeric type.
+                # Standardize exported packing on NetCDF double precision.
+                options[key] = _PACKING_FLOAT_DTYPE.type(options[key])
         result[name] = options
     return result
 
@@ -760,7 +814,8 @@ def _storage_attributes(attrs, options):
     limits = _valid_limits(attrs)
     if limits is None:
         return attrs
-    scale, offset = options.get("scale_factor", 1), options.get("add_offset", 0)
+    scale = options.get("scale_factor", 1.0)
+    offset = options.get("add_offset", 0.0)
     dtype = options["dtype"]
     code_limits = np.iinfo(dtype) if dtype.kind == "i" else np.finfo(dtype)
     converted = []
@@ -810,7 +865,8 @@ def _stored_values(values, options, *, quantity=None, valid_limits=None):
         np.any(values < valid_limits[0]) or np.any(values > valid_limits[1])
     ):
         raise ValueError("Physical values are outside their declared valid range")
-    scale, offset = options.get("scale_factor", 1), options.get("add_offset", 0)
+    scale = options.get("scale_factor", 1.0)
+    offset = options.get("add_offset", 0.0)
     dtype = options["dtype"]
     fill = options.get("_FillValue")
     if (
@@ -871,15 +927,25 @@ def _coordinate_data(var):
     """Encode coordinate values and attributes without physical-field packing."""
     attrs = var.attrs.copy()
     if np.issubdtype(var.dtype, np.datetime64):
+        # NetCDF stores time as numeric offsets from an epoch. Work in integer
+        # microseconds first so conversion to float64 seconds is the only place
+        # where time precision can be lost.
         values = var.values.astype("datetime64[us]")
         if np.isnat(values).any():
             raise ValueError("Missing datetime coordinate")
+
+        # Preserve an explicit seconds-based epoch when one is supplied;
+        # otherwise anchor the encoding at the earliest coordinate. Using a
+        # nearby epoch keeps float64 offsets small and maximizes precision.
         units = var.encoding.get(
             "units", "seconds since " + str(values.min()).replace("T", " ")
         )
         origin = np.datetime64(units.removeprefix("seconds since "), "us")
         offsets = (values - origin) / np.timedelta64(1, "us")
         numeric = offsets.astype("float64") / 1e6
+
+        # Reconstruct the datetimes before writing. This prevents a file from
+        # being published if float64 seconds cannot preserve microsecond input.
         restored = origin + np.rint(numeric * 1e6).astype("timedelta64[us]")
         if not np.array_equal(values, restored):
             raise ValueError("Float64 seconds cannot preserve required time precision")
@@ -889,7 +955,18 @@ def _coordinate_data(var):
 
 
 class _CFWriter:
-    """Write validated batches to a temporary file and publish on completion."""
+    """Write validated batches to a temporary file and publish on completion.
+
+    The legacy forecast-export API can deliver one timestep or one ensemble
+    member per callback instead of a complete xarray Dataset. The writer
+    therefore creates the complete schema and fixed coordinates first, then
+    fills one region of each physical variable per callback. The bulk API uses
+    the same path so packing, validation, and failure behaviour do not diverge.
+
+    Partial output exists only under a hidden temporary name. ``finish``
+    publishes it after every expected batch has arrived; any failed or
+    incomplete write calls ``abort`` and removes the temporary file.
+    """
 
     def __init__(
         self, dataset, filename, encoding, *, overwrite=False, incremental=None
@@ -901,6 +978,8 @@ class _CFWriter:
         self.physical = physical_variables(dataset)
         self.count, self.closed = 0, False
         self._code_ranges = {}
+        # Bulk export has one complete batch. Incremental export receives one
+        # batch for each position on the selected callback axis.
         self.expected = (
             1
             if incremental is None
@@ -938,6 +1017,9 @@ class _CFWriter:
             if bound in prepared:
                 bound_attrs = prepared[bound][1]
                 parent_attrs = prepared[parent][1]
+                # CF bounds inherit units and calendar from their coordinate.
+                # Check that independently encoded values agree, then avoid
+                # duplicating those attributes on the bounds variable.
                 for key in ("units", "calendar"):
                     if key in bound_attrs and key in parent_attrs:
                         if bound_attrs[key] != parent_attrs[key]:
@@ -946,6 +1028,9 @@ class _CFWriter:
                             )
                         bound_attrs.pop(key)
         try:
+            # Region writes must never expose a half-written forecast at the
+            # requested destination. Create the complete schema under a hidden
+            # sibling name and publish it atomically only in finish().
             fd, name = tempfile.mkstemp(
                 prefix="." + self.filename.name + ".incomplete-",
                 suffix=".nc",
@@ -1007,6 +1092,9 @@ class _CFWriter:
             prepared = {}
             for name, values in arrays.items():
                 var = self.dataset[name]
+                # In incremental mode this callback owns one complete slice on
+                # either the time or realization axis. Other dimensions are
+                # written in full. Bulk mode selects the entire variable.
                 axis = "time" if self.incremental == "timestep" else "ens_number"
                 index = tuple(
                     (
@@ -1058,6 +1146,9 @@ class _CFWriter:
                             "The fill code must be outside the stored valid range"
                         )
                     self._code_ranges[name] = (low, high)
+            # Validate and encode every physical variable in the batch before
+            # performing any region write. A failure therefore aborts the
+            # unpublished file without leaving a partially accepted batch.
             for name, (index, values) in prepared.items():
                 self.ncfile[name][index] = values
             self.count += 1
@@ -1159,11 +1250,15 @@ def export_netcdf_cf(
     Notes
     -----
     Preserve floating precision by default, using zlib level 4 and shuffle. Physical
-    int16 storage requires an explicit positive scale_factor in canonical units and
-    defaults to add_offset=0 and _FillValue=-32768. Packing uses stored =
+    int16 storage requires an explicit positive scale_factor in canonical units.
+    Both scale_factor and add_offset are stored as float64; add_offset defaults to
+    zero and _FillValue to -32768. Packing uses stored =
     round((physical - add_offset) / scale_factor). Preserve missing masks before
     quantization and reject overflow or fill collisions. Invert modelling transforms
-    before export.
+    before export. The bulk and incremental forecast APIs share a low-level writer
+    because the latter can supply one timestep or ensemble member per callback.
+    Partial output remains under a temporary name and is published only after all
+    expected batches have been written successfully.
     """
     _netcdf4()
     filename = Path(filename)

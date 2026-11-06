@@ -50,6 +50,7 @@ def assert_decoders(path, variable, expected, codes, step, offset=0, fill=FILL):
         assert var.scale_factor == step
         assert var.add_offset == offset
         assert np.asarray(var.scale_factor).dtype == np.dtype("float64")
+        assert np.asarray(var.add_offset).dtype == np.dtype("float64")
         assert "_Unsigned" not in var.ncattrs()
         decoded = var[:]
         np.testing.assert_array_equal(np.ma.getmaskarray(decoded), missing)
@@ -95,6 +96,24 @@ def test_int16_scale_and_missing_code_are_separate_operations(dtype, fill, tmp_p
     assert not actual[variable].isnull()[0, 0, 1]
     assert actual[variable][0, 0, 1] == 0
     assert actual[variable].isnull()[0, 1, 2]
+
+
+def test_packing_terms_are_stored_with_explicit_float64_precision(tmp_path):
+    """Use one declared unpacked dtype even when callers supply float32 scalars."""
+    ds, variable = source()
+    path = io.export_netcdf_cf(
+        ds,
+        tmp_path / "packing-attribute-types.nc",
+        encoding=packing(
+            variable,
+            np.float32(0.1),
+            add_offset=np.float32(0.0),
+        ),
+    )
+    with netCDF4.Dataset(path) as raw:
+        var = raw[variable]
+        assert np.asarray(var.scale_factor).dtype == np.dtype("float64")
+        assert np.asarray(var.add_offset).dtype == np.dtype("float64")
 
 
 @pytest.mark.parametrize(
@@ -521,6 +540,35 @@ def test_invalid_source_gain_is_not_accepted_as_an_all_missing_field(gain, tmp_p
     with netCDF4.Dataset(path, "a") as raw:
         raw[variable].scale_factor = gain
     with pytest.raises(ValueError, match="finite scalars"):
+        io.import_netcdf_cf(path)
+
+
+def test_source_scale_and_offset_must_have_one_numeric_type(tmp_path):
+    """Reject ambiguous CF unpacking precision in an externally packed file."""
+    ds, variable = source()
+    path = io.export_netcdf_cf(
+        ds, tmp_path / "mixed-packing-types.nc", encoding=packing(variable)
+    )
+    with netCDF4.Dataset(path, "a") as raw:
+        var = raw[variable]
+        var.delncattr("scale_factor")
+        var.setncattr("scale_factor", np.float32(0.1))
+    with pytest.raises(ValueError, match="must have the same numeric type"):
+        io.import_netcdf_cf(path)
+
+
+def test_source_validity_attributes_must_use_packed_dtype(tmp_path):
+    """Reject validity limits that cannot be interpreted in the packed domain."""
+    ds, variable = source(values=[[0.0, 0.04, 0.06], [0.25, 1.26, np.nan]])
+    ds[variable].attrs["valid_range"] = np.array([0.0, 2.0])
+    path = io.export_netcdf_cf(
+        ds, tmp_path / "invalid-validity-type.nc", encoding=packing(variable)
+    )
+    with netCDF4.Dataset(path, "a") as raw:
+        var = raw[variable]
+        var.delncattr("valid_range")
+        var.setncattr("valid_range", np.array([0.0, 20.0], dtype="float64"))
+    with pytest.raises(ValueError, match="valid_range must have the same numeric type"):
         io.import_netcdf_cf(path)
 
 
