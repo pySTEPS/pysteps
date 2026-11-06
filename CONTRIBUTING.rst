@@ -12,64 +12,42 @@ There are many ways to contribute to pysteps:
 * code contributions, new features, or bug fixes
 * contribute with usage examples
 
-Workflow for code contributions
--------------------------------
+Who can contribute?
+-----------------------
 
 We welcome all kinds of contributions, like documentation updates, bug fixes, or new features.
 The workflow for the contributions uses the usual
 `GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`_.
 
-If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community on our
-`pysteps slack <https://pysteps.slack.com/>`__.
-To get access to it, you need to ask for an invitation or you can use the automatic invitation page
-`here <https://pysteps-slackin.herokuapp.com/>`__.
-Our slack channel is a great place for preliminary discussions about new features or functionalities.
-Another place where you can report bugs and suggest new enhancements is the
-`project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
+If you have ideas for new contributions to the project, feel free to get in touch with the pysteps community 
+through the `project's issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
 
 
-First Time Contributors
+**First Time Contributors**
 -----------------------
 
 If you are interested in helping to improve pysteps,
-the best way to get started is by looking for "Good First Issue" in the
+the best way to get started is by looking for "Good First Issue" or creating
+a new issue for your contribution in the 
 `issue tracker <https://github.com/pySTEPS/pysteps/issues>`_.
 
 In a nutshell, the main steps to follow for contributing to pysteps are:
 
-* Setting up the development environment
-* Fork the repository
-* Install pre-commit hooks
+* Fork and clone the repository
+* Set up the pysteps environment
+* Install the pre-commit hooks
 * Create a new branch for each contribution
 * Read the Code Style guide
 * Work on your changes
 * Test your changes
-* Push to your fork repository and create a new PR in GitHub.
+* Push to your fork
+* Open a pull request on GitHub in which you mention the associated issue
 
 
-Setting up the Development environment
---------------------------------------
+Fork and clone the repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The recommended way to set up the developer environment is with :code:`uv`.
-uv quickly installs, runs, and updates packages and their dependencies.
-It also allows you to create, save, load, and switch between different environments on your local computer.
-
-Before continuing, Mac OSX users also need to install a more recent compiler.
-See instructions `here <https://pysteps.readthedocs.io/en/latest/user_guide/install_pysteps.html#install-osx-users>`__.
-
-The developer environment can be created by syncing the optional and dev dependencies::
-
-    uv sync --extra optional
-
-To test if the installation went fine, you can try importing pysteps from the python interpreter by running::
-
-    uv run python -c "import pysteps"
-
-
-Fork the repository
-~~~~~~~~~~~~~~~~~~~
-
-Once you have set the development environment, the next step is creating your local copy of the repository, where you will commit your modifications.
+Once you have set up the pysteps environment, the next step is creating your local copy of the repository, where you will commit your modifications.
 The steps to follow are:
 
 #. Set up Git on your computer.
@@ -85,8 +63,30 @@ If you are new to GitHub, below you can find a list of helpful tutorials:
 - http://rogerdudler.github.io/git-guide/index.html
 - https://www.atlassian.com/git/tutorials
 
-Install pre-commit hooks
-~~~~~~~~~~~~~~~~~~~~~~~~
+Set up the pysteps environment
+------------------------------
+
+The recommended way to set up the developer environment is with `uv <https://docs.astral.sh/uv/>`__,
+uv quickly installs, runs, and updates packages and their dependencies.
+It also allows you to create, save, load, and switch between different environments on your local computer.
+
+Install uv following the
+`installation instructions <https://docs.astral.sh/uv/getting-started/installation/>`__
+
+Before continuing, Mac OSX users also need to install a more recent compiler.
+See instructions `here <https://pysteps.readthedocs.io/en/latest/user_guide/install_pysteps.html#install-osx-users>`__.
+
+The developer environment can be created by syncing the optional and dev dependencies::
+
+    uv sync --extra optional
+
+To test if the installation went fine, you can try importing pysteps from the python interpreter by running::
+
+    uv run python -c "import pysteps"
+
+
+Install the pre-commit hooks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After setting up your development environment, install the git pre-commit hook by executing the following command in the repository's
 root::
@@ -115,9 +115,6 @@ Create a new branch
 ~~~~~~~~~~~~~~~~~~~
 
 As a collaborator, all the new contributions you want should be made in a new branch under your forked repository.
-Working on the master branch is reserved for Core Contributors only.
-Core Contributors are developers that actively work and maintain the repository.
-They are the only ones who accept pull requests and push commits directly to the pysteps repository.
 
 For more information on how to create and work with branches, see
 `"Branches in a Nutshell" <https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell>`__ in the Git documentation
@@ -298,36 +295,49 @@ Here is an example of a docstring::
 Contributions guidelines
 ------------------------
 
-The collaborator guidelines used in pysteps were largely inspired by those of the
-`MyPy project <https://github.com/python/mypy>`__.
 
-Collaborators guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~
+As a collaborator, all your new contributions should be made in a new branch under your forked repository, or
+if you are a member of the pySTEPS organisation, under a new branch in the pysteps repository. 
 
-As a collaborator, all your new contributions should be made in a new branch under your forked repository.
-Working on the master branch is reserved for Core Contributors only to submit small changes only.
-Core Contributors are developers that actively work and maintain the repository.
-They are the only ones who accept pull requests and push commits directly to
-the **pysteps** repository.
+Nobody can push changes straight into the main branch; all development is done in a feature branch.
+This approach has two main advantages:
 
-**IMPORTANT**
-However, for contribution requires a significant amount of work, we strongly suggest opening a new issue with
-the **enhancement** or **discussion** tag to encourage discussions.
-The discussions will help clarify the best way to approach the suggested changes or raise potential concerns.
+- Every commit pushed to a pull request targeting ``main`` or ``v1.x`` is tested via GitHub Actions.
+  If the tests fail, they do not affect the main branch.
 
-For code contributions, collaboratos can use the usual
-`GitHub pull-request flow <https://help.github.com/en/articles/github-flow>`__.
-Once your proposed changes are ready, you need to create a pull request (PR) from your fork in your GitHub account.
-Afterward, core contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
-request changes to the code. Once the PR is ready, a Core Developer will merge the changes into the main branch.
+- Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
+  then merged into the main branch. Squashing the commits helps to keep a clean commit history in the main branch.
+
+**Creating an issue**
+Before you submit a contribution or fix, please open a new issue so the community can provide input. 
+The discussions will help clarify the best way to approach the suggested changes and frame it in the project roadmap,
+and associate it with a milestone.
+
+**AI statement**
+AI-assisted or generated code must clearly be indicated as such using the "Assisted-by:" (light help) or 
+"Generated-by:" (substantial AI output) tokens. 
+Only a human can take responsibility for a contribution.
+
+**Creating a Pull Request**
+Once your proposed changes are ready, you need to create a pull request (PR) linked to the associated issue. 
+A link to an issue can be made by, for instance, mentioning that *This PR fixes issue #[issue number]*. 
+Github will then automatically link the issue to the PR. 
+Afterward, other contributors will review your proposed changes, provide feedback in the PR discussion, and maybe,
+request changes to the code, in which case the PR will need to be reviewed again. 
+
+Copilot and other AI tools can be used as support but do not replace a review by a human.
+
+Once the PR and all changes are approved, the PR will be merged into the main branch.
+
+Stale PRs and issues that have had no activity for 12 months are first marked as stale and then closed within a few weeks after the first marking as stale.
 
 **Important:**
-It is strongly suggested that each PR only addresses a single objective (e.g., fix a bug, improve documentation, etc.).
-This will help to reduce the time needed to process the PR. For changes outside the PR's objectives, we highly
-recommend opening a new PR.
+Each PR should only address a single issue (e.g., fix a bug, improve documentation, etc.).
+This will help to reduce the time needed to review the PR. 
+For changes out of the scope of the issue, please open a new issue and associated PR.
 
 
-Testing your changes
+**Testing your changes**
 ~~~~~~~~~~~~~~~~~~~~
 
 Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
@@ -348,33 +358,6 @@ descriptive name.
 A quick way to get familiar with the pytest syntax and the testing procedures
 is checking the python scripts present in the pysteps test module.
 
-Core developer guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Working directly on the master branch is discouraged and is reserved only
-for small changes and updates that do not compromise the stability of the code.
-The *master* branch is a production branch that is ready to be deployed
-(cloned, installed, and ready to use).
-In consequence, this master branch is meant to be stable.
-
-The pysteps repository uses the GitHub Actions service to run tests every time you commit to GitHub.
-In that way, your modifications along with the entire library are tested.
-
-Pushing untested or work-in-progress changes to the master branch can potentially introduce bugs or break the stability of the package.
-Since the tests triggered by a commit to the master branch take around 20 minutes, any errors introduced there
-will be noticed after the stablility of the master branch was compromised.
-In addition, other developers start working on a new feature from master from a potentially broken state.
-
-Instead, it is recommended to work on each new feature in its own branch, which can be pushed to the central repository
-for backup/collaboration. When you’re done with the feature's development work, you can merge the feature branch into the
-master or submit a Pull Request. This approach has two main advantages:
-
-- Every commit on the feature branch is tested via GitHub Actions.
-  If the tests fail, they do not affect the **master** branch.
-
-- Once the changes are finished and the tests passed, the commits history can be squashed into a single commit and
-  then merged into the master branch. Squashing the commits helps to keep a clean commit history in the main branch.
-
 
 Processing pull requests
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -388,7 +371,7 @@ To process the pull request, we follow similar rules to those used in the
 * Always use "`Squash and merge`_"  to merge PRs.
 * Make sure that the subject of the commit message summarizes the objective of the PR and does not finish with a dot.
 * Write a new commit message before merging that provides a detailed description of the changes introduced by the PR.
-  Try to keep the maximum line length under 80 characters, spplitting lines if necessary.
+  Try to keep the maximum line length under 80 characters, splitting lines if necessary.
   **IMPORTANT:** Make sure that the commit message doesn't contain the branch's commit history!
   Also, if the PR fixes an issue, mention this explicitly.
 * Use the imperative mood in the subject line (e.g. "Fix typo in README").
@@ -402,12 +385,12 @@ Core developers should follow the steps to prepare a new release (version):
 
 1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
 
-    * In the file setup.py, update the **version="X.X.X"** keyword in the setup
-      function.
-    * Update the version in PKG-INFO file.
-    * If new dependencies were added to pysteps since the last release, add
-      them to the **environment.yml, requirements.txt**, and
-      **requirements_dev.txt** files.
+  * In the file setup.py, update the **version="X.X.X"** keyword in the setup
+    function.
+  * Update the version in PKG-INFO file.
+  * If new dependencies were added to pysteps since the last release, add
+    them to the **environment.yml, requirements.txt**, and
+    **requirements_dev.txt** files.
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
@@ -416,17 +399,47 @@ Core developers should follow the steps to prepare a new release (version):
    See `Packaging the pysteps project <https://pysteps.readthedocs.io/en/latest/developer_guide/pypi.html#pypi-relase>`__
    for a detailed description of this process.
 
+Owner and maintainer rules
+--------------------------
+
+* The pySTEPS organization should have exactly three owners, no more, no less. The owners
+  don't need to be the most active developers, but have the following responsibilities:
+
+  - managing members, roles and security settings (e.g. 2FA, branch protection)
+  - ensuring continued access to the project's external accounts (PyPI, Read the Docs, Zenodo)
+  - appointing maintainers and reviewing roles yearly
+  - taking the final decision when consensus cannot be reached
+
+* Being a maintainer comes with responsibilities, i.e. regularly performing tasks such as:
+
+  - preparing and tagging releases and updating release notes
+  - coordinate PR reviews and merge PRs
+  - issue triage
+  - keeping documentation and examples up to date
+
+* After 12 months of inactivity:
+
+  - an owner is replaced by a more active maintainer that the community agrees upon
+  - a maintainer loses their role and becomes a regular member
+
+This role can of course be restored if needed (e.g. after a sabbatical or leave).
+
 Credits
 -------
 
-This document was based on contributors guides of two Python
-open-source projects:
+This document was based on information from
+
+* Official github documentation_
+* https://opensource.guide/
+
+and contributors guides of two Python open-source projects:
 
 * Py-Art_: Copyright (c) 2013, UChicago Argonne, LLC.
   `License <https://github.com/ARM-DOE/pyart/blob/master/LICENSE.txt>`_.
 * mypy_: Copyright (c) 2015-2016 Jukka Lehtosalo and contributors.
   `MIT License <https://github.com/python/mypy/blob/master/LICENSE>`_.
-* Official github documentation (https://help.github.com)
 
+.. _documentation: https://help.github.com
 .. _Py-Art: https://github.com/ARM-DOE/pyart
 .. _mypy: https://github.com/python/mypy
+
