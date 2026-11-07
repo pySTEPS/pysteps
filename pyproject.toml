@@ -74,8 +74,7 @@ doc = [
     "scikit-image",
     "scikit-learn",
     "pandas",
-    #FIXME when merged in pysteps-nwp-importers main and released, require version >v2.0.0
-    "pysteps-nwp-importers @ git+https://github.com/pySTEPS/pysteps-nwp-importers.git@adapt_to_v2",
+     "pysteps-nwp-importers"
     "pygrib",
     "h5py"
 ]
@@ -138,3 +137,7 @@ line-ending = "lf"
 
 [tool.setuptools]
 py-modules = ["pysteps"]
+
+#FIXME when merged in pysteps-nwp-importers main and released, this can go away
+[tool.uv.sources]
+pysteps-nwp-importers = { git = "https://github.com/pySTEPS/pysteps-nwp-importers", branch = "adapt-to-pysteps-v2" }
