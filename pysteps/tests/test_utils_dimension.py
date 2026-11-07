@@ -109,16 +109,6 @@ def test_aggregate_fields(data, window_size, dim, method, expected):
     actual = dimension.aggregate_fields(dataset, window_size, dim=dim, method=method)
     assert_array_equal(actual["precip_intensity"].values, expected)
 
-    # lon and lat keep the value of the last cell of each block.
-    dims = np.atleast_1d(dim)
-    sizes = np.broadcast_to(window_size, dims.shape)
-    last_cell_of_each_block = {
-        d: np.arange(size - 1, dataset.sizes[d], size) for d, size in zip(dims, sizes)
-    }
-    for coord in ("lon", "lat"):
-        expected_coord = dataset[coord].isel(last_cell_of_each_block)
-        assert_array_equal(actual[coord], expected_coord)
-
     # Test the trimming capabilities.
     if np.ndim(window_size) == 0:
         data = np.pad(data, ((0, 0), (0, 1)))

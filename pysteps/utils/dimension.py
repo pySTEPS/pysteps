@@ -319,23 +319,12 @@ def aggregate_fields(
 def _block_reduce(obj, windows, func):
     """
     Reduce the non-overlapping blocks of ``windows`` cells of a dataset or data
-    array with ``func``. Incomplete blocks at the end are dropped. The other
-    coordinates on the reduced dimensions (e.g. lon and lat) take the value of
-    the last cell of each block.
+    array with ``func``. Incomplete blocks at the end are dropped. The
+    coordinates take the value of the last cell of each block.
     """
-    # A single coord_func would only apply to the dimension coordinates.
-    coord_func = {name: _last_in_block for name in obj.coords}
-    return obj.coarsen(windows, boundary="trim", coord_func=coord_func).reduce(func)
-
-
-def _last_in_block(values, axis):
-    """
-    Coordinate function for ``coarsen``: keep the last value of each block.
-    """
-    index = [slice(None)] * values.ndim
-    for a in np.atleast_1d(axis):
-        index[a] = -1
-    return values[tuple(index)]
+    last_cells = obj.isel({d: slice(w - 1, None, w) for d, w in windows.items()})
+    reduced = obj.coarsen(windows, boundary="trim").reduce(func)
+    return reduced.assign_coords(last_cells.coords)
 
 
 def clip_domain(dataset: xr.Dataset, extent=None):
