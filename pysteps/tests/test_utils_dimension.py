@@ -92,6 +92,17 @@ test_data_not_trim = (
         "nanmean",
         np.array([[14 / 3, 5.5, 7.5], [15.5, 17.5, 19.5]]),
     ),
+    (
+        np.where(
+            (np.arange(4)[:, None] < 2) & (np.arange(6)[None, :] < 2),
+            np.nan,
+            np.arange(4 * 6).reshape(4, 6),
+        ),
+        (2, 2),
+        ("y", "x"),
+        "nansum",
+        np.array([[0, 22, 30], [62, 70, 78]]),
+    ),
 )
 
 
