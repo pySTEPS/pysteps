@@ -17,6 +17,7 @@ formats:
 
 python:
   install:
-    - requirements: doc/requirements.txt
-    - method: pip
-      path: .
+    - method: uv
+      command: sync
+      extras:
+        - doc
