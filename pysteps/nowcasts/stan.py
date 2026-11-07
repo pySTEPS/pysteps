@@ -13,23 +13,26 @@ Implementation of the STAN stochastic nowcasting method, it is based in
     forecast
 """
 
-import numpy as np
-from scipy.ndimage import generate_binary_structure, iterate_structure, gaussian_filter, uniform_filter
 import time
-
-from pysteps import cascade
-from pysteps import extrapolation
-from pysteps import noise
-from pysteps import utils
-from pysteps.decorators import deprecate_args
-from pysteps.nowcasts import utils as nowcast_utils
-from pysteps.postprocessing import probmatching
-from pysteps.timeseries import autoregression
-from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
-from pysteps.utils import spectral
-
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable
+
+import numpy as np
+import xarray as xr
+from scipy.ndimage import generate_binary_structure, iterate_structure, gaussian_filter, uniform_filter
+
+from pysteps import cascade, extrapolation, noise, utils
+from pysteps.nowcasts import utils as nowcast_utils
+from pysteps.nowcasts.utils import (
+    compute_percentile_mask,
+    nowcast_main_loop,
+    zero_precipitation_forecast,
+)
+from pysteps.postprocessing import probmatching
+from pysteps.timeseries import autoregression, correlation
+from pysteps.utils.check_norain import check_norain #, check_previous_radar_obs
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask
@@ -38,8 +41,9 @@ try:
 except ImportError:
     DASK_IMPORTED = False
 
-@dataclass
-class StepsNowcasterConfig:
+
+@dataclass(frozen=True)
+class NowcasterConfig:
     """
     Parameters
     ----------
@@ -79,7 +83,7 @@ class StepsNowcasterConfig:
     motion_field_general: array_like or str or None, optional
         Optional externally provided motion field. If None, the input velocity
         field is used.
-    velocity_perturbation_method: {'bps',None}, optional
+    velocity_perturbation_method: {'bps', None}, optional
         Name of the noise generator to use for perturbing the advection field. See
         the documentation of pysteps.noise.interface. If set to None, the advection
         field is not perturbed.
@@ -287,6 +291,8 @@ class StepsNowcasterConfig:
     motion_field_general: np.ndarray | str | None = None
     velocity_perturbation_method: str | None = "bps"
     velocity_perturbation_kwargs: dict[str, Any] = field(default_factory=dict)
+    velocity_x_name: str = "velocity_x"
+    velocity_y_name: str = "velocity_y"
     
     # --- AR Model & Noise ---
     ar_order: int = 2
@@ -299,9 +305,10 @@ class StepsNowcasterConfig:
     noise_levels: int | None = None
     noise_levels_var2: int | None = None
     
-    # --- Variable 2 (Dual-Pol/Satellite) Settings ---
+    # --- Variable 2 Settings ---
     var2_name: str = "var2"
     var2_threshold: float | None = None
+    norain_threshold: float = 0.0
     noise_method_var2: str | None = None
     noise_stddev_adj_var2: str | None = None
     noise_kwargs_var2: dict[str, Any] = field(default_factory=dict)
@@ -319,7 +326,10 @@ class StepsNowcasterConfig:
     phi_glar: float = 0.96562279
     alpha: float = 4.73652705
     beta: float = 0.31451517
-    prob_conversion: bool = False
+    vil_activation_thr: float = -16.87
+    min_vil_trend: float = 0
+    min_neigh_wet_frac: float = 0.1
+    prob_conversion: bool = True
     
     # --- Masking & Probability Matching ---
     var1_name: str = "var1"
@@ -355,18 +365,20 @@ class StepsNowcasterConfig:
 
 
 @dataclass
-class StepsNowcasterParams:
+class NowcasterParams:
     # --- Decomposition Objects ---
     fft: Any = None
     bandpass_filter: Any = None
     decomposition_method: Any = None
     recomposition_method: Any = None
+    adaptive_localization: int | bool = False
     
     # --- Calculated Coefficients (Var 1) ---
     ar_model_coefficients: np.ndarray | None = None  # phi
     phi0: np.ndarray | None = None
     autocorrelation_coefficients: np.ndarray | None = None  # gamma
     noise_std_coefficients: np.ndarray | None = None
+    ar_window_radius: np.ndarray | None = None
     
     # --- Calculated Coefficients (Var 2) ---
     ar_model_coefficients_var2: np.ndarray | None = None 
@@ -379,6 +391,9 @@ class StepsNowcasterParams:
     var1_var2_b: np.ndarray | None = None
     global_var1_var2_a: np.ndarray | None = None
     global_var1_var2_b: np.ndarray | None = None
+    a_glar: float | None = None
+    b_glar: float | None = None
+    phi_glar: float | None = None
     
     # --- Generators ---
     noise_generator: Callable | None = None
@@ -407,14 +422,20 @@ class StepsNowcasterParams:
     var2_min: float | None = None
     
     # --- Motion Perturbation ---
-    velocity_perturbation_method: Any = None
     velocity_perturbation_parallel: list[float] | None = None
     velocity_perturbation_perpendicular: list[float] | None = None
     num_ensemble_workers: int = 1
-
-
+    
+    # --- Extra kwargs ---
+    decomp_kwargs: dict | None = None
+    filter_kwargs: dict | None = None
+    noise_kwargs: dict | None = None
+    noise_kwargs_var2: dict | None = None
+    velocity_perturbation_kwargs: dict | None = None
+    mask_kwargs: dict | None = None
+    
 @dataclass
-class StepsNowcasterState:
+class NowcasterState:
     # --- Variable 1 State ---
     var1_forecast: list[np.ndarray] | None = field(default_factory=list)
     var1_cascades: list[list[np.ndarray]] | None = field(default_factory=list)
@@ -445,14 +466,16 @@ class StepsNowcasterState:
     random_generator_motion: list[np.random.RandomState] | None = field(default_factory=list)
     velocity_perturbations: list[Callable] | None = field(default_factory=list)
     fft_objects: list[Any] | None = field(default_factory=list)
+    extrapolation_kwargs: dict[str, Any] | None = field(default_factory=dict)
+    
 
-class StepsNowcaster:
+class Nowcaster:
     def __init__(
         self, 
         var1: np.ndarray, 
         velocity: np.ndarray, 
         time_steps: int | list, 
-        steps_config: StepsNowcasterConfig,
+        config: NowcasterConfig,
         var2: np.ndarray | None = None
     ):
         # Store inputs and optional parameters
@@ -462,11 +485,11 @@ class StepsNowcaster:
         self.__var2 = var2
         
         # Store the config data:
-        self.__config = steps_config
+        self.__config = config
 
         # Store the state and params data:
-        self.__state = StepsNowcasterState()
-        self.__params = StepsNowcasterParams()
+        self.__state = NowcasterState()
+        self.__params = NowcasterParams()
 
         # Additional variables for time measurement
         self.__start_time_init = None
@@ -535,16 +558,21 @@ class StepsNowcaster:
         # preprocessing steps to have the same extent
         if self.__var2 is not None and self.__var2.ndim == 3:
             if self.__config.compute_glar_params:
-                self.__config.a_glar, self.__config.b_glar = self.__get_global_var1_var2_regression()
+                self.__params.a_glar, self.__params.b_glar = self.__get_global_var1_var2_regression()
+            else:
+                self.__params.a_glar, self.__params.b_glar = self.__config.a_glar, self.__config.b_glar
             self.__fix_var1_from_var2_extent(self.__var1, self.__var2)
             
         self.__initialize_nowcast_components()
+        self.__check_norain()
         self.__perform_extrapolation()
         if self.__var2 is not None and self.__var2.ndim == 3:
             self.__perform_extrapolation(is_var2=True)
             if self.__config.compute_glar_params:
-                self.__config.phi_glar = self.__get_phi_var1_var2_regression()
-            
+                self.__params.phi_glar = self.__get_phi_var1_var2_regression()
+            else:
+                self.__params.phi_glar =self.__config.phi_glar
+                
         self.__initialize_noise_and_ar_model()
         self.__initialize_velocity_perturbations()
         self.__initialize_variable_mask()
@@ -569,16 +597,15 @@ class StepsNowcaster:
                     for j in range(self.__config.n_ens_members)
                 ]
             )
+        
             if self.__config.measure_time:
                 return (
                     self.__state.var1_forecast,
                     self.__init_time,
                     self.__mainloop_time,
                 )
-            else:
-                return self.__state.var1_forecast
-        else:
-            return None
+            return self.__state.var1_forecast
+        return None
 
     def __nowcast_main(self):
         """
@@ -609,8 +636,8 @@ class StepsNowcaster:
             self.__time_steps,
             self.__config.extrapolation_method,
             self.__update_state,  # Reference to the update function
-            extrap_kwargs=self.__config.extrapolation_kwargs,
-            motion_field_general=self.__config.motion_field_general,
+            extrap_kwargs=self.__state.extrapolation_kwargs,
+            # motion_field_general=self.__config.motion_field_general,
             velocity_pert_gen=self.__state.velocity_perturbations,
             params=params,
             ensemble=True,
@@ -681,16 +708,18 @@ class StepsNowcaster:
         if self.__config.kmperpixel is None:
             if self.__config.velocity_perturbation_method is not None:
                 raise ValueError("vel_pert_method is set but kmperpixel=None")
-            if "incremental" in self.__config.mask_method:
-                raise ValueError("mask_method='incremental' but kmperpixel=None")
+            if self.__config.mask_method is not None:
+                if "incremental" in self.__config.mask_method:
+                    raise ValueError("mask_method='incremental' but kmperpixel=None")
             if self.__config.adaptive_localization:
                 raise ValueError("adaptive_localization is set but kmperpixel=None")
         if self.__config.timestep is None:
             if self.__config.velocity_perturbation_method is not None:
                 raise ValueError("vel_pert_method is set but timestep=None")
-            if "incremental" in self.__config.mask_method:
-                raise ValueError("mask_method='incremental' but timestep=None")
-        
+            if self.__config.mask_method is not None:
+                if "incremental" in self.__config.mask_method:
+                    raise ValueError("mask_method='incremental' but timestep=None")
+            
         if self.__config.ar_window_radius is not None:
             if not isinstance(self.__config.ar_window_radius, (str, int, list)):
                 raise ValueError("ar_window_radius type must be None, str, int or list")
@@ -707,24 +736,49 @@ class StepsNowcaster:
                     raise ValueError("adaptive_localization is int but higher than n_cascade_levels")
         
         # Handle None values for various kwargs
+        # Handle None values for various kwargs
         if self.__config.extrapolation_kwargs is None:
-            self.__config.extrapolation_kwargs = {}
+            self.__state.extrapolation_kwargs = dict()
+        else:
+            self.__state.extrapolation_kwargs = deepcopy(
+                self.__config.extrapolation_kwargs
+            )
+        
         if self.__config.decomp_kwargs is None:
-            self.__config.decomp_kwargs = {
+            self.__params.decomp_kwargs = {
                 'normalize':True, 
                 'compute_stats':True, 
                 'compact_output':True
                 }
+        else:
+            self.__params.decomp_kwargs = deepcopy(self.__config.decomp_kwargs)
+            
         if self.__config.filter_kwargs is None:
-            self.__config.filter_kwargs = {}
+            self.__params.filter_kwargs = dict()
+        else:
+            self.__params.filter_kwargs = deepcopy(self.__config.filter_kwargs)
+
         if self.__config.noise_kwargs is None:
-            self.__config.noise_kwargs = {}
+            self.__params.noise_kwargs = {"win_fun": "tukey"}
+        else:
+            self.__params.noise_kwargs = deepcopy(self.__config.noise_kwargs)
+        
         if self.__config.noise_kwargs_var2 is None:
-            self.__config.noise_kwargs_var2 = {}
+            self.__params.noise_kwargs_var2 = {"win_fun": "tukey"}
+        else:
+            self.__params.noise_kwargs_var2 = deepcopy(self.__config.noise_kwargs_var2)
+        
         if self.__config.velocity_perturbation_kwargs is None:
-            self.__config.velocity_perturbation_kwargs = {}
+            self.__params.velocity_perturbation_kwargs = dict()
+        else:
+            self.__params.velocity_perturbation_kwargs = deepcopy(
+                self.__config.velocity_perturbation_kwargs
+            )
+
         if self.__config.mask_kwargs is None:
-            self.__config.mask_kwargs = {}
+            self.__params.mask_kwargs = dict()
+        else:
+            self.__params.mask_kwargs = deepcopy(self.__config.mask_kwargs)
 
         print("Inputs validated and initialized successfully.")
 
@@ -789,12 +843,12 @@ class StepsNowcaster:
         
         if self.__config.velocity_perturbation_method == "bps":
             self.__params.velocity_perturbation_parallel = (
-                self.__config.velocity_perturbation_kwargs.get(
+                self.__params.velocity_perturbation_kwargs.get(
                     "p_par", noise.motion.get_default_params_bps_par()
                 )
             )
             self.__params.velocity_perturbation_perpendicular = (
-                self.__config.velocity_perturbation_kwargs.get(
+                self.__params.velocity_perturbation_kwargs.get(
                     "p_perp", noise.motion.get_default_params_bps_perp()
                 )
             )
@@ -840,7 +894,7 @@ class StepsNowcaster:
         self.__params.bandpass_filter = filter_method(
             (M, N),
             self.__config.n_cascade_levels,
-            **(self.__config.filter_kwargs or {}),
+            **(self.__params.filter_kwargs or {}),
         )
         
         # Get the decomposition method (e.g., FFT)
@@ -890,7 +944,11 @@ class StepsNowcaster:
         # Determine the coefficients fields of the relation var2 =a*var1+b by
         # localized linear regression
         if self.__var2 is not None and self.__config.r_vil_conversion_method == "loclinreg":
-            self.__params.var1_var2_a, self.__params.var1_var2_b = self.__var1_var2_regression(self.__var1[-1, :])
+            if self.__var2.shape == 3:
+                last_var2 = self.__var2[-1, :]
+            else:
+                last_var2 = self.__var2
+            self.__params.var1_var2_a, self.__params.var1_var2_b = self.__var1_var2_regression(self.__var1[-1, :], last_var2)
             self.__params.global_var1_var2_a, self.__params.global_var1_var2_b = self.__get_global_var1_var2_regression()
         else:
             self.__params.var1_var2_a, self.__params.var1_var2_b = None, None
@@ -904,7 +962,57 @@ class StepsNowcaster:
             self.__state.last_var2 = self.__state.last_var1
         
         print("Nowcast components initialized successfully.")
+    
+    
+    def __check_norain(self):
+        if self.__var2 is None:
+            if check_norain(
+                np.asarray(self.__state.last_var1),
+                self.__config.var1_threshold,
+                self.__config.norain_threshold,
+                self.__params.noise_kwargs["win_fun"],
+            ):
+                # Set all to inputs to 0 (also previous times) as we just check latest input in check_norain
+                self.__state.var1 = self.__state.var1.copy()
+                self.__state.var1 = np.where(
+                    np.isfinite(self.__state.var1),
+                    np.ones(self.__state.var1.shape) * np.nanmin(self.__state.var1),
+                    self.__state.var1,
+                )
+    
+                return zero_precipitation_forecast(
+                    self.__config.n_ens_members,
+                    self.__time_steps,
+                    self.__state.var1,
+                    self.__config.callback,
+                    self.__config.return_output,
+                    self.__config.measure_time,
+                    self.__start_time_init,
+                )
+        else:
+            if check_norain(
+                np.asarray(self.__state.last_var2),
+                self.__config.var2_threshold,
+                self.__config.norain_threshold,
+                self.__params.noise_kwargs["win_fun"],
+            ):
+                # Set all to inputs to 0 (also previous times) as we just check latest input in check_norain
+                self.__state.var2 = self.__state.var2.copy()
+                self.__state.var2 = np.where(
+                    np.isfinite(self.__state.var2),
+                    np.ones(self.__state.var2.shape) * np.nanmin(self.__state.var2),
+                    self.__state.var2,
+                )
 
+                return zero_precipitation_forecast(
+                    self.__config.n_ens_members,
+                    self.__time_steps,
+                    self.__state.var2,
+                    self.__config.callback,
+                    self.__config.return_output,
+                    self.__config.measure_time,
+                    self.__start_time_init,
+                )
 
     def __perform_extrapolation(self, is_var2=False):
         """
@@ -922,7 +1030,7 @@ class StepsNowcaster:
             var_name = self.__config.var1_name
             
         # 2. Setup arguments
-        extrap_kwargs = self.__config.extrapolation_kwargs.copy()
+        extrap_kwargs = self.__state.extrapolation_kwargs.copy()
         extrap_kwargs["xy_coords"] = self.__params.xy_coordinates
         extrap_kwargs["allow_nonfinite_values"] = (
             True if np.any(~np.isfinite(var)) else False
@@ -970,8 +1078,8 @@ class StepsNowcaster:
     def __fix_var1_from_var2_extent(self, var1, var2, update=True, j=None, state=None, params=None):
         var1_threshold = self.__config.var1_threshold
         var2_threshold = self.__config.var2_threshold
-        a_glar = self.__config.a_glar
-        b_glar = self.__config.b_glar
+        a_glar = self.__params.a_glar
+        b_glar = self.__params.b_glar
         
         var1_dry = var1 < var1_threshold
         var2_wet = var2 >= var2_threshold
@@ -1006,7 +1114,7 @@ class StepsNowcaster:
                 mask=mask,
                 fft_method=self.__params.fft,
                 output_domain=self.__config.domain,
-                **self.__config.decomp_kwargs,
+                **self.__params.decomp_kwargs,
             )
             decomposed_list.append(field_decomposed)
     
@@ -1022,7 +1130,7 @@ class StepsNowcaster:
         """
         Main function to prepare data for nowcasting.
         
-        Steps:
+        Steps to follow:
         1. Clean input data (fix NaN values)
         2. Setup noise generators for var1 and var2
         3. Break fields into cascade levels
@@ -1041,10 +1149,10 @@ class StepsNowcaster:
         if self.__var2 is not None:
             self.__state.var2_cascades, self.__state.var2_decomposed = \
                 self.__decompose_field(self.__var2, self.__state.mask_threshold_var2)
-                
+        
         # Setup AR windows and adaptive masks
         self.__setup_ar_window_radius()
-        if self.__config.adaptive_localization:
+        if self.__params.adaptive_localization:
             var1_cascades_adaptive = self.__compute_adaptive_cascades_mask()
             if self.__var2 is not None:
                 var2_cascades_adaptive = self.__compute_adaptive_cascades_mask(is_var2=True)
@@ -1086,7 +1194,7 @@ class StepsNowcaster:
             # Replace phi0 from var1 to phi0 from var2 (rainfall)
             if self.__config.phi_with_var2:
                 print('phi0 replaced for phi0_var2')
-                self.__params.phi0 = self.__params.phi0_var2 #/ self.__config.a_glar
+                self.__params.phi0 = self.__params.phi0_var2
                 self.__params.ar_model_coefficients[:, -1] = self.__params.phi0
             
         # Trim cascades and setup random generators
@@ -1135,7 +1243,7 @@ class StepsNowcaster:
             
             if self.__var2 is not None and self.__config.noise_with_var2: #noise correlated to var2
                 self.__params.perturbation_generator = init_noise(  # Setup with current data
-                    self.__var2, fft_method=self.__params.fft, **self.__config.noise_kwargs
+                    self.__var2, fft_method=self.__params.fft, **self.__params.noise_kwargs
                 )
                 # Compute noise scaling per cascade level
                 self.__params.noise_std_coefficients = self.__compute_noise_std_coeffs(
@@ -1144,7 +1252,7 @@ class StepsNowcaster:
                 )
             else: #Normal STEPS noise correlated to var1
                 self.__params.perturbation_generator = init_noise(  # Setup with current data
-                    self.__var1, fft_method=self.__params.fft, **self.__config.noise_kwargs
+                    self.__var1, fft_method=self.__params.fft, **self.__params.noise_kwargs
                 )
                 # Compute noise scaling per cascade level
                 self.__params.noise_std_coefficients = self.__compute_noise_std_coeffs(
@@ -1173,7 +1281,7 @@ class StepsNowcaster:
             init_noise_var2, generate_noise_var2 = noise.get_method(noise_method_var2)
             self.__params.noise_generator_var2 = generate_noise_var2
             self.__params.perturbation_generator_var2 = init_noise_var2(
-                self.__var2, fft_method=self.__params.fft, **self.__config.noise_kwargs_var2
+                self.__var2, fft_method=self.__params.fft, **self.__params.noise_kwargs_var2
             )
             self.__params.noise_std_coefficients_var2 = self.__compute_noise_std_coeffs(
                 self.__var2[-1], self.__config.var2_threshold, self.__config.noise_stddev_adj_var2,
@@ -1240,21 +1348,28 @@ class StepsNowcaster:
         - str → 'central' or 'sprogloc' formulas
         """
         # Handle adaptive localization defaults
-        if self.__config.adaptive_localization:
-            if self.__config.adaptive_localization == 1:
-                self.__config.adaptive_localization = self.__config.n_cascade_levels
-            if self.__config.ar_window_radius is None:
-                self.__config.ar_window_radius = "central"
-    
-        if self.__config.ar_window_radius is None:
-            self.__config.ar_window_radius = np.full(self.__config.n_cascade_levels, np.inf)
-        elif isinstance(self.__config.ar_window_radius, (int, np.integer)):
-            self.__config.ar_window_radius = np.full(self.__config.n_cascade_levels, self.__config.ar_window_radius)
-        elif isinstance(self.__config.ar_window_radius, list):
-            self.__config.ar_window_radius = np.array(self.__config.ar_window_radius)
-        elif isinstance(self.__config.ar_window_radius, str):
-            self.__config.ar_window_radius = self.__compute_window_sizes_from_string()
-    
+        adaptive_localization = self.__config.adaptive_localization
+        ar_window_radius = self.__config.ar_window_radius
+        n_cascade_levels = self.__config.n_cascade_levels
+        
+        if adaptive_localization:
+            if adaptive_localization == 1:
+                adaptive_localization = n_cascade_levels
+            if ar_window_radius is None:
+                ar_window_radius = "central"
+            
+        if ar_window_radius is None:
+            ar_window_radius = np.full(n_cascade_levels, np.inf)
+        elif isinstance(ar_window_radius, (int, np.integer)):
+            ar_window_radius = np.full(n_cascade_levels, ar_window_radius)
+        elif isinstance(ar_window_radius, list):
+            ar_window_radius = np.array(ar_window_radius)
+        elif isinstance(ar_window_radius, str):
+            ar_window_radius = self.__compute_window_sizes_from_string()
+        
+        self.__params.adaptive_localization = adaptive_localization
+        self.__params.ar_window_radius = ar_window_radius
+        
     def __compute_window_sizes_from_string(self):
         """
         Convert string window specs ('central', 'sprogloc') to radius array.
@@ -1266,7 +1381,7 @@ class StepsNowcaster:
         """
         bp_filter = self.__params.bandpass_filter
         L = max(bp_filter["shape"])  # Domain size
-        ar_window_radius = self.__config.ar_window_radius
+        ar_window_radius = self.__params.ar_window_radius
         
         if "central" in ar_window_radius:
             res = self.__config.kmperpixel
@@ -1307,7 +1422,7 @@ class StepsNowcaster:
         For each pixel, pick "best" cascade level (strongest signal).
         Uses only first N levels where N = adaptive_localization.
         """
-        n_adaptive_cascades = self.__config.adaptive_localization
+        n_adaptive_cascades = self.__params.adaptive_localization
         
         if is_var2:
             var_cascades = self.__state.var2_cascades
@@ -1356,9 +1471,9 @@ class StepsNowcaster:
         domain = self.__config.domain
     
         # Short-hand variables
-        ad_loc = self.__config.adaptive_localization
+        ad_loc = self.__params.adaptive_localization
         cad_loc = self.__config.constant_adaptive_localization
-        ar_window_radius = self.__config.ar_window_radius
+        ar_window_radius = self.__params.ar_window_radius
         gamma_filter_method = self.__config.gamma_filter_method
         fill_gamma_method = self.__config.fill_autocorrelation_coefficients_method
     
@@ -1386,7 +1501,7 @@ class StepsNowcaster:
                 # Parallel (over k) computation of gamma_wr for this window radius
                 if DASK_IMPORTED and self.__config.num_workers > 1:
                     tasks = [
-                        dask.delayed(self.__temporal_autocorrelation)(
+                        dask.delayed(correlation.temporal_autocorrelation)(
                             cascades[k],
                             d=d_order,
                             domain=domain,
@@ -1403,7 +1518,7 @@ class StepsNowcaster:
                     gamma_wr_list = []
                     for k in range(n_cascade_levels):
                         gamma_wr = np.array(
-                            self.__temporal_autocorrelation(
+                            correlation.temporal_autocorrelation(
                                 cascades[k],
                                 d=d_order,
                                 domain=domain,
@@ -1424,7 +1539,7 @@ class StepsNowcaster:
                         if fill_gamma_method in ["global", 0]:
                             # Re-compute with infinite radius for true global
                             gamma_inf = np.array(
-                                self.__temporal_autocorrelation(
+                                correlation.temporal_autocorrelation(
                                     cascades[k],
                                     d=d_order,
                                     domain=domain,
@@ -1470,7 +1585,7 @@ class StepsNowcaster:
             # Standard (Non-Adaptive) Logic
             if DASK_IMPORTED and self.__config.num_workers > 1:
                 tasks = [
-                    dask.delayed(self.__temporal_autocorrelation)(
+                    dask.delayed(correlation.temporal_autocorrelation)(
                         cascades[k],
                         d=d_order,
                         domain=domain,
@@ -1488,7 +1603,7 @@ class StepsNowcaster:
             else:
                 for k in range(n_cascade_levels):
                     gamma_wr = np.array(
-                        self.__temporal_autocorrelation(
+                        correlation.temporal_autocorrelation(
                             cascades[k],
                             d=d_order,
                             domain=domain,
@@ -1519,7 +1634,7 @@ class StepsNowcaster:
     
             for k in range(n_cascade_levels):
                 gamma_phi0_ = np.array(
-                    self.__temporal_autocorrelation(
+                    correlation.temporal_autocorrelation(
                         cascades[k][1:],  # Original series shift
                         d=d_order,
                         domain=domain,
@@ -1556,18 +1671,9 @@ class StepsNowcaster:
         phi = np.empty((n_cascade_levels, ar_order + d_order + 1, M, N))
         
         for k in range(n_cascade_levels):
-            if ar_order > 2 or d_order > 1:
-                phi[k, :] = autoregression.estimate_ar_params_yw_localized(
-                    gamma[k], d=d_order
-                )
-            elif ar_order == 2:
-                phi[k, :] = self.__estimate_ar2_params(
-                    gamma[k], d=d_order
-                )
-            elif ar_order == 1:
-                phi[k, :] = self.__estimate_ar1_params(
-                    gamma[k], d=d_order
-                )
+            phi[k, :] = autoregression.estimate_ar_params_yw_localized(
+                gamma[k], d=d_order
+            )
     
         # Replace phi0 if computed
         if update_phi0:
@@ -1671,238 +1777,7 @@ class StepsNowcaster:
             self.__state.random_generator_var2 = None
             self.__state.random_generator_motion = None
 
-    # optimized version of timeseries.autoregression.estimate_ar_params_yw_localized
-    # for an AR(1,1) modeL
-    def __estimate_ar1_params(self, gamma, d):
-        """
-        Estimate AR(1) parameters for a given autocorrelation structure.
-        
-        Parameters:
-        - gamma (np.ndarray): The autocorrelation coefficients for the time series.
-        - d (int): The differencing order (0 for AR, 1 for ARI).
-        
-        Returns:
-        - phi (np.ndarray): Estimated AR(1) parameters.
-        """
-        phi = []
-        phi1 = gamma[0, :]
-        phi0 = np.sqrt(np.maximum(1.0 - phi1**2, 0))
-        
-        if d == 0:
-            # AR(1,0) model (no differencing)
-            phi.append(phi1)
-            #Noise term
-            phi.append(phi0)
-            
-        elif d == 1:
-            # ARI(1,1) model (first differenced)
-            phi1_d = 1 + phi1
-            phi2_d = -phi1
-            phi.append(phi1_d)
-            phi.append(phi2_d)
-            #Noise term
-            phi.append(phi0)
-        
-        return np.array(phi)
-    
-    def __estimate_ar2_params(self, gamma, d):
-        """
-        Estimate AR(2) parameters for a given autocorrelation structure.
-        
-        Parameters:
-        - gamma (np.ndarray): The autocorrelation coefficients for the time series.
-        - d (int): The differencing order (0 for AR, 1 for ARI).
-        
-        Returns:
-        - phi (np.ndarray): Estimated AR(2) parameters.
-        """
-        phi = []
-        g1 = gamma[0, :]
-        g2 = gamma[1, :]
-        phi1 = (g1 * (1.0 - g2)) / (1.0 - g1**2)
-        phi2 = (g2 - g1**2) / (1.0 - g1**2)
-        phi0 = np.sqrt(np.maximum(1.0 - phi1 * g1 - phi2 * g2, 0))
-        
-        if d == 0:
-            # AR(2,0) model (no differencing)
-            phi.append(phi1)
-            phi.append(phi2)
-            #Noise term
-            phi.append(phi0)
-        elif d == 1:
-            # ARI(2,1) model (first differenced)
-            phi1_d = 1 + phi1
-            phi2_d = phi2 - phi1
-            phi3_d = -phi2
-            phi.append(phi1_d)
-            phi.append(phi2_d)
-            phi.append(phi3_d)
-            # Noise term
-            phi.append(phi0)
-            
-        return np.array(phi)
-    
-    def __temporal_autocorrelation(
-        self,
-        x,
-        d=0,
-        domain="spatial",
-        x_shape=None,
-        mask=None,
-        use_full_fft=False,
-        window="gaussian",
-        window_radius=np.inf,
-    ):
-        r"""
-        Compute lag-l temporal autocorrelation coefficients
-        :math:`\gamma_l=\mbox{corr}(x(t),x(t-l))`, :math:`l=1,2,\dots,n-1`,
-        from a time series :math:`x_1,x_2,\dots,x_n`. If a multivariate time series
-        is given, each element of :math:`x_i` is treated as one sample from the
-        process generating the time series. Use
-        :py:func:`temporal_autocorrelation_multivariate` if cross-correlations
-        between different elements of the time series are desired.
-    
-        Parameters
-        ----------
-        x: array_like
-            Array of shape (n, ...), where each row contains one sample from the
-            time series :math:`x_i`. The inputs are assumed to be in increasing
-            order with respect to time, and the time step is assumed to be regular.
-            All inputs are required to have finite values. The remaining dimensions
-            after the first one are flattened before computing the correlation
-            coefficients.
-        d: {0,1}
-            The order of differencing. If d=1, the input time series is differenced
-            before computing the correlation coefficients. In this case, a time
-            series of length n+1 is needed for computing the n-1 coefficients.
-        domain: {"spatial", "spectral"}
-            The domain of the time series x. If domain is "spectral", the elements
-            of x are assumed to represent the FFTs of the original elements.
-        x_shape: tuple
-            The shape of the original arrays in the spatial domain before applying
-            the FFT. Required if domain is "spectral".
-        mask: array_like
-            Optional mask to use for computing the correlation coefficients. Input
-            elements with mask==False are excluded from the computations. The shape
-            of the mask is expected to be x.shape[1:]. Applicable if domain is
-            "spatial".
-        use_full_fft: bool
-            If True, x represents the full FFTs of the original arrays. Otherwise,
-            the elements of x are assumed to contain only the symmetric part, i.e.
-            in the format returned by numpy.fft.rfft2. Applicable if domain is
-            'spectral'. Defaults to False.
-        window: {"gaussian", "uniform"}
-            The weight function to use for the moving window. Applicable if
-            window_radius < np.inf. Defaults to 'gaussian'.
-        window_radius: float
-            If window_radius < np.inf, the correlation coefficients are computed in
-            a moving window. Defaults to np.inf (i.e. the coefficients are computed
-            over the whole domain). If window is 'gaussian', window_radius is the
-            standard deviation of the Gaussian filter. If window is 'uniform', the
-            size of the window is 2*window_radius+1.
-    
-        Returns
-        -------
-        out: list
-            List of length n-1 containing the temporal autocorrelation coefficients
-            :math:`\gamma_i` for time lags :math:`l=1,2,...,n-1`. If
-            window_radius<np.inf, the elements of the list are arrays of shape
-            x.shape[1:]. In this case, nan values are assigned, when the sample size
-            for computing the correlation coefficients is too small.
-    
-        Notes
-        -----
-        Computation of correlation coefficients in the spectral domain is currently
-        implemented only for two-dimensional fields.
-    
-        """
-        if len(x.shape) < 2:
-            raise ValueError("the dimension of x must be >= 2")
-        if len(x.shape) != 3 and domain == "spectral":
-            raise NotImplementedError(
-                "len(x.shape[1:]) = %d, but with domain == 'spectral', this function has only been implemented for two-dimensional fields"
-                % len(x.shape[1:])
-            )
-        if mask is not None and mask.shape != x.shape[1:]:
-            raise ValueError(
-                "dimension mismatch between x and mask: x.shape[1:]=%s, mask.shape=%s"
-                % (str(x.shape[1:]), str(mask.shape))
-            )
-        if np.any(~np.isfinite(x)):
-            raise ValueError("x contains non-finite values")
-    
-        if d == 1:
-            x = np.diff(x, axis=0)
-    
-        if domain == "spatial" and mask is None:
-            mask = np.ones(x.shape[1:], dtype=bool)
-    
-        gamma = []
-        for k in range(x.shape[0] - 1):
-            if domain == "spatial":
-                if window_radius == np.inf:
-                    cc = np.corrcoef(x[-1, :][mask], x[-(k + 2), :][mask])[0, 1]
-                else:
-                    ccg = np.corrcoef(x[-1, :][mask], x[-(k + 2), :][mask])[0, 1]
-                    cc = self.__moving_window_corrcoef(
-                        x[-1, :], x[-(k + 2), :], window_radius, window=window, mask=mask
-                    )
-                    cc[~np.isfinite(cc)] = ccg
-            else:
-                cc = spectral.corrcoef(
-                    x[-1, :, :], x[-(k + 2), :], x_shape, use_full_fft=use_full_fft
-                )
-            gamma.append(cc)
-    
-        return gamma
-    
-    
-    def __moving_window_corrcoef(self, x, y, window_radius, window="gaussian", mask=None):
-        if window not in ["gaussian", "uniform"]:
-            raise ValueError(
-                "unknown window type %s, the available options are 'gaussian' and 'uniform'"
-                % window
-            )
-    
-        if mask is None:
-            mask = np.ones(x.shape)
-        else:
-            x = x.copy()
-            x[~mask] = 0.0
-            y = y.copy()
-            y[~mask] = 0.0
-            mask = mask.astype(float)
-            
-        if window == "gaussian":
-            convol_filter = gaussian_filter
-            window_size = window_radius
-        else:
-            convol_filter = uniform_filter
-            window_size = 2 * window_radius + 1
-        
-        n = convol_filter(mask, window_size, mode="constant") * window_size**2
-        sx = convol_filter(x, window_size, mode="constant") * window_size**2
-        sy = convol_filter(y, window_size, mode="constant") * window_size**2
-        ssx = convol_filter(x**2, window_size, mode="constant") * window_size**2
-        ssy = convol_filter(y**2, window_size, mode="constant") * window_size**2
-        sxy = convol_filter(x * y, window_size, mode="constant") * window_size**2
-    
-        mux = sx / n
-        muy = sy / n
-        
-        stdx = np.sqrt(ssx - 2 * mux * sx + n * mux**2)
-        stdy = np.sqrt(ssy - 2 * muy * sy + n * muy**2)
-        cov = sxy - muy * sx - mux * sy + n * mux * muy
-    
-        mask = np.logical_and(stdx > 1e-8, stdy > 1e-8)
-        mask = np.logical_and(mask, stdx * stdy > 1e-8)
-        mask = np.logical_and(mask, n >= 3)
-        corr = np.empty(x.shape)
-        corr[mask] = cov[mask] / (stdx[mask] * stdy[mask])
-        corr[~mask] = np.nan
-        
-        return corr
-    
+
     def __initialize_velocity_perturbations(self):
         """
         Initialize the velocity perturbators for each ensemble member if the velocity
@@ -1917,10 +1792,10 @@ class StepsNowcaster:
             for j in range(self.__config.n_ens_members):
                 kwargs = {
                     "randstate": self.__state.random_generator_motion[j],
-                    "p_par": self.__config.velocity_perturbation_kwargs.get(
+                    "p_par": self.__params.velocity_perturbation_kwargs.get(
                         "p_par", self.__params.velocity_perturbation_parallel
                     ),
-                    "p_perp": self.__config.velocity_perturbation_kwargs.get(
+                    "p_perp": self.__params.velocity_perturbation_kwargs.get(
                         "p_perp", self.__params.velocity_perturbation_perpendicular
                     ),
                 }
@@ -1966,7 +1841,7 @@ class StepsNowcaster:
                 
             elif "incremental" in mask_method:
                 # Get mask parameters
-                mask_kwargs = self.__config.mask_kwargs
+                mask_kwargs = self.__params.mask_kwargs
                 # Determine rim size (default 10)
                 self.__params.mask_rim = mask_kwargs.get("mask_rim", 10)
                 mask_f = mask_kwargs.get("mask_f", 1.0)
@@ -2018,7 +1893,7 @@ class StepsNowcaster:
                     self.__state.mask_var2 = [base_mask_var2.copy() for _ in range(n_ens_members)]
                     
                 elif "incremental" in mask_method_var2:
-                    mask_kwargs = self.__config.mask_kwargs
+                    mask_kwargs = self.__params.mask_kwargs
                     self.__params.mask_rim_var2 = mask_kwargs.get("mask_rim_var2", 10)
                     mask_f_var2 = mask_kwargs.get("mask_f_var2", 1.0)
                     
@@ -2159,7 +2034,7 @@ class StepsNowcaster:
             "generate_noise_var2": self.__params.noise_generator_var2,
             "pert_gen": self.__params.perturbation_generator,
             "pert_gen_var2": self.__params.perturbation_generator_var2,
-            "vel_pert_method": self.__params.velocity_perturbation_method,
+            "vel_pert_method": self.__config.velocity_perturbation_method,
             "noise_levels": self.__config.noise_levels,
             "noise_levels_var2": self.__config.noise_levels_var2,
             "is_probabilistic": self.__params.is_probabilistic,
@@ -2185,13 +2060,16 @@ class StepsNowcaster:
             "global_var1_var2_b": self.__params.global_var1_var2_b,
             "prob_conversion": self.__config.prob_conversion,
             
-            "a_glar": self.__config.a_glar,
-            "b_glar": self.__config.b_glar,
-            "phi_glar": self.__config.phi_glar,
+            "a_glar": self.__params.a_glar,
+            "b_glar": self.__params.b_glar,
+            "phi_glar": self.__params.phi_glar,
             "alpha": self.__config.alpha,
             "beta": self.__config.beta,
-            "seed": self.__config.seed,
+            "vil_activation_thr": self.__config.vil_activation_thr,
+            "min_vil_trend": self.__config.min_vil_trend,
+            "min_neigh_wet_frac": self.__config.min_neigh_wet_frac,
             
+            "seed": self.__config.seed,
             "timestep": self.__config.timestep,
         }
 
@@ -2371,9 +2249,9 @@ class StepsNowcaster:
             if prob_conversion:
                 alpha = params["alpha"]
                 beta = params["beta"]
-                vil_activation_thr  = -16.87
-                min_vil_trend       = 0
-                min_neigh_wet_frac  = 0.1
+                vil_activation_thr = params["vil_activation_thr"]
+                min_vil_trend = params["min_vil_trend"]
+                min_neigh_wet_frac = params["min_neigh_wet_frac"]
                 
                 p_rain = 1 / (1 + np.exp(-(alpha + beta * var1_forecast)))
                 recomp_method = params["recomp_method"]
@@ -2526,7 +2404,7 @@ class StepsNowcaster:
             fft_method=state["fft_objs"][j],
             input_domain=domain,
             output_domain=domain,
-            **self.__config.decomp_kwargs,
+            **self.__params.decomp_kwargs,
         )
         
         # 2. Load correlated noise
@@ -2539,7 +2417,7 @@ class StepsNowcaster:
                 fft_method = state["fft_objs"][j],
                 input_domain = domain,
                 output_domain = domain,
-                **self.__config.decomp_kwargs,
+                **self.__params.decomp_kwargs,
             )
         
         # 3. Add perturbations
@@ -2590,7 +2468,7 @@ class StepsNowcaster:
             fft_method = state["fft_objs"][j],
             input_domain = domain,
             output_domain = domain,
-            **self.__config.decomp_kwargs,
+            **self.__params.decomp_kwargs,
         )
 
         return eps
@@ -2715,7 +2593,7 @@ class StepsNowcaster:
         return var_forecast
 
     
-    def __var1_var2_regression(self, var1, b_fixed=True, a_fixed=False):
+    def __var1_var2_regression(self, var1, var2, b_fixed=True, a_fixed=False):
         """
         Performs a localized, threshold-aware linear regression between two variables (`var1` and `var2`)
         to estimate pixel-wise coefficients `a` and `b` such that:
@@ -2763,7 +2641,7 @@ class StepsNowcaster:
         var1 = 10**(var1 / 10)
         
         # Copy the previous timestep's var2 and convert from dB to linear scale
-        var2 = self.__var2_last.copy()
+        var2 = var2.copy()
         var2 = 10**(var2 / 10)
         
         # Convert configured thresholds from dB to linear scale
@@ -2894,7 +2772,7 @@ class StepsNowcaster:
                 ma, mb = np.polyfit(x_mean, y_mean, deg=1, w=np.sqrt(w))
                 print(f"Robust fit: a={ma:.8f}, b={mb:.8f}")
             
-        else: #Use predefined values estimated from from past events
+        else: #Use predefined values estimated from past events
             ma, mb = self.__config.a_glar, self.__config.b_glar
         
         return ma, mb
@@ -2955,8 +2833,8 @@ class StepsNowcaster:
         the inputs like var1, velocity, time_steps, or config.
         """
         # Re-initialize the state and parameters
-        self.__state = StepsNowcasterState()
-        self.__params = StepsNowcasterParams()
+        self.__state = NowcasterState()
+        self.__params = NowcasterParams()
 
         # Reset time measurement variables
         self.__start_time_init = None
@@ -2964,19 +2842,22 @@ class StepsNowcaster:
         self.__mainloop_time = None
         
 
-# Wrapper function to preserve backward compatibility
-@deprecate_args({"R": "var1", "V": "velocity", "R_thr": "var1_thr"}, "1.8.0")
+# Public interface supporting xarray Dataset and NumPy array inputs.
 def forecast(
-    var1,
-    velocity,
-    timesteps,
+    dataset: xr.Dataset | None = None,
+    var1: np.ndarray | None = None,
+    var2: np.ndarray | None = None,
+    velocity: np.ndarray | None = None,
+    timesteps=12,
     n_ens_members=24,
     n_cascade_levels=6,
-    var2=None,
     var1_thr=None,
     var2_thr=None,
-    var1_name="var1",
-    var2_name="var2",
+    norain_thr=0.0,
+    var1_name="proxy",
+    var2_name="precip",
+    velocity_x_name="velocity_x",
+    velocity_y_name="velocity_y",
     ar_order=2,
     d_order=0,
     ar_window_radius=None,
@@ -2995,13 +2876,13 @@ def forecast(
     noise_levels_var2=None,
     prob_conversion=False,
     noise_method_var2=None,
-    r_vil_conversion_method="loclinreg",
+    r_vil_conversion_method="glar",
     noise_stddev_adj_var2=None,
     motion_field_general=None,
     vel_pert_method="bps",
     fill_global_regression=False,
-    conditional=False,
-    conditional_var2=False,
+    conditional=True,
+    conditional_var2=True,
     adaptive_localization=False,
     fill_autocorrelation_coefficients_method="first",
     constant_adaptive_localization=True,
@@ -3026,6 +2907,7 @@ def forecast(
     measure_time=False,
     callback=None,
     return_output=True,
+    return_var1=False,
 ):
     """
     Generate a nowcast ensemble using the STAN (STEPS and Autoregressive
@@ -3104,7 +2986,7 @@ def forecast(
     noise_stddev_adj_var2: {'auto','fixed',None}, optional
         Optional adjustment for the standard deviations of the noise fields added
         to each cascade level for variable 2.
-    vel_pert_method: {'bps',None}, optional
+    vel_pert_method: {'bps', None}, optional
         Name of the noise generator to use for perturbing the advection field. See
         the documentation of pysteps.noise.interface. If set to None, the advection
         field is not perturbed.
@@ -3268,16 +3150,66 @@ def forecast(
     ----------
     :cite:`Seed2003`, :cite:`BPS2006`, :cite:`SPN2013`, :cite:`PCH2019b`
     """
-
-    nowcaster_config = StepsNowcasterConfig(
+    
+    # ---------------------------------------------------------
+    # Input handling: xarray Dataset or NumPy arrays
+    # ---------------------------------------------------------
+    
+    if dataset is not None:
+        if not isinstance(dataset, xr.Dataset):
+            raise TypeError("dataset must be an xarray.Dataset.")
+        
+        dataset = dataset.copy(deep=False)
+        
+        # var1: explicit argument takes precedence over Dataset.
+        if var1 is not None:
+            var1 = np.asarray(var1)
+        elif var1_name in dataset:
+            var1 = dataset[var1_name].values
+        else:
+            raise TypeError("var1_name not found in dataset and var1 is not provided.")
+        
+        # var2: explicit argument takes precedence over Dataset.
+        if var2 is not None:
+            var2 = np.asarray(var2)
+        elif var2_name in dataset:
+            var2 = dataset[var2_name].values
+        else:
+            var2 = None
+        
+        # velocity: explicit argument takes precedence over Dataset.
+        if velocity is not None:
+            velocity = np.asarray(velocity)
+        else:
+            velocity = np.stack(
+                [
+                    dataset[velocity_x_name].values,
+                    dataset[velocity_y_name].values,
+                ],
+                axis=0,
+            )
+        
+    else:
+        if var1 is None:
+            raise ValueError("Either dataset or var1 must be provided.")
+        if velocity is None:
+            raise ValueError("velocity must be provided when using NumPy arrays.")
+        var1 = np.asarray(var1)
+        var2 = None if var2 is None else np.asarray(var2)
+        velocity = np.asarray(velocity)
+    
+    nowcaster_config = NowcasterConfig(
         n_ens_members=n_ens_members,
         n_cascade_levels=n_cascade_levels,
         ar_window_radius=ar_window_radius,
         var1_var2_window_radius=var1_var2_window_radius,
         var1_threshold=var1_thr,
         var2_threshold=var2_thr,
+        norain_threshold=norain_thr,
         var1_name=var1_name,
         var2_name=var2_name,
+        velocity_x_name=velocity_x_name,
+        velocity_y_name=velocity_y_name,
         kmperpixel=kmperpixel,
         timestep=timestep,
         extrapolation_method=extrap_method,
@@ -3327,13 +3259,47 @@ def forecast(
     )
 
     # Create an instance of the new class with all the provided arguments
-    nowcaster = StepsNowcaster(
-        var1, velocity, timesteps, steps_config=nowcaster_config, var2=var2
+    nowcaster = Nowcaster(
+        var1=var1,
+        var2=var2,
+        velocity=velocity,
+        time_steps=timesteps,
+        config=nowcaster_config,
     )
-    forecast_steps_nowcast = nowcaster.compute_forecast()
+    forecast_nowcast = nowcaster.compute_forecast()
     nowcaster.reset_states_and_params()
-    # Call the appropriate methods within the class
-    return forecast_steps_nowcast
+    
+    # Separate the forecast array from timing information
+    if measure_time:
+        forecast_array, init_time, mainloop_time = forecast_nowcast
+    else:
+        forecast_array = forecast_nowcast
+    
+    if dataset is not None:
+        output_var_name = var2_name if var2 is not None else var1_name
+    
+        # Metadata template, not the forecast itself
+        metadata_dataset = dataset.copy(deep=False)
+        metadata_dataset.attrs = dataset.attrs.copy()
+        metadata_dataset.attrs["precip_var"] = output_var_name
+        
+        forecast_dataset = convert_output_to_xarray_dataset(
+            metadata_dataset,
+            timesteps,
+            forecast_array,
+        )
+    
+        return (
+            (forecast_dataset, init_time, mainloop_time)
+            if measure_time
+            else forecast_dataset
+        )
+    
+    return (
+        (forecast_array, init_time, mainloop_time)
+        if measure_time
+        else forecast_array
+    )
 
 
 

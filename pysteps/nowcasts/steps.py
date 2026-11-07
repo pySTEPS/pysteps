@@ -229,7 +229,7 @@ class StepsNowcasterConfig:
     domain: str = "spatial"
     extrapolation_kwargs: dict[str, Any] = field(default_factory=dict)
     filter_kwargs: dict[str, Any] = field(default_factory=dict)
-    noise_kwargs: dict[str, Any] = field(default_factory=dict)
+    noise_kwargs: dict[str, Any] | None = None
     velocity_perturbation_kwargs: dict[str, Any] = field(default_factory=dict)
     mask_kwargs: dict[str, Any] = field(default_factory=dict)
     measure_time: bool = False
@@ -476,6 +476,8 @@ class StepsNowcaster:
             )
         if self.__state.velocity.ndim != 3:
             raise ValueError("velocity must be a three-dimensional array")
+        if self.__state.velocity.shape[0] != 2:
+            raise ValueError("velocity must have shape (2, y, x), containing velocity_x and velocity_y")
         if self.__state.precip.shape[1:3] != self.__state.velocity.shape[1:3]:
             raise ValueError(
                 f"Dimension mismatch between precip and velocity: "
@@ -900,23 +902,27 @@ class StepsNowcaster:
             for _ in range(self.__config.n_ens_members)
         ]
 
-        # Initialize random generators if noise_method is provided
+        # Initialize random generators if required
         if self.__config.noise_method is not None:
             self.__state.random_generator_precip = []
+        else:
+            self.__state.random_generator_precip = None
+        if self.__config.velocity_perturbation_method is not None:
             self.__state.random_generator_motion = []
-            seed = self.__config.seed
-            for _ in range(self.__config.n_ens_members):
-                # Create random state for precipitation noise generator
+        else:
+            self.__state.random_generator_motion = None
+        
+        seed = self.__config.seed
+        for _ in range(self.__config.n_ens_members):
+            if self.__config.noise_method is not None:
                 rs = np.random.RandomState(seed)
                 self.__state.random_generator_precip.append(rs)
                 seed = rs.randint(0, high=int(1e9))
-                # Create random state for motion perturbations generator
+            if self.__config.velocity_perturbation_method is not None:
                 rs = np.random.RandomState(seed)
                 self.__state.random_generator_motion.append(rs)
                 seed = rs.randint(0, high=int(1e9))
-        else:
-            self.__state.random_generator_precip = None
-            self.__state.random_generator_motion = None
+        
         print("AR model and noise applied to precipitation cascades.")
 
     def __initialize_velocity_perturbations(self):
@@ -1021,12 +1027,12 @@ class StepsNowcaster:
         """
         Initialize FFT objects for each ensemble member.
         """
-        self.__state.fft_objs = []
+        self.__state.fft_objects = []
         for _ in range(self.__config.n_ens_members):
             fft_obj = utils.get_method(
                 self.__config.fft_method, shape=self.__state.precip.shape[1:]
             )
-            self.__state.fft_objs.append(fft_obj)
+            self.__state.fft_objects.append(fft_obj)
         print("FFT objects initialized successfully.")
 
     def __return_state_dict(self):
@@ -1034,7 +1040,7 @@ class StepsNowcaster:
         Initialize the state dictionary used during the nowcast iteration.
         """
         return {
-            "fft_objs": self.__state.fft_objs,
+            "fft_objs": self.__state.fft_objects,
             "mask_prec": self.__state.mask_precip,
             "precip_cascades": self.__state.precip_cascades,
             "precip_decomp": self.__state.precip_decomposed,
@@ -1064,6 +1070,7 @@ class StepsNowcaster:
             "num_ensemble_workers": self.__params.num_ensemble_workers,
             "phi": self.__params.ar_model_coefficients,
             "pert_gen": self.__params.perturbation_generator,
+            "vel_pert_method": self.__config.velocity_perturbation_method,
             "probmatching_method": self.__config.probmatching_method,
             "precip": precip,
             "precip_thr": self.__config.precip_threshold,
