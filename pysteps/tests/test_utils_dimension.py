@@ -78,6 +78,20 @@ test_data_not_trim = (
         "mean",
         np.array([[3.5, 5.5, 7.5], [15.5, 17.5, 19.5]]),
     ),
+    (
+        np.where(np.arange(4 * 6) == 0, np.nan, np.arange(4 * 6)).reshape(4, 6),
+        2,
+        ("y", "x"),
+        "mean",
+        np.array([[np.nan, 5.5, 7.5], [15.5, 17.5, 19.5]]),
+    ),
+    (
+        np.where(np.arange(4 * 6) == 0, np.nan, np.arange(4 * 6)).reshape(4, 6),
+        2,
+        ("y", "x"),
+        "nanmean",
+        np.array([[14 / 3, 5.5, 7.5], [15.5, 17.5, 19.5]]),
+    ),
 )
 
 
@@ -94,6 +108,16 @@ def test_aggregate_fields(data, window_size, dim, method, expected):
 
     actual = dimension.aggregate_fields(dataset, window_size, dim=dim, method=method)
     assert_array_equal(actual["precip_intensity"].values, expected)
+
+    # lon and lat keep the value of the last cell of each block.
+    dims = np.atleast_1d(dim)
+    sizes = np.broadcast_to(window_size, dims.shape)
+    last_cell_of_each_block = {
+        d: np.arange(size - 1, dataset.sizes[d], size) for d, size in zip(dims, sizes)
+    }
+    for coord in ("lon", "lat"):
+        expected_coord = dataset[coord].isel(last_cell_of_each_block)
+        assert_array_equal(actual[coord], expected_coord)
 
     # Test the trimming capabilities.
     if np.ndim(window_size) == 0:
@@ -181,39 +205,6 @@ def test_aggregate_fields_w_velocity(
     assert_array_equal(actual["velocity_x"].values, expected_v)
     assert_array_equal(actual["velocity_y"].values, expected_v)
     assert_array_almost_equal(actual["quality"].values, expected_qual)
-
-
-def test_aggregate_fields_nan_and_coords():
-    """
-    Test that blocks with a NaN are NaN for the "mean" method, while the "nanmean"
-    method ignores the NaN, and that the x and y coordinates are the block means
-    while the lon and lat coordinates are those of the last cell of each block.
-    """
-    data = np.arange(4 * 6, dtype=float).reshape(4, 6)
-    data[0, 0] = np.nan
-    dataset = convert_input_to_xarray_dataset(data, None, fillvalues_metadata)
-    blocks = dataset["precip_intensity"].values.reshape(2, 2, 3, 2)
-
-    actual = dimension.aggregate_fields(dataset, 2, dim=("y", "x"), method="mean")
-    actual_nan = dimension.aggregate_fields(
-        dataset, 2, dim=("y", "x"), method="nanmean"
-    )
-
-    assert np.isnan(actual["precip_intensity"].values).sum() == 1
-    assert_array_almost_equal(
-        actual["precip_intensity"].values, blocks.mean(axis=(1, 3))
-    )
-    assert not np.isnan(actual_nan["precip_intensity"].values).any()
-    assert_array_almost_equal(
-        actual_nan["precip_intensity"].values, np.nanmean(blocks, axis=(1, 3))
-    )
-    for coord, ncells in (("x", 3), ("y", 2)):
-        assert_array_almost_equal(
-            actual[coord].values,
-            dataset[coord].values.reshape(ncells, 2).mean(axis=1),
-        )
-    for coord in ("lon", "lat"):
-        assert_array_equal(actual[coord].values, dataset[coord].values[1::2, 1::2])
 
 
 def test_aggregate_fields_errors():
