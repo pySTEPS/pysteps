@@ -75,7 +75,7 @@ doc = [
     "scikit-learn",
     "pandas",
     #FIXME when merged in pysteps-nwp-importers main and released, require version >v2.0.0
-    "git+https://github.com/pySTEPS/pysteps-nwp-importers.git@adapt_to_v2#egg=pysteps_nwp_importers",
+    "pysteps-nwp-importers @ git+https://github.com/pySTEPS/pysteps-nwp-importers.git@adapt_to_v2",
     "pygrib",
     "h5py"
 ]
