@@ -74,7 +74,7 @@ doc = [
     "scikit-image",
     "scikit-learn",
     "pandas",
-     "pysteps-nwp-importers"
+    "pysteps-nwp-importers",
     "pygrib",
     "h5py"
 ]
