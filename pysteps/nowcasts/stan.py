@@ -929,18 +929,27 @@ class Nowcaster:
                 ]
             )
         else:
-            self.__state.mask_threshold = None
-        
-        if self.__var2 is not None and self.__config.conditional_var2:
-            self.__state.mask_threshold_var2 = np.logical_and.reduce(
-                [
-                    self.__var2[i, :, :] >= self.__config.var2_threshold
-                    for i in range(self.__var2.shape[0])
-                ]
+            self.__state.mask_threshold = np.ones(
+                self.__var1.shape[-2:],
+                dtype=bool,
             )
+            
+        if self.__var2 is not None:
+            if self.__config.conditional_var2:
+                self.__state.mask_threshold_var2 = np.logical_and.reduce(
+                    [
+                        self.__var2[i, :, :] >= self.__config.var2_threshold
+                        for i in range(self.__var2.shape[0])
+                    ]
+                )
+            else:
+                self.__state.mask_threshold_var2 = np.ones(
+                    self.__var2.shape[-2:],
+                    dtype=bool,
+                )
         else:
             self.__state.mask_threshold_var2 = None
-        
+            
         # Determine the coefficients fields of the relation var2 =a*var1+b by
         # localized linear regression
         if self.__var2 is not None and self.__config.r_vil_conversion_method == "loclinreg":
@@ -1267,9 +1276,10 @@ class Nowcaster:
     
         # Setup var2 noise (for VIL → rain conversion)
         is_var2_probabilistic = (
+            self.__var2 is not None and (
             self.__config.noise_method_var2 is not None or
             self.__config.mask_method_var2 == "stepsincremental" or
-            self.__config.prob_conversion
+            self.__config.prob_conversion)
         )
         self.__params.is_var2_probabilistic = is_var2_probabilistic
         if self.__var2 is not None and is_var2_probabilistic:
@@ -1381,7 +1391,7 @@ class Nowcaster:
         """
         bp_filter = self.__params.bandpass_filter
         L = max(bp_filter["shape"])  # Domain size
-        ar_window_radius = self.__params.ar_window_radius
+        ar_window_radius = self.__config.ar_window_radius
         
         if "central" in ar_window_radius:
             res = self.__config.kmperpixel
@@ -3172,7 +3182,7 @@ def forecast(
         # var2: explicit argument takes precedence over Dataset.
         if var2 is not None:
             var2 = np.asarray(var2)
-        elif var2_name in dataset:
+        elif (var1_name != var2_name) and (var2_name in dataset):
             var2 = dataset[var2_name].values
         else:
             var2 = None
