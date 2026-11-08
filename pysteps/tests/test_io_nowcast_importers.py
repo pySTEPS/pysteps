@@ -11,7 +11,7 @@ from pysteps.tests.helpers import get_precipitation_fields
 precip_dataset = get_precipitation_fields(
     num_prev_files=1,
     num_next_files=0,
-    return_raw=False,
+    return_raw=True,
     upscale=2000,
 )
 
@@ -29,7 +29,9 @@ zero_dataset = xr.Dataset(
                 "long_name": "Precipitation intensity",
                 "units": "mm hr-1",  # keep attrs simple types, no None
                 "_FillValue": np.float32(-9999),  # valid NetCDF fill value
-                # omit standard_name unless you have a CF-valid value
+                "standard_name": "lwe_precipitation_rate",
+                "grid_mapping": precip_dataarray.attrs["grid_mapping"],
+                "cell_methods": "time: point",
             },
         )
     },
@@ -38,8 +40,13 @@ zero_dataset = xr.Dataset(
         "y": ("y", precip_dataarray["y"].values),
         "x": ("x", precip_dataarray["x"].values),
     },
-    attrs={"precip_var": "precip_intensity"},  # simple, serializable globals
+    attrs={"precip_var": "precip_intensity"},
 )
+for axis in ("time", "x", "y"):
+    zero_dataset[axis].attrs = precip_dataset[axis].attrs.copy()
+    zero_dataset[axis].attrs.pop("bounds", None)
+crs_name = precip_dataarray.attrs["grid_mapping"]
+zero_dataset = zero_dataset.assign_coords({crs_name: precip_dataset[crs_name]})
 
 
 @pytest.mark.parametrize(
@@ -64,4 +71,6 @@ def test_import_netcdf(precip_dataset):
             "Wrong number of lead times"
         )
         assert precip_netcdf[precip_var].shape[1:] == field_shape, "Wrong field shape"
-        assert np.allclose(precip_netcdf[precip_var].values, precip_dataarray.values)
+        assert np.allclose(
+            precip_netcdf[precip_var].values, precip_dataarray.values, equal_nan=True
+        )

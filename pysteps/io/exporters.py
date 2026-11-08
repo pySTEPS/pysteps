@@ -79,6 +79,7 @@ Available Exporters
     initialize_forecast_exporter_geotiff
     initialize_forecast_exporter_kineros
     initialize_forecast_exporter_netcdf
+    export_netcdf_cf
 
 Generic functions
 -----------------
@@ -96,7 +97,9 @@ from importlib.metadata import version as get_version
 
 import numpy as np
 
+from pysteps.dataset_metadata import cf_grid_mapping
 from pysteps.exceptions import MissingOptionalDependency
+from pysteps.io.netcdf_cf import _legacy_forecast_writer, export_netcdf_cf
 
 try:
     from osgeo import gdal, osr
@@ -287,8 +290,8 @@ def initialize_forecast_exporter_kineros(
         :py:mod:`pysteps.io.importers`.
 
     n_ens_members: int
-        Number of ensemble members in the forecast. This argument is ignored if
-        incremental is set to 'member'.
+        Declared number of ensemble members, including member write mode.
+        Closing an incomplete forecast raises an error.
 
     incremental: {None}, optional
         Currently not implemented for this method.
@@ -386,7 +389,7 @@ def initialize_forecast_exporter_netcdf(
 ):
     """
     Initialize a netCDF forecast exporter. All outputs are written to a
-    single file named as '<outfnprefix>_.nc'.
+    single file named '<outfnprefix>.nc', published on successful close.
 
     Parameters
     ----------
@@ -410,8 +413,8 @@ def initialize_forecast_exporter_netcdf(
         unit attributes (projection and variable units) described in the
         documentation of :py:mod:`pysteps.io.importers`.
     n_ens_members: int
-        Number of ensemble members in the forecast. This argument is ignored if
-        incremental is set to 'member'.
+        Declared number of ensemble members, including member write mode.
+        Closing an incomplete forecast raises an error.
     datatype: np.dtype, optional
         The datatype of the output values. Defaults to np.float32.
     incremental: {None,'timestep','member'}, optional
@@ -423,13 +426,21 @@ def initialize_forecast_exporter_netcdf(
     fill_value: int, optional
         Fill_value for missing data. Defaults to None, which means that the
         standard netCDF4 fill_value is used.
+        For int16 this compatibility API uses -32767 by default. The
+        dataset-first CF exporter instead reserves -32768 explicitly.
     scale_factor: float, optional
-        The scale factor to scale the data as: store_value = scale_factor *
-        precipitation_value + offset. Defaults to None. The scale_factor
-        can be used to reduce data storage.
+        Positive CF packed-data scale in physical units per stored code. Encode as
+        stored_value = (physical_value - offset) / scale_factor, rounding
+        integer output to the nearest code. Decode as
+        physical_value = stored_value * scale_factor + offset. Default is None.
+        The dataset-first exporter supports int16 packing; this compatibility
+        API retains its legacy datatype options. Packing attributes scale_factor
+        and add_offset are stored as float64; fill and validity attributes use
+        the stored variable's dtype. See CF-1.8 section 8.1:
+        https://cfconventions.org/Data/cf-conventions/cf-conventions-1.8/cf-conventions.html#packed-data
     offset: float, optional
-        The offset to offset the data as: store_value = scale_factor *
-        precipitation_value + offset. Defaults to None.
+        Packing offset in physical units, subtracted before division by
+        scale_factor. Default is None, equivalent to zero when packing.
     complevel: int, optional
         Compression level for zlib compression, ranging from 0 (no
         compression) to 9 (slowest, most compression). Higher values
@@ -445,221 +456,51 @@ def initialize_forecast_exporter_netcdf(
     comment: str
         Any comments about the data or storage protocol that should be
         included in the netCDF file. Defaults to " ".
+    ensemble_ids: array_like, optional
+        Member labels matching n_ens_members. Default to integers from 1 to
+        n_ens_members.
+    include_latlon: bool, optional
+        Include geographic coordinates derived from the projected grid.
+        Default is False.
+    overwrite: bool, optional
+        Replace an existing output on successful close. Default is False.
+    zlib, shuffle, fletcher32: bool, optional
+        Enable compression, byte shuffling, and the Fletcher32 checksum.
+        Defaults are True, True, and False, respectively.
+        Packing quantizes values before storage; zlib and shuffle are lossless.
+        Fletcher32 checks the stored codes and is compatible with this packing.
+        It does not measure quantization error and should not be combined with
+        lossy HDF5 compression filters.
+    chunksizes: tuple of int, optional
+        Storage chunk sizes in output dimension order. Default to chunks
+        isolating members and times, with spatial tiles up to 256 by 256.
 
     Returns
     -------
     exporter: dict
-        The return value is a dictionary containing an exporter object. This c
-        an be used with :py:func:`pysteps.io.exporters.export_forecast_dataset`
-        to write datasets into the given file format.
+        Exporter state for
+        :py:func:`pysteps.io.exporters.export_forecast_dataset`. Call
+        :py:func:`pysteps.io.exporters.close_forecast_files` after writing all
+        declared batches to publish the completed file.
     """
 
-    if not NETCDF4_IMPORTED:
-        raise MissingOptionalDependency(
-            "netCDF4 package is required for netcdf exporters but it is not installed"
-        )
-
-    if not PYPROJ_IMPORTED:
-        raise MissingOptionalDependency(
-            "pyproj package is required for netcdf exporters but it is not installed"
-        )
-
-    if incremental not in [None, "timestep", "member"]:
-        raise ValueError(
-            f"unknown option {incremental}: incremental must be "
-            + "'timestep' or 'member'"
-        )
-
-    n_timesteps_is_list = isinstance(n_timesteps, list)
-    if n_timesteps_is_list:
-        num_timesteps = len(n_timesteps)
-    else:
-        num_timesteps = n_timesteps
-
-    if incremental == "timestep":
-        num_timesteps = None
-    elif incremental == "member":
-        n_ens_members = None
-    elif incremental is not None:
-        raise ValueError(
-            f"unknown argument value incremental='{str(incremental)}': "
-            + "must be 'timestep' or 'member'"
-        )
-
-    n_ens_gt_one = False
-    if n_ens_members is not None:
-        if n_ens_members > 1:
-            n_ens_gt_one = True
-
-    # Kwargs to be used as description strings in the netCDF
-    institution = kwargs.get(
-        "institution", "the pySTEPS community (https://pysteps.github.io)"
+    return _legacy_forecast_writer(
+        outpath,
+        outfnprefix,
+        startdate,
+        timestep,
+        n_timesteps,
+        shape,
+        metadata,
+        n_ens_members=n_ens_members,
+        datatype=datatype,
+        incremental=incremental,
+        fill_value=fill_value,
+        scale_factor=scale_factor,
+        offset=offset,
+        complevel=complevel,
+        **kwargs,
     )
-    references = kwargs.get("references", "")
-    comment = kwargs.get("comment", "")
-
-    exporter = {}
-
-    outfn = os.path.join(outpath, outfnprefix + ".nc")
-    ncf = netCDF4.Dataset(outfn, "w", format="NETCDF4")
-
-    ncf.Conventions = "CF-1.7"
-    ncf.title = "pysteps-generated nowcast"
-    ncf.institution = institution
-    ncf.source = "pysteps v" + get_version("pysteps")
-    ncf.history = ""
-    ncf.references = references
-    ncf.comment = comment
-
-    h, w = shape
-
-    ncf.createDimension("ens_number", size=n_ens_members)
-    ncf.createDimension("time", size=num_timesteps)
-    ncf.createDimension("y", size=h)
-    ncf.createDimension("x", size=w)
-
-    if metadata["unit"] == "mm/h":
-        var_name = "precip_intensity"
-        var_standard_name = "instantaneous_precipitation_rate"
-        var_long_name = "instantaneous precipitation rate"
-        var_unit = "mm h-1"
-    elif metadata["unit"] == "mm":
-        var_name = "precip_accum"
-        var_standard_name = "accumulated_precipitation"
-        var_long_name = "accumulated precipitation"
-        var_unit = "mm"
-    elif metadata["unit"] == "dBZ":
-        var_name = "reflectivity"
-        var_long_name = "equivalent reflectivity factor"
-        var_standard_name = "equivalent_reflectivity_factor"
-        var_unit = "dBZ"
-    else:
-        raise ValueError("unknown unit %s" % metadata["unit"])
-
-    xr = np.linspace(metadata["x1"], metadata["x2"], w + 1)[:-1]
-    xr += 0.5 * (xr[1] - xr[0])
-    yr = np.linspace(metadata["y1"], metadata["y2"], h + 1)[:-1]
-    yr += 0.5 * (yr[1] - yr[0])
-
-    # flip yr vector if yorigin is upper
-    if metadata["yorigin"] == "upper":
-        yr = np.flip(yr)
-
-    var_xc = ncf.createVariable("x", np.float32, dimensions=("x",))
-    var_xc[:] = xr
-    var_xc.axis = "X"
-    var_xc.standard_name = "projection_x_coordinate"
-    var_xc.long_name = "x-coordinate in Cartesian system"
-    var_xc.units = metadata["cartesian_unit"]
-
-    var_yc = ncf.createVariable("y", np.float32, dimensions=("y",))
-    var_yc[:] = yr
-    var_yc.axis = "Y"
-    var_yc.standard_name = "projection_y_coordinate"
-    var_yc.long_name = "y-coordinate in Cartesian system"
-    var_yc.units = metadata["cartesian_unit"]
-
-    x_2d, y_2d = np.meshgrid(xr, yr)
-    pr = pyproj.Proj(metadata["projection"])
-    lon, lat = pr(x_2d.flatten(), y_2d.flatten(), inverse=True)
-
-    var_lon = ncf.createVariable("lon", float, dimensions=("y", "x"))
-    var_lon[:] = lon.reshape(shape)
-    var_lon.standard_name = "longitude"
-    var_lon.long_name = "longitude coordinate"
-    # TODO(exporters): Don't hard-code the unit.
-    var_lon.units = "degrees_east"
-
-    var_lat = ncf.createVariable("lat", float, dimensions=("y", "x"))
-    var_lat[:] = lat.reshape(shape)
-    var_lat.standard_name = "latitude"
-    var_lat.long_name = "latitude coordinate"
-    # TODO(exporters): Don't hard-code the unit.
-    var_lat.units = "degrees_north"
-
-    ncf.projection = metadata["projection"]
-
-    (
-        grid_mapping_var_name,
-        grid_mapping_name,
-        grid_mapping_params,
-    ) = _convert_proj4_to_grid_mapping(metadata["projection"])
-    # skip writing the grid mapping if a matching name was not found
-    if grid_mapping_var_name is not None:
-        var_gm = ncf.createVariable(grid_mapping_var_name, int, dimensions=())
-        var_gm.grid_mapping_name = grid_mapping_name
-        for i in grid_mapping_params.items():
-            var_gm.setncattr(i[0], i[1])
-
-    if incremental == "member" or n_ens_gt_one:
-        var_ens_num = ncf.createVariable("ens_number", int, dimensions=("ens_number",))
-        if incremental != "member":
-            var_ens_num[:] = list(range(1, n_ens_members + 1))
-        var_ens_num.long_name = "ensemble member"
-        var_ens_num.standard_name = "realization"
-        var_ens_num.units = ""
-
-    var_time = ncf.createVariable("time", int, dimensions=("time",))
-    if incremental != "timestep":
-        if n_timesteps_is_list:
-            var_time[:] = np.array(n_timesteps) * timestep * 60
-        else:
-            var_time[:] = [i * timestep * 60 for i in range(1, n_timesteps + 1)]
-    var_time.long_name = "forecast time"
-    startdate_str = datetime.strftime(startdate, "%Y-%m-%d %H:%M:%S")
-    var_time.units = "seconds since %s" % startdate_str
-
-    if incremental == "member" or n_ens_gt_one:
-        var_f = ncf.createVariable(
-            var_name,
-            datatype=datatype,
-            dimensions=("ens_number", "time", "y", "x"),
-            compression="zlib",
-            zlib=True,
-            complevel=complevel,
-            fill_value=fill_value,
-        )
-    else:
-        var_f = ncf.createVariable(
-            var_name,
-            datatype=datatype,
-            dimensions=("time", "y", "x"),
-            compression="zlib",
-            zlib=True,
-            complevel=complevel,
-            fill_value=fill_value,
-        )
-
-    if var_standard_name is not None:
-        var_f.standard_name = var_standard_name
-    var_f.long_name = var_long_name
-    var_f.coordinates = "y x"
-    var_f.units = var_unit
-    if grid_mapping_var_name is not None:
-        var_f.grid_mapping = grid_mapping_var_name
-    # Add gain and offset
-    if scale_factor is not None:
-        var_f.scale_factor = scale_factor
-    if offset is not None:
-        var_f.add_offset = offset
-
-    exporter["method"] = "netcdf"
-    exporter["ncfile"] = ncf
-    exporter["var_F"] = var_f
-    if incremental == "member" or n_ens_gt_one:
-        exporter["var_ens_num"] = var_ens_num
-    exporter["var_time"] = var_time
-    exporter["var_name"] = var_name
-    exporter["startdate"] = startdate
-    exporter["timestep"] = timestep
-    exporter["metadata"] = metadata
-    exporter["incremental"] = incremental
-    exporter["num_timesteps"] = num_timesteps
-    exporter["timesteps"] = n_timesteps
-    exporter["num_ens_members"] = n_ens_members
-    exporter["shape"] = shape
-
-    return exporter
 
 
 def export_forecast_dataset(field, exporter):
@@ -694,6 +535,10 @@ def export_forecast_dataset(field, exporter):
         If the exporter was initialized with num_ens_members=1,
         the num_ens_members dimension is dropped.
     """
+
+    if "_cf_writer" in exporter:
+        exporter["_cf_writer"].write(field)
+        return
 
     if exporter["method"] == "netcdf" and not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
@@ -761,6 +606,10 @@ def close_forecast_files(exporter):
         An exporter object created with any initialization method implemented
         in :py:mod:`pysteps.io.exporters`.
     """
+
+    if "_cf_writer" in exporter:
+        exporter["_cf_writer"].finish()
+        return
 
     if exporter["method"] == "geotiff":
         pass  # NOTE: There is no explicit "close" method in GDAL.
@@ -862,94 +711,20 @@ def _export_kineros(field, exporter):
 
 
 def _export_netcdf(field, exporter):
-    var_f = exporter["var_F"]
-
-    if exporter["incremental"] is None:
-        var_f[:] = field
-    elif exporter["incremental"] == "timestep":
-        if exporter["num_ens_members"] > 1:
-            var_f[:, var_f.shape[1], :, :] = field
-        else:
-            var_f[var_f.shape[0], :, :] = field
-        var_time = exporter["var_time"]
-        if isinstance(exporter["timesteps"], list):
-            var_time[len(var_time) - 1] = (
-                exporter["timesteps"][len(var_time) - 1] * exporter["timestep"] * 60
-            )
-        else:
-            var_time[len(var_time) - 1] = len(var_time) * exporter["timestep"] * 60
-    else:
-        var_f[var_f.shape[0], :, :, :] = field
-        var_ens_num = exporter["var_ens_num"]
-        var_ens_num[len(var_ens_num) - 1] = len(var_ens_num)
+    """Write the next forecast batch through the shared CF writer."""
+    exporter["_cf_writer"].write(field)
 
 
-# TODO(exporters): Write methods for converting Proj.4 projection definitions
-# into CF grid mapping attributes. Currently this has been implemented for
-# the stereographic projection.
-# The conversions implemented here are take from:
-# https://github.com/cf-convention/cf-convention.github.io/blob/master/wkt-proj-4.md
-
-
-def _convert_proj4_to_grid_mapping(proj4str):
-    tokens = proj4str.split("+")
-
-    d = {}
-    for t in tokens[1:]:
-        t = t.split("=")
-        if len(t) > 1:
-            d[t[0]] = t[1].strip()
-
-    params = {}
-    # TODO(exporters): implement more projection types here
-    if d["proj"] == "stere":
-        grid_mapping_var_name = "polar_stereographic"
-        grid_mapping_name = "polar_stereographic"
-        v = d["lon_0"] if d["lon_0"][-1] not in ["E", "W"] else d["lon_0"][:-1]
-        params["straight_vertical_longitude_from_pole"] = float(v)
-        v = d["lat_0"] if d["lat_0"][-1] not in ["N", "S"] else d["lat_0"][:-1]
-        params["latitude_of_projection_origin"] = float(v)
-        if "lat_ts" in list(d.keys()):
-            params["standard_parallel"] = float(d["lat_ts"])
-        elif "k_0" in list(d.keys()):
-            params["scale_factor_at_projection_origin"] = float(d["k_0"])
-        params["false_easting"] = float(d["x_0"])
-        params["false_northing"] = float(d["y_0"])
-    elif d["proj"] == "aea":  # Albers Conical Equal Area
-        grid_mapping_var_name = "proj"
-        grid_mapping_name = "albers_conical_equal_area"
-        params["false_easting"] = float(d["x_0"]) if "x_0" in d else float(0)
-        params["false_northing"] = float(d["y_0"]) if "y_0" in d else float(0)
-        v = d["lon_0"] if "lon_0" in d else float(0)
-        params["longitude_of_central_meridian"] = float(v)
-        v = d["lat_0"] if "lat_0" in d else float(0)
-        params["latitude_of_projection_origin"] = float(v)
-        v1 = d["lat_1"] if "lat_1" in d else float(0)
-        v2 = d["lat_2"] if "lat_2" in d else float(0)
-        params["standard_parallel"] = (float(v1), float(v2))
-    elif d["proj"] == "lcc":
-        grid_mapping_var_name = "lcc"
-        grid_mapping_name = "lambert_conformal_conic"
-        params["false_easting"] = float(d["x_0"]) if "x_0" in d else float(0)
-        params["false_northing"] = float(d["y_0"]) if "y_0" in d else float(0)
-        v = d["lon_0"] if "lon_0" in d else float(0)
-        params["longitude_of_central_meridian"] = float(v)
-        v = d["lat_0"] if "lat_0" in d else float(0)
-        params["latitude_of_projection_origin"] = float(v)
-        v1 = d["lat_1"] if "lat_1" in d else float(0)
-        v2 = d["lat_2"] if "lat_2" in d else float(0)
-        params["standard_parallel"] = (float(v1), float(v2))
-        v = d["ellps"] if "ellps" in d else ""
-        if len(v):
-            params["reference_ellipsoid_name"] = v
-        v = d["towgs84"] if "towgs84" in d else ""
-        if len(v):
-            params["towgs84"] = v
-    else:
-        print("unknown projection", d["proj"])
-        return None, None, None
-
-    return grid_mapping_var_name, grid_mapping_name, params
+def _convert_proj4_to_grid_mapping(projection):
+    """Return legacy mapping names and complete CF projection attributes."""
+    attrs = cf_grid_mapping(projection, projected=False)
+    mapping = attrs.pop("grid_mapping_name")
+    name = {
+        "polar_stereographic": "polar_stereographic",
+        "albers_conical_equal_area": "proj",
+        "lambert_conformal_conic": "lcc",
+    }.get(mapping, "crs")
+    return name, mapping, attrs
 
 
 def _create_geotiff_file(outfn, driver, shape, metadata, num_bands):

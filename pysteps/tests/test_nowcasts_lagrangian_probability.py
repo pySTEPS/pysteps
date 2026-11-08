@@ -18,7 +18,11 @@ def test_numerical_example():
     now = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     dataset_input = xr.Dataset(
         data_vars={
-            "precip_intensity": (["time", "y", "x"], [precip]),
+            "precip_intensity": (
+                ["time", "y", "x"],
+                [precip],
+                {"units": "mm/h", "cell_methods": "time: point"},
+            ),
             "velocity_x": (["y", "x"], velocity[0]),
             "velocity_y": (["y", "x"], velocity[1]),
         },
@@ -55,7 +59,11 @@ def test_numerical_example_with_float_slope_and_float_list_timesteps():
     now = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     dataset_input = xr.Dataset(
         data_vars={
-            "precip_intensity": (["time", "y", "x"], [precip]),
+            "precip_intensity": (
+                ["time", "y", "x"],
+                [precip],
+                {"units": "mm/h", "cell_methods": "time: point"},
+            ),
             "velocity_x": (["y", "x"], velocity[0]),
             "velocity_y": (["y", "x"], velocity[1]),
         },

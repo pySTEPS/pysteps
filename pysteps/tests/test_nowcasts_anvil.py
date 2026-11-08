@@ -26,12 +26,24 @@ def test_default_anvil_norain():
 
     # Define dummy nowcast input data
     dataset_input = xr.Dataset(
-        data_vars={"precip_intensity": (["time", "y", "x"], np.zeros((4, 100, 100)))},
+        data_vars={
+            "precip_intensity": (
+                ["time", "y", "x"],
+                np.zeros((4, 100, 100)),
+                {
+                    "units": "mm/h",
+                    "cell_methods": "time: point",
+                    "threshold": 0.1,
+                    "zerovalue": 0.0,
+                },
+            )
+        },
         coords={
             "time": (
                 ["time"],
-                np.arange(4.0) * 5.0,
-                {"long_name": "forecast time", "stepsize": 5.0},
+                np.datetime64("2023-01-01T00:00:00")
+                + np.arange(4) * np.timedelta64(5, "m"),
+                {"standard_name": "time", "long_name": "valid time", "stepsize": 300.0},
                 {"units": "seconds since 1970-01-01 00:00:00"},
             ),
             "y": (

@@ -188,6 +188,7 @@ Available Importers
 .. autosummary::
     :toctree: ../generated/
 
+    import_netcdf_cf
     import_bom_rf3
     import_fmi_geotiff
     import_fmi_pgm
@@ -215,6 +216,7 @@ import numpy.typing as npt
 from matplotlib.pyplot import imread
 
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
+from pysteps.io.netcdf_cf import import_netcdf_cf
 from pysteps.utils import aggregate_fields
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
@@ -726,7 +728,7 @@ def _import_bom_rf3_geodata(ds_rainfall):
 
     if start_time is not None:
         if valid_time is not None:
-            time_step = (valid_time - start_time).seconds // 60
+            time_step = (valid_time - start_time).total_seconds() / 60.0
 
     geodata["accutime"] = time_step
 
