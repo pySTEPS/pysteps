@@ -426,11 +426,18 @@ def initialize_forecast_exporter_netcdf(
     fill_value: int, optional
         Fill_value for missing data. Defaults to None, which means that the
         standard netCDF4 fill_value is used.
+        For int16 this compatibility API uses -32767 by default. The
+        dataset-first CF exporter instead reserves -32768 explicitly.
     scale_factor: float, optional
-        Positive packing scale in physical units per stored code. Encode as
+        Positive CF packed-data scale in physical units per stored code. Encode as
         stored_value = (physical_value - offset) / scale_factor, rounding
         integer output to the nearest code. Decode as
         physical_value = stored_value * scale_factor + offset. Default is None.
+        The dataset-first exporter supports int16 packing; this compatibility
+        API retains its legacy datatype options. Packing attributes scale_factor
+        and add_offset are stored as float64; fill and validity attributes use
+        the stored variable's dtype. See CF-1.8 section 8.1:
+        https://cfconventions.org/Data/cf-conventions/cf-conventions-1.8/cf-conventions.html#packed-data
     offset: float, optional
         Packing offset in physical units, subtracted before division by
         scale_factor. Default is None, equivalent to zero when packing.
@@ -460,6 +467,10 @@ def initialize_forecast_exporter_netcdf(
     zlib, shuffle, fletcher32: bool, optional
         Enable compression, byte shuffling, and the Fletcher32 checksum.
         Defaults are True, True, and False, respectively.
+        Packing quantizes values before storage; zlib and shuffle are lossless.
+        Fletcher32 checks the stored codes and is compatible with this packing.
+        It does not measure quantization error and should not be combined with
+        lossy HDF5 compression filters.
     chunksizes: tuple of int, optional
         Storage chunk sizes in output dimension order. Default to chunks
         isolating members and times, with spatial tiles up to 256 by 256.

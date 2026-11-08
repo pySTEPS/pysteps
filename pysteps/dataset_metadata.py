@@ -58,7 +58,7 @@ _PACKING = {
 
 def unit_spec(unit):
     """
-    Return the quantity, canonical unit, and conversion multiplier.
+    Return the quantity, pySTEPS normalized unit, and conversion multiplier.
 
     Parameters
     ----------
@@ -69,10 +69,11 @@ def unit_spec(unit):
     -------
     quantity : str
         One of 'rate', 'depth', or 'reflectivity'.
-    canonical : str
-        Canonical units: 'mm/h', 'mm', or 'dBZ'.
+    normalized_unit : str
+        pySTEPS normalized units: 'mm/h', 'mm', or 'dBZ'. These may differ
+        from the CF standard-name table's canonical units.
     multiplier : float
-        Factor multiplying input values to obtain canonical values.
+        Factor multiplying input values to obtain pySTEPS normalized values.
 
     Raises
     ------
@@ -108,9 +109,9 @@ def variable_metadata(unit, method=None):
     name : str
         Suggested name; variable names do not determine physical meaning.
     attrs : dict
-        Canonical units, standard_name, and long_name attributes.
+        pySTEPS normalized units, standard_name, and long_name attributes.
     """
-    quantity, canonical, _ = unit_spec(unit)
+    quantity, normalized_unit, _ = unit_spec(unit)
     method = method or ("sum" if quantity == "depth" else "point")
     if quantity == "rate":
         name = "precip_intensity"
@@ -124,7 +125,7 @@ def variable_metadata(unit, method=None):
     else:
         name, long_name = "reflectivity", "equivalent reflectivity factor"
     return name, {
-        "units": canonical,
+        "units": normalized_unit,
         "standard_name": STANDARD_NAMES[quantity],
         "long_name": long_name,
     }
@@ -975,7 +976,7 @@ def cumulative_to_intervals(dataset, variable=None):
 
 def normalize_units(dataset, variable):
     """
-    Normalize physical values and metadata to canonical units.
+    Normalize physical values and metadata to pySTEPS units.
 
     Parameters
     ----------
@@ -1000,7 +1001,7 @@ def normalize_units(dataset, variable):
     Scale thresholds and dry values consistently and discard stale source packing.
     """
     attrs = dataset[variable].attrs.copy()
-    quantity, canonical, scale = unit_spec(attrs.get("units"))
+    quantity, normalized_unit, scale = unit_spec(attrs.get("units"))
     standard = attrs.get("standard_name")
     if standard is not None and standard != STANDARD_NAMES[quantity]:
         raise ValueError(f"{variable!r} standard_name conflicts with its units")
@@ -1024,7 +1025,7 @@ def normalize_units(dataset, variable):
                     attrs[key] = np.asarray(attrs[key]) * scale
                 else:
                     attrs.pop(key)
-    attrs["units"] = canonical
+    attrs["units"] = normalized_unit
     attrs["standard_name"] = STANDARD_NAMES[quantity]
     dataset[variable].attrs = attrs
     return dataset

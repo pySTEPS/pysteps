@@ -39,10 +39,10 @@ def example_datasets():
             "instantaneous_rate",
             "precip_intensity",
             "lwe_precipitation_rate",
-            "mm/h",
+            "mm h-1",
             "point",
         ),
-        ("mean_rate", "precip_mean_rate", "lwe_precipitation_rate", "mm/h", "mean"),
+        ("mean_rate", "precip_mean_rate", "lwe_precipitation_rate", "mm h-1", "mean"),
         (
             "interval_depth",
             "precip_accum",

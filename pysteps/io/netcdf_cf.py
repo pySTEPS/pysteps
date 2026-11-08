@@ -54,20 +54,38 @@ def _netcdf4():
         import netCDF4
     except ImportError as error:
         raise MissingOptionalDependency(
-            "netCDF4 is required for CF NetCDF I/O"
+            "netCDF4 is required for CF NetCDF I/O; install the netCDF4 package "
+            "in the Python environment running pySTEPS."
         ) from error
     return netCDF4
 
 
 def _float_dtype(dtype):
     """Validate and return a float32 or float64 NumPy dtype."""
+    requested = dtype
     try:
         dtype = np.dtype(dtype)
     except (TypeError, ValueError) as error:
-        raise ValueError("dtype must be float32/single or float64/double") from error
+        raise ValueError(
+            f"dtype must be float32/single or float64/double; received {requested!r}"
+        ) from error
     if dtype not in (np.dtype("float32"), np.dtype("float64")):
-        raise ValueError("dtype must be float32/single or float64/double")
+        raise ValueError(
+            f"dtype must be float32/single or float64/double; received {dtype}"
+        )
     return dtype
+
+
+def _real_scalar(value):
+    """Return whether a value is a real numeric scalar, before NumPy arithmetic."""
+    return np.ndim(value) == 0 and np.asarray(value).dtype.kind in "iuf"
+
+
+def _describe(values):
+    """Describe dtype, shape and a bounded sample without dumping large arrays."""
+    values = np.asarray(values)
+    sample = values.ravel()[:6].tolist()
+    return f"dtype={values.dtype}, shape={values.shape}, sample={sample!r}"
 
 
 def _history(dataset, message):
@@ -80,6 +98,11 @@ def _history(dataset, message):
 
 def _supply(attrs, updates, label):
     """Add missing attributes in place and reject conflicting definitions."""
+    if not isinstance(updates, dict):
+        raise ValueError(
+            f"Metadata attributes for {label!r} must be a mapping; received "
+            f"{type(updates).__name__}. Supply attribute names and values."
+        )
     for key, value in updates.items():
         if key in attrs and attrs[key] is not None:
             if key == "projection":
@@ -89,7 +112,12 @@ def _supply(attrs, updates, label):
             else:
                 equal = np.array_equal(attrs[key], value)
             if not equal:
-                raise ValueError(f"Metadata override conflicts with {label}.{key}")
+                raise ValueError(
+                    f"Metadata override conflicts with {label}.{key}: source "
+                    f"{_describe(attrs[key])}; supplied {_describe(value)}. "
+                    "metadata supplies missing definitions only; correct the source "
+                    "or remove the conflicting override."
+                )
         else:
             attrs[key] = value
 
@@ -103,12 +131,25 @@ def _metadata(dataset, metadata, variable, legacy):
         "variables",
         "coords",
     }:
-        raise ValueError("metadata accepts attrs, variables and coords mappings")
+        raise ValueError(
+            "metadata accepts attrs, variables and coords mappings; received "
+            f"{list(metadata) if isinstance(metadata, dict) else type(metadata).__name__}. "
+            "Use only these keys, each with a mapping value."
+        )
+    for key, value in metadata.items():
+        if not isinstance(value, dict):
+            raise ValueError(
+                f"metadata[{key!r}] must be a mapping; received {type(value).__name__}"
+            )
     dataset = dataset.copy(deep=False)
     _supply(dataset.attrs, metadata.get("attrs", {}), "dataset")
     for name, attrs in metadata.get("variables", {}).items():
         if name not in dataset:
-            raise ValueError(f"Metadata refers to absent variable {name!r}")
+            raise ValueError(
+                f"Metadata refers to absent variable {name!r}; available variables: "
+                f"{list(dataset.variables)}. Use an existing variable name in "
+                "metadata['variables'], or correct the source file."
+            )
         _supply(dataset[name].attrs, attrs, name)
     for name, supplied in metadata.get("coords", {}).items():
         if (
@@ -125,7 +166,10 @@ def _metadata(dataset, metadata, variable, legacy):
                 candidate.values, dataset[name].values
             ):
                 raise ValueError(
-                    f"Metadata override conflicts with coordinate {name!r}"
+                    f"Metadata override conflicts with coordinate {name!r}: "
+                    f"source dims={dataset[name].dims}, {_describe(dataset[name].values)}; "
+                    f"supplied dims={candidate.dims}, {_describe(candidate.values)}. "
+                    "Correct the source coordinate or remove the override."
                 )
             _supply(dataset[name].attrs, candidate.attrs, name)
         else:
@@ -164,7 +208,11 @@ def _cf_coordinates(dataset, *, legacy=False):
                 references = value.split()
                 if any(item not in dataset for item in references):
                     raise ValueError(
-                        f"Dangling or unsupported {key} reference on {name!r}"
+                        f"Dangling or unsupported {key} reference on {name!r}: "
+                        f"{value!r}; unresolved tokens "
+                        f"{[item for item in references if item not in dataset]}. "
+                        "Supply the referenced variables or correct the link; "
+                        "remove it only if it does not describe the data."
                     )
                 if key != "ancillary_variables":
                     coords.update(references)
@@ -192,7 +240,10 @@ def _cf_coordinates(dataset, *, legacy=False):
         for name in candidates
     ):
         raise ValueError(
-            "Multiple scalar valid times require an explicit variable-specific time axis"
+            "Multiple scalar valid times require an explicit variable-specific time axis: "
+            f"scalar coordinates={scalar_times}, physical fields={candidates}. "
+            "Give each affected field a time dimension with standard_name='time' "
+            "so its valid times are unambiguous."
         )
     for axis in list(dataset.coords):
         standard = dataset[axis].attrs.get("standard_name")
@@ -241,23 +292,33 @@ def _validate_source_storage(dataset, source_encoding):
         }
         term_dtypes = []
         for key, value in terms.items():
-            if not np.isscalar(value) or not np.isfinite(value):
+            if not _real_scalar(value) or not np.isfinite(value):
                 raise ValueError(
-                    "Source scale_factor and add_offset must be finite scalars"
+                    f"Variable {name!r}: source scale_factor and add_offset must be "
+                    f"finite scalars; {key} has {_describe(value)}. "
+                    "Correct the source packing attribute before importing."
                 )
             term_dtypes.append(np.asarray(value).dtype)
         if len(term_dtypes) == 2 and not _same_numeric_type(*term_dtypes):
             raise ValueError(
-                "Source scale_factor and add_offset must have the same numeric type"
+                f"Variable {name!r}: source scale_factor and add_offset must have "
+                f"the same numeric type; received {dict(zip(terms, term_dtypes))}. "
+                "Store both attributes with one type, such as float64."
             )
         if term_dtypes and not _same_numeric_type(term_dtypes[0], packed_dtype):
             if term_dtypes[0] not in (np.dtype("float32"), np.dtype("float64")):
                 raise ValueError(
-                    "Source packing attributes must use the packed dtype, float32, or float64"
+                    f"Variable {name!r}: source packing attributes must use the "
+                    f"packed dtype ({packed_dtype}), float32, or float64; "
+                    f"received {term_dtypes[0]}. Correct the source attribute types."
                 )
             if packed_dtype.kind != "i" or packed_dtype.itemsize not in (1, 2, 4):
                 raise ValueError(
-                    "Floating source packing attributes require a byte, int16, or int32 variable"
+                    f"Variable {name!r}: floating source packing attributes "
+                    "require a byte, int16, or int32 variable in this CF-1.8 profile; "
+                    f"received variable dtype={packed_dtype}, "
+                    f"attribute dtype={term_dtypes[0]}. Re-encode the source "
+                    "using a supported packed type or unpacked floating values."
                 )
 
         attributes = dataset[name].attrs
@@ -270,7 +331,10 @@ def _validate_source_storage(dataset, source_encoding):
                 continue
             if not _same_numeric_type(np.asarray(value).dtype, packed_dtype):
                 raise ValueError(
-                    f"Source {key} must have the same numeric type as the packed variable"
+                    f"Variable {name!r}: source {key} must have the same numeric "
+                    f"type as the packed variable ({packed_dtype}); "
+                    f"received {_describe(value)}. Store the attribute in the "
+                    "packed code domain with the variable's dtype."
                 )
 
 
@@ -285,16 +349,26 @@ def _source_validity(dataset, source_encoding):
             continue
         if var.dtype.kind not in "iuf":
             raise ValueError(
-                "Valid ranges on nonnumeric decoded variables need an explicit extension"
+                f"Variable {name!r}: valid ranges on nonnumeric decoded variables "
+                f"are unsupported ({_describe(var.values)}). Use numeric data, "
+                "or remove validity attributes that do not describe numeric limits."
             )
         attrs = var.attrs.copy()
         if "valid_range" in keys and len(keys) != 1:
-            raise ValueError("valid_range cannot be combined with valid_min/valid_max")
+            raise ValueError(
+                f"Variable {name!r}: valid_range cannot be combined with "
+                f"valid_min/valid_max; found {keys}. Keep valid_range alone, "
+                "or use valid_min/valid_max instead."
+            )
         original = source_encoding.setdefault(name, {})
         scale = original.get("scale_factor", 1.0)
         offset = original.get("add_offset", 0.0)
         if not np.isfinite([scale, offset]).all() or scale == 0:
-            raise ValueError("Declared valid ranges need finite nonzero source scaling")
+            raise ValueError(
+                f"Variable {name!r}: declared valid ranges need finite nonzero "
+                f"source scaling; scale_factor={scale!r}, add_offset={offset!r}. "
+                "Correct these source packing attributes."
+            )
         lower, upper = -np.inf, np.inf
         if "valid_range" in keys:
             bounds = np.asarray(attrs["valid_range"])
@@ -303,15 +377,26 @@ def _source_validity(dataset, source_encoding):
                 or not np.isfinite(bounds).all()
                 or bounds[0] > bounds[1]
             ):
-                raise ValueError("valid_range must contain two finite ordered bounds")
+                raise ValueError(
+                    f"Variable {name!r}: valid_range must contain two finite "
+                    f"ordered bounds; received {_describe(bounds)}. "
+                    "Supply [minimum, maximum] in the stored code domain."
+                )
             lower, upper = bounds
         else:
             for key in keys:
                 if not np.isscalar(attrs[key]) or not np.isfinite(attrs[key]):
-                    raise ValueError("valid_min/valid_max must be finite scalars")
+                    raise ValueError(
+                        f"Variable {name!r}: valid_min/valid_max must be finite "
+                        f"scalars; {key} has {_describe(attrs[key])}. "
+                        "Supply one numeric bound in the stored code domain."
+                    )
             lower, upper = attrs.get("valid_min", lower), attrs.get("valid_max", upper)
             if lower > upper:
-                raise ValueError("valid_min is greater than valid_max")
+                raise ValueError(
+                    f"Variable {name!r}: valid_min is greater than valid_max "
+                    f"({lower!r} > {upper!r}); correct the source bounds."
+                )
         lo, hi = sorted([lower * scale + offset, upper * scale + offset])
         values = dataset[name].where((dataset[name] >= lo) & (dataset[name] <= hi))
         for key in keys:
@@ -359,7 +444,7 @@ def import_netcdf_cf(
     Returns
     -------
     out : xarray.Dataset
-        Decoded dataset in canonical physical units, with source storage
+        Decoded dataset in pySTEPS normalized physical units, with source storage
         recorded as provenance rather than output encoding.
 
     Raises
@@ -396,7 +481,10 @@ def import_netcdf_cf(
     try:
         if source.attrs.get("pysteps_write_status", "complete") != "complete":
             raise ValueError(
-                "NetCDF output is incomplete; refusing to import it as a complete forecast"
+                f"NetCDF output {str(filename)!r} is incomplete: "
+                f"pysteps_write_status={source.attrs['pysteps_write_status']!r}. "
+                "Wait for the producer to finish or regenerate the forecast; "
+                "do not relabel a partial file as complete."
             )
         source_encoding = {
             name: {key: var.encoding[key] for key in _STORAGE if key in var.encoding}
@@ -416,7 +504,10 @@ def import_netcdf_cf(
             values = dataset[name].astype(dtype)
             if load and np.isinf(values.values).any():
                 raise ValueError(
-                    f"Requested dtype overflows physical values in {name!r}"
+                    f"Requested dtype {dtype} overflows physical values in {name!r}: "
+                    f"source dtype={dataset[name].dtype}, physical bounds="
+                    f"({np.nanmin(dataset[name].values)}, {np.nanmax(dataset[name].values)}); "
+                    "use dtype='double' or check the source units and values."
                 )
             dataset[name] = (values.dims, values.data, attrs)
             original = source_encoding.get(name, {})
@@ -451,11 +542,24 @@ def _restore_validity(dataset):
         mask_name = attrs.pop("pysteps_validity_mask", None)
         if mask_name is None:
             continue
-        if mask_name not in dataset or dataset[mask_name].dims != dataset[name].dims:
-            raise ValueError(f"Missing or misaligned validity mask for {name!r}")
+        if mask_name not in dataset:
+            raise ValueError(
+                f"Missing validity mask {mask_name!r} for {name!r}; restore the "
+                "linked mask so missing pixels remain distinct from dry values."
+            )
+        if dataset[mask_name].dims != dataset[name].dims:
+            raise ValueError(
+                f"Misaligned validity mask {mask_name!r} for {name!r}: "
+                f"mask dims={dataset[mask_name].dims}, field dims={dataset[name].dims}. "
+                "Align the mask dimensions with the physical field before export."
+            )
         mask = dataset[mask_name]
         if not np.isin(mask.values, [0, 1]).all():
-            raise ValueError("Validity mask codes must be zero or one")
+            raise ValueError(
+                f"Validity mask codes must be zero or one: {mask_name!r} for "
+                f"{name!r} has {_describe(mask.values)}. Use 0 for missing "
+                "and 1 for observed pixels."
+            )
         attrs.pop("pysteps_fillna_value", None)
         values = dataset[name].where(mask == 1)
         dataset[name] = (values.dims, values.data, attrs)
@@ -473,13 +577,20 @@ def _subset(dataset, variables):
         or len(set(names)) != len(names)
         or any(name not in candidates for name in names)
     ):
-        raise ValueError("variables must select distinct supported physical fields")
+        raise ValueError(
+            "variables must select distinct supported physical fields; "
+            f"requested={names}, supported={candidates}. "
+            "Choose a nonempty subset without duplicates."
+        )
     keep = set(names)
     while True:
         before = keep.copy()
         for name in list(keep):
             if name not in dataset:
-                raise ValueError(f"Dangling CF dependency {name!r}")
+                raise ValueError(
+                    f"Dangling CF dependency {name!r} while selecting {names}; "
+                    "restore the referenced variable or correct its CF link."
+                )
             var = dataset[name]
             keep.update(var.dims)
             for key in _LINKS:
@@ -526,7 +637,10 @@ def _prepare(dataset, variables=None, include_latlon=False, validate_values=True
     for key in ("title", "institution", "source", "references", "comment"):
         if key in dataset.attrs:
             if not isinstance(dataset.attrs[key], str):
-                raise ValueError(f"CF global attribute {key!r} must be a string")
+                raise ValueError(
+                    f"CF global attribute {key!r} must be a string; received "
+                    f"{type(dataset.attrs[key]).__name__}. Supply descriptive text."
+                )
             if not dataset.attrs[key].strip():
                 dataset.attrs.pop(key)
     dataset.attrs.setdefault("title", "pySTEPS precipitation dataset")
@@ -540,14 +654,29 @@ def _prepare(dataset, variables=None, include_latlon=False, validate_values=True
     ]
     standards = {dataset[name].attrs["standard_name"] for name in geographic}
     if include_latlon and standards != {"latitude", "longitude"}:
-        crs = pyproj.CRS(dataset.attrs["projection"])
-        source = crs.source_crs if crs.is_bound else crs
-        xx, yy = np.meshgrid(dataset.x.values, dataset.y.values)
-        lon, lat = pyproj.Transformer.from_crs(
-            crs, source.geodetic_crs, always_xy=True
-        ).transform(xx, yy)
+        projection = dataset.attrs["projection"]
+        try:
+            crs = pyproj.CRS(projection)
+            source = crs.source_crs if crs.is_bound else crs
+            xx, yy = np.meshgrid(dataset.x.values, dataset.y.values)
+            lon, lat = pyproj.Transformer.from_crs(
+                crs, source.geodetic_crs, always_xy=True
+            ).transform(xx, yy, errcheck=True)
+        except pyproj.exceptions.ProjError as error:
+            raise ValueError(
+                "Cannot derive longitude/latitude from the projected grid: "
+                f"{error}. Check CRS {projection!r}, x/y coordinate units and "
+                "grid extent against the projection's valid domain."
+            ) from error
+        # Finite x/y alone do not establish that the inverse projection exists.
+        # Retain this check even when PROJ reports no transformation error.
         if not np.isfinite(lon).all() or not np.isfinite(lat).all():
-            raise ValueError("Grid has no finite geographic coordinates in its CRS")
+            raise ValueError(
+                "Grid has non-finite geographic coordinates in its CRS; "
+                f"x extent={dataset.x.values[[0, -1]].tolist()}, "
+                f"y extent={dataset.y.values[[0, -1]].tolist()}. "
+                "Check the CRS, coordinate units and projection domain."
+            )
         additions = {}
         for name, standard, values, unit in (
             ("lon", "longitude", lon, "degrees_east"),
@@ -555,7 +684,12 @@ def _prepare(dataset, variables=None, include_latlon=False, validate_values=True
         ):
             if standard not in standards:
                 if name in dataset:
-                    raise ValueError(f"Geographic coordinate name collision: {name!r}")
+                    raise ValueError(
+                        f"Geographic coordinate name collision: {name!r} already "
+                        f"exists with standard_name={dataset[name].attrs.get('standard_name')!r}. "
+                        "Rename that variable or supply a geographic coordinate "
+                        f"with standard_name={standard!r}."
+                    )
                 additions[name] = (
                     ("y", "x"),
                     values,
@@ -577,7 +711,11 @@ def _prepare(dataset, variables=None, include_latlon=False, validate_values=True
                     var.attrs[key] = value
                 else:
                     var.attrs.pop(key, None)
-        # Keep only time serialization; source packing/compression never leaks.
+        # Values have already been decoded and normalized. Source packing may
+        # describe different units or precision, and retaining it would apply
+        # that old storage contract to new physical values. Output encoding is
+        # chosen explicitly by _encoding(); source storage remains provenance.
+        # Time units/calendar are serialization choices, so retain those here.
         var.encoding = (
             {
                 key: var.encoding[key]
@@ -595,6 +733,8 @@ def _prepare(dataset, variables=None, include_latlon=False, validate_values=True
         # This optional statistic is derived from values and becomes stale
         # after unit/dtype changes or quantization. Do not mislabel the output.
         var.attrs.pop("actual_range", None)
+        # pySTEPS normalizes rate to mm/h internally; spell the file unit using
+        # the conventional CF form. These are not CF's canonical m s-1 units.
         if var.attrs.get("units") == "mm/h":
             var.attrs["units"] = "mm h-1"
         auxiliary = [
@@ -619,7 +759,12 @@ def _encoding(dataset, encoding=None, *, legacy=False):
     """Validate storage options and build explicit per-variable encodings."""
     encoding = encoding or {}
     if set(encoding) - set(dataset.variables):
-        raise ValueError("Encoding refers to variables outside the export")
+        raise ValueError(
+            "Encoding refers to variables outside the export: "
+            f"{sorted(set(encoding) - set(dataset.variables))}. "
+            f"Available variables: {list(dataset.variables)}. "
+            "Remove encoding entries for excluded or nonexistent variables."
+        )
     physical = physical_variables(dataset)
     result = {}
     allowed = {
@@ -636,14 +781,18 @@ def _encoding(dataset, encoding=None, *, legacy=False):
     for name, var in dataset.variables.items():
         requested = dict(encoding.get(name, {}))
         if set(requested) - allowed:
-            raise ValueError(f"Unsupported encoding options for {name!r}")
+            raise ValueError(
+                f"Unsupported encoding options for {name!r}: "
+                f"{sorted(set(requested) - allowed)}; supported options: {sorted(allowed)}"
+            )
         if (
             not legacy
             and name not in physical
             and any(key in requested for key in ("scale_factor", "add_offset"))
         ):
             raise ValueError(
-                "scale_factor/add_offset are supported only for physical fields"
+                "scale_factor/add_offset are supported only for physical fields; "
+                f"remove them from encoding[{name!r}]. Physical fields: {physical}"
             )
         datetime = np.issubdtype(var.dtype, np.datetime64)
         flags = "flag_values" in var.attrs or "flag_masks" in var.attrs
@@ -652,24 +801,47 @@ def _encoding(dataset, encoding=None, *, legacy=False):
             default_dtype = np.asarray(
                 var.attrs.get("flag_values", var.attrs.get("flag_masks"))
             ).dtype
-        dtype = np.dtype(
-            requested.get("dtype", "float64" if datetime else default_dtype)
+        requested_dtype = requested.get(
+            "dtype", "float64" if datetime else default_dtype
         )
+        try:
+            dtype = np.dtype(requested_dtype)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"Invalid encoding dtype for {name!r}: {requested_dtype!r}; "
+                "supply a NumPy numeric dtype such as float32, float64 or int16."
+            ) from error
         if name in physical:
             if not legacy:
                 if dtype.kind == "i":
-                    if dtype != np.dtype("int16") or "scale_factor" not in requested:
+                    if dtype != np.dtype("int16"):
                         raise ValueError(
-                            "Integer physical storage requires int16 with an explicit scale_factor in the field's canonical units"
+                            f"Integer physical storage requires int16 for {name!r}; "
+                            f"received {dtype}. Use int16 with an explicit "
+                            "scale_factor, or float32/float64 without packing."
+                        )
+                    if "scale_factor" not in requested:
+                        raise ValueError(
+                            f"Integer physical storage for {name!r} requires an "
+                            "explicit scale_factor in pySTEPS normalized units "
+                            f"({var.attrs.get('units')}); for example, 0.1 for "
+                            "0.1-unit steps."
                         )
                 elif dtype.kind != "f" or any(
                     key in requested for key in ("scale_factor", "add_offset")
                 ):
                     raise ValueError(
-                        "scale_factor/add_offset require int16 physical storage"
+                        f"Packing options require int16 physical storage for {name!r}; "
+                        f"received dtype={dtype}, packing keys="
+                        f"{[key for key in ('scale_factor', 'add_offset') if key in requested]}. "
+                        "Use int16 with scale_factor, or float32/float64 without "
+                        "scale_factor/add_offset."
                     )
             if dtype.kind == "f" and dtype.itemsize not in (4, 8):
-                raise ValueError("Physical floating storage must be float32 or float64")
+                raise ValueError(
+                    f"Physical floating storage must be float32 or float64; "
+                    f"{name!r} requested {dtype}. Choose either supported precision."
+                )
             options = {
                 "zlib": True,
                 "complevel": 4,
@@ -693,7 +865,11 @@ def _encoding(dataset, encoding=None, *, legacy=False):
                 values = var.values
                 limit = np.iinfo("int32")
                 if np.any(values < limit.min) or np.any(values > limit.max):
-                    raise ValueError(f"{name!r} is outside the CF-1.8 int32 profile")
+                    raise ValueError(
+                        f"{name!r} is outside the CF-1.8 int32 profile: "
+                        f"{_describe(values)}. Use values between {limit.min} "
+                        f"and {limit.max} for integer coordinates/flags."
+                    )
                 dtype = np.dtype("int32")
             fill = (
                 _netcdf4().default_fillvals[dtype.str[1:]]
@@ -714,65 +890,110 @@ def _encoding(dataset, encoding=None, *, legacy=False):
                 or np.any(labels > limits.max)
             ):
                 raise ValueError(
-                    "Realization labels must be unique integers in int32 range"
+                    "Realization labels must be unique integers in int32 range; "
+                    f"{name!r} has {_describe(labels)}. Use distinct integer member "
+                    f"labels between {limits.min} and {limits.max}."
                 )
             if "dtype" in requested and dtype != np.dtype("int32"):
-                raise ValueError("Realization coordinates require int32 storage")
+                raise ValueError(
+                    f"Realization coordinates require int32 storage; {name!r} "
+                    f"requested {dtype}. Use dtype='int32' or omit the override."
+                )
             dtype = np.dtype("int32")
         if name in ("x", "y") and dtype != np.dtype("float64"):
-            raise ValueError("Projected coordinates require float64 storage")
+            raise ValueError(
+                f"Projected coordinates require float64 storage; {name!r} "
+                f"requested {dtype}. Use dtype='float64' or omit the override."
+            )
         if (
             (dtype.kind == "i" and dtype.itemsize not in (1, 2, 4))
             or (dtype.kind == "f" and dtype.itemsize not in (4, 8))
             or dtype.kind not in "if"
         ):
-            raise ValueError(f"Unsupported CF numeric dtype for {name!r}")
+            raise ValueError(
+                f"Unsupported CF numeric dtype for {name!r}: {dtype}. "
+                "Use int8/int16/int32 or float32/float64, subject to the field's "
+                "coordinate and packing requirements."
+            )
         options.update(requested)
         options["dtype"] = dtype
         if not legacy and name in physical and dtype == np.dtype("int16"):
             options.setdefault("add_offset", _PACKING_FLOAT_DTYPE.type(0.0))
             if options.get("_FillValue") is None:
                 raise ValueError(
-                    "Int16 physical packing requires a reserved _FillValue"
+                    f"Int16 physical packing requires a reserved _FillValue for "
+                    f"{name!r}; received None. Omit this option to use -32768, "
+                    "or choose a noncolliding int16 code. This explicit missing "
+                    "code is a pySTEPS writer policy, not a CF requirement."
                 )
         if datetime and dtype != np.dtype("float64"):
-            raise ValueError("CF times require float64 storage")
+            raise ValueError(
+                f"CF times require float64 storage in this writer; {name!r} "
+                f"requested {dtype}. Use dtype='float64' or omit the override."
+            )
         if (
             not isinstance(options.get("complevel", 4), (int, np.integer))
             or not 0 <= options.get("complevel", 4) <= 9
         ):
-            raise ValueError("complevel must be an integer from zero to nine")
+            raise ValueError(
+                f"complevel must be an integer from zero to nine for {name!r}; "
+                f"received {options['complevel']!r}"
+            )
         for key in ("zlib", "shuffle", "fletcher32"):
             if key in options and not isinstance(options[key], (bool, np.bool_)):
-                raise ValueError(f"{key} must be a boolean")
+                raise ValueError(
+                    f"{key} must be a boolean for {name!r}; received {options[key]!r}. "
+                    "Use True or False."
+                )
         if "chunksizes" in options:
             chunks = options["chunksizes"]
-            if len(chunks) != var.ndim or any(
-                not isinstance(size, (int, np.integer)) or size <= 0 or size > length
-                for size, length in zip(chunks, var.shape)
+            if (
+                not isinstance(chunks, (list, tuple, np.ndarray))
+                or np.ndim(chunks) != 1
+                or len(chunks) != var.ndim
+                or any(
+                    not isinstance(size, (int, np.integer))
+                    or size <= 0
+                    or size > length
+                    for size, length in zip(chunks, var.shape)
+                )
             ):
-                raise ValueError(f"Invalid chunksizes for {name!r}")
+                raise ValueError(
+                    f"Invalid chunksizes for {name!r}: {chunks!r}; "
+                    f"dims={var.dims}, shape={var.shape}. Supply one positive "
+                    "integer per dimension, no larger than its dimension length."
+                )
         for key, default in (("scale_factor", 1.0), ("add_offset", 0.0)):
             value = options.get(key, default)
             if (
-                not np.isscalar(value)
+                not _real_scalar(value)
                 or not np.isfinite(value)
                 or key == "scale_factor"
                 and value <= 0
             ):
-                raise ValueError(f"Invalid {key}")
+                raise ValueError(
+                    f"Invalid {key} for {name!r}: {_describe(value)}. "
+                    "Supply a finite real scalar"
+                    + (" greater than zero." if key == "scale_factor" else ".")
+                )
         fill = options.get("_FillValue")
         if fill is not None:
-            with np.errstate(over="ignore", invalid="ignore"):
-                cast = np.asarray(fill).astype(dtype).item()
+            cast = None
+            if _real_scalar(fill):
+                with np.errstate(over="ignore", invalid="ignore"):
+                    cast = np.asarray(fill).astype(dtype).item()
             if (
-                not np.isscalar(fill)
+                cast is None
                 or np.isinf(fill)
                 or (np.isfinite(fill) and not np.isfinite(cast))
                 or dtype.kind == "i"
                 and cast != fill
             ):
-                raise ValueError(f"Unrepresentable fill value for {name!r}")
+                raise ValueError(
+                    f"Unrepresentable fill value for {name!r}: {_describe(fill)}; "
+                    f"output dtype={dtype}. Choose a scalar exactly representable "
+                    "in that dtype, outside the valid stored-code range."
+                )
             options["_FillValue"] = cast
         for key in ("scale_factor", "add_offset"):
             if key in options:
@@ -783,7 +1004,7 @@ def _encoding(dataset, encoding=None, *, legacy=False):
     return result
 
 
-def _valid_limits(attrs):
+def _valid_limits(attrs, *, name=None):
     """Return physical validity limits, or None when undeclared."""
     keys = [key for key in ("valid_range", "valid_min", "valid_max") if key in attrs]
     if not keys:
@@ -792,26 +1013,31 @@ def _valid_limits(attrs):
         limits = np.asarray(attrs["valid_range"])
         if len(keys) != 1 or limits.shape != (2,):
             raise ValueError(
-                "valid_range must be two bounds without valid_min/valid_max"
+                f"Variable {name!r}: valid_range must be two bounds without "
+                f"valid_min/valid_max; received {_describe(limits)}, keys={keys}. "
+                "Use [minimum, maximum] alone or separate valid_min/valid_max."
             )
         low, high = limits
     else:
         low, high = attrs.get("valid_min", -np.inf), attrs.get("valid_max", np.inf)
     if (
-        not np.isscalar(low)
-        or not np.isscalar(high)
+        not _real_scalar(low)
+        or not _real_scalar(high)
         or np.isnan(low)
         or np.isnan(high)
         or low > high
     ):
-        raise ValueError("Invalid physical valid range")
+        raise ValueError(
+            f"Invalid physical valid range for {name!r}: low={low!r}, high={high!r}. "
+            "Use ordered numeric bounds without NaN, in pySTEPS normalized units."
+        )
     return float(low), float(high)
 
 
-def _storage_attributes(attrs, options):
+def _storage_attributes(attrs, options, *, name=None):
     """Convert physical validity attributes to the stored code domain."""
     attrs = attrs.copy()
-    limits = _valid_limits(attrs)
+    limits = _valid_limits(attrs, name=name)
     if limits is None:
         return attrs
     scale = options.get("scale_factor", 1.0)
@@ -831,9 +1057,18 @@ def _storage_attributes(attrs, options):
         low += low == fill
         high -= high == fill
     if low > high:
-        raise ValueError("Valid range has no representable nonmissing code")
+        raise ValueError(
+            f"Valid range has no representable nonmissing code for {name!r}: "
+            f"physical bounds={limits}, dtype={dtype}, scale_factor={scale}, "
+            f"add_offset={offset}, _FillValue={fill}. "
+            "Choose packing that covers the declared physical range."
+        )
     if fill is not None and np.isfinite(fill) and low <= fill <= high:
-        raise ValueError("The fill code must be outside the stored valid range")
+        raise ValueError(
+            f"The fill code must be outside the stored valid range for {name!r}: "
+            f"_FillValue={fill}, stored bounds=({low}, {high}). "
+            "Choose a fill code outside those bounds or adjust the packing."
+        )
     for key in ("valid_range", "valid_min", "valid_max"):
         if key not in attrs:
             continue
@@ -846,25 +1081,42 @@ def _storage_attributes(attrs, options):
     return attrs
 
 
-def _stored_values(values, options, *, quantity=None, valid_limits=None):
+def _stored_values(values, options, *, quantity=None, valid_limits=None, name=None):
     """Encode physical values while preserving masks and checking code ranges."""
     if np.ma.isMaskedArray(values):
         if values.dtype.kind not in "iuf":
-            raise ValueError("Physical data must be finite numbers or NaN")
+            raise ValueError(
+                f"Physical data must be finite numbers or NaN for {name!r}; "
+                f"received dtype={values.dtype}. Convert to a real numeric array."
+            )
         # Preserve integer-array masks before conversion: NaN cannot represent
         # missing values in the original integer dtype.
         values = values.astype("float64").filled(np.nan)
     values = np.asarray(values)
-    if values.dtype.kind not in "iuf" or np.isinf(values).any():
-        raise ValueError("Physical data must be finite numbers or NaN")
+    if values.dtype.kind not in "iuf":
+        raise ValueError(
+            f"Physical data must be finite numbers or NaN for {name!r}; "
+            f"received dtype={values.dtype}. Convert to a real numeric array."
+        )
+    if np.isinf(values).any():
+        raise ValueError(
+            f"Physical data must be finite numbers or NaN for {name!r}; "
+            f"found {np.count_nonzero(np.isinf(values))} infinite values. "
+            "Correct invalid values or mark genuinely missing pixels as NaN."
+        )
     if quantity is not None and quantity != "reflectivity" and np.any(values < 0):
         raise ValueError(
-            "Negative physical rain rate/depth; explicitly invert modelling transforms first"
+            f"Negative physical rain rate/depth in {name!r}: minimum={np.nanmin(values)}; "
+            "explicitly invert modelling transforms first, or correct the source values."
         )
     if valid_limits is not None and (
         np.any(values < valid_limits[0]) or np.any(values > valid_limits[1])
     ):
-        raise ValueError("Physical values are outside their declared valid range")
+        raise ValueError(
+            f"Physical values are outside their declared valid range for {name!r}: "
+            f"observed=({np.nanmin(values)}, {np.nanmax(values)}), "
+            f"declared={valid_limits}. Correct the values or their physical bounds."
+        )
     scale = options.get("scale_factor", 1.0)
     offset = options.get("add_offset", 0.0)
     dtype = options["dtype"]
@@ -892,12 +1144,19 @@ def _stored_values(values, options, *, quantity=None, valid_limits=None):
             or np.any(valid < limit.min)
             or np.any(valid > limit.max)
         ):
-            raise ValueError("Values overflow the requested NetCDF encoding")
+            raise ValueError(
+                f"Values overflow the requested NetCDF encoding for {name!r}: "
+                f"stored-code range=({valid.min()}, {valid.max()}), dtype={dtype}, "
+                f"scale_factor={scale}, add_offset={offset}. Choose a larger "
+                "packing step, compatible offset, or floating storage."
+            )
         fill = options.get("_FillValue")
         if fill is None:
             if missing.any():
                 raise ValueError(
-                    "Missing physical values require an explicit output fill value"
+                    f"Missing physical values require an explicit output fill value "
+                    f"for {name!r}; omit _FillValue to use the writer default, "
+                    "or choose a noncolliding code."
                 )
             fill = 0
         cast = stored[~missing].astype(dtype)
@@ -906,18 +1165,27 @@ def _stored_values(values, options, *, quantity=None, valid_limits=None):
             and np.isfinite(fill)
             and np.any(cast == fill)
         ):
-            raise ValueError("Valid physical values collide with the output fill value")
+            raise ValueError(
+                f"Valid physical values collide with the output fill value for "
+                f"{name!r}: _FillValue={fill}, dtype={dtype}, scale_factor={scale}, "
+                f"add_offset={offset}. Choose a reserved code outside the data range."
+            )
         if quantity is not None and cast.size:
             decoded_limits = (
                 np.asarray([cast.min(), cast.max()], dtype="float64") * scale + offset
             )
             if not np.isfinite(decoded_limits).all():
                 raise ValueError(
-                    "Decoded physical values overflow the requested encoding"
+                    f"Decoded physical values overflow the requested encoding for "
+                    f"{name!r}: scale_factor={scale}, add_offset={offset}, "
+                    f"decoded bounds={decoded_limits.tolist()}. "
+                    "Choose packing with finite decoded physical values."
                 )
             if quantity != "reflectivity" and np.any(decoded_limits < 0):
                 raise ValueError(
-                    "Encoding would produce negative physical rain; choose a compatible offset"
+                    f"Encoding would produce negative physical rain for {name!r}: "
+                    f"decoded bounds={decoded_limits.tolist()}, scale_factor={scale}, "
+                    f"add_offset={offset}; choose a compatible offset."
                 )
         stored = np.where(missing, fill, stored).astype(dtype)
     return stored
@@ -932,7 +1200,10 @@ def _coordinate_data(var):
         # where time precision can be lost.
         values = var.values.astype("datetime64[us]")
         if np.isnat(values).any():
-            raise ValueError("Missing datetime coordinate")
+            raise ValueError(
+                f"Missing datetime coordinate {var.name!r}; supply actual valid "
+                "times for every coordinate entry before export."
+            )
 
         # Preserve an explicit seconds-based epoch when one is supplied;
         # otherwise anchor the encoding at the earliest coordinate. Using a
@@ -948,7 +1219,11 @@ def _coordinate_data(var):
         # being published if float64 seconds cannot preserve microsecond input.
         restored = origin + np.rint(numeric * 1e6).astype("timedelta64[us]")
         if not np.array_equal(values, restored):
-            raise ValueError("Float64 seconds cannot preserve required time precision")
+            raise ValueError(
+                f"Float64 seconds cannot preserve required time precision for "
+                f"{var.name!r} with units={units!r}. Choose a seconds-based epoch "
+                "closer to the coordinate dates in the time encoding."
+            )
         attrs.update(units=units, calendar="proleptic_gregorian")
         return numeric, attrs
     return var.values, attrs
@@ -962,6 +1237,8 @@ class _CFWriter:
     therefore creates the complete schema and fixed coordinates first, then
     fills one region of each physical variable per callback. The bulk API uses
     the same path so packing, validation, and failure behaviour do not diverge.
+    xarray.to_netcdf supports Dask computation but does not expose successive
+    callback-driven writes into regions of an existing NetCDF variable.
 
     Partial output exists only under a hidden temporary name. ``finish``
     publishes it after every expected batch has arrived; any failed or
@@ -987,7 +1264,10 @@ class _CFWriter:
         )
         self.path, self.ncfile = None, None
         if self.filename.exists() and not overwrite:
-            raise FileExistsError(self.filename)
+            raise FileExistsError(
+                f"Output {str(self.filename)!r} already exists; choose a new filename "
+                "or set overwrite=True to replace it on successful completion."
+            )
         # Encode small coordinates/auxiliaries before any file is created.
         prepared = {}
         for name, var in dataset.variables.items():
@@ -1001,17 +1281,27 @@ class _CFWriter:
                             original, cast
                         ):
                             raise ValueError(
-                                "Flag codes are outside the output dtype range"
+                                f"Flag codes are outside the output dtype range for "
+                                f"{name!r}.{key}: {_describe(original)}, "
+                                f"output dtype={encoding[name]['dtype']}. "
+                                "Use exactly representable integer flag codes."
                             )
                         if original.ndim != 1 or len(original) != len(
                             attrs.get("flag_meanings", "").split()
                         ):
                             raise ValueError(
-                                "Flag codes and meanings must have matching lengths"
+                                f"Flag codes and meanings must have matching lengths "
+                                f"for {name!r}: {key} shape={original.shape}, "
+                                f"flag_meanings={attrs.get('flag_meanings')!r}. "
+                                "Supply a one-dimensional code array and one "
+                                "space-separated meaning per code."
                             )
                         attrs[key] = cast
                 # Mask auxiliary missing values before casting flag codes.
-                prepared[name] = (_stored_values(values, encoding[name]), attrs)
+                prepared[name] = (
+                    _stored_values(values, encoding[name], name=name),
+                    attrs,
+                )
         for parent in dataset.variables:
             bound = linked(dataset[parent], "bounds")
             if bound in prepared:
@@ -1024,7 +1314,11 @@ class _CFWriter:
                     if key in bound_attrs and key in parent_attrs:
                         if bound_attrs[key] != parent_attrs[key]:
                             raise ValueError(
-                                "Bounds and coordinate serialization disagree"
+                                f"Bounds and coordinate serialization disagree: "
+                                f"{bound!r}.{key}={bound_attrs[key]!r}, "
+                                f"{parent!r}.{key}={parent_attrs[key]!r}. "
+                                "Use matching time units and calendar encodings "
+                                "for the coordinate and its bounds."
                             )
                         bound_attrs.pop(key)
         try:
@@ -1056,7 +1350,7 @@ class _CFWriter:
                     **options,
                 )
                 attrs = (
-                    _storage_attributes(var.attrs, encoding[name])
+                    _storage_attributes(var.attrs, encoding[name], name=name)
                     if name in self.physical
                     else prepared[name][1]
                 )
@@ -1075,19 +1369,30 @@ class _CFWriter:
     def write(self, arrays):
         """Validate and write the next complete batch of physical values."""
         try:
-            if self.closed or self.count >= self.expected:
+            if self.closed:
                 raise ValueError(
-                    "Writer is closed or all forecast batches have been written"
+                    f"Writer is closed for {str(self.filename)!r}; initialize "
+                    "a new exporter before writing another forecast."
+                )
+            if self.count >= self.expected:
+                raise ValueError(
+                    f"All {self.expected} forecast batches have been written to "
+                    f"{str(self.filename)!r}; close the exporter instead of "
+                    "sending another batch."
                 )
             if self.incremental is not None and len(self.physical) != 1:
                 raise ValueError(
-                    "Legacy incremental output requires one forecast field"
+                    "Legacy incremental output requires one forecast field; "
+                    f"selected={self.physical}. Select one field for callbacks "
+                    "or use bulk export for multiple fields."
                 )
             if not isinstance(arrays, dict):
                 arrays = {self.physical[0]: arrays}
             if set(arrays) != set(self.physical):
                 raise ValueError(
-                    "A batch must contain every selected physical variable"
+                    "A batch must contain every selected physical variable; "
+                    f"expected={self.physical}, received={list(arrays)}. "
+                    "Supply exactly one array per selected field."
                 )
             prepared = {}
             for name, values in arrays.items():
@@ -1111,7 +1416,11 @@ class _CFWriter:
                 )
                 if np.shape(values) != shape:
                     raise ValueError(
-                        f"field has invalid shape: {np.shape(values)} != {shape}"
+                        f"field has invalid shape for {name!r}: {np.shape(values)} "
+                        f"!= {shape}; field dims={var.dims}, "
+                        f"incremental={self.incremental!r}, batch={self.count}. "
+                        "Supply the full field for bulk export, or one complete "
+                        "slice on the selected callback axis."
                     )
                 prepared[name] = (
                     index,
@@ -1119,7 +1428,8 @@ class _CFWriter:
                         values,
                         self.encoding[name],
                         quantity=unit_spec(var.attrs["units"])[0],
-                        valid_limits=_valid_limits(var.attrs),
+                        valid_limits=_valid_limits(var.attrs, name=name),
+                        name=name,
                     ),
                 )
             for name, (_, values) in prepared.items():
@@ -1128,7 +1438,7 @@ class _CFWriter:
                 if (
                     fill is None
                     or not np.isfinite(fill)
-                    or _valid_limits(self.dataset[name].attrs) is not None
+                    or _valid_limits(self.dataset[name].attrs, name=name) is not None
                 ):
                     continue
                 # Endpoint integer fill codes imply a safe default range.
@@ -1143,7 +1453,10 @@ class _CFWriter:
                     low, high = min(low, previous[0]), max(high, previous[1])
                     if low <= fill <= high:
                         raise ValueError(
-                            "The fill code must be outside the stored valid range"
+                            f"The fill code must be outside the stored valid range "
+                            f"for {name!r}: _FillValue={fill}, "
+                            f"stored bounds=({low}, {high}). Choose a fill code "
+                            "outside the range across all forecast batches."
                         )
                     self._code_ranges[name] = (low, high)
             # Validate and encode every physical variable in the batch before
@@ -1160,11 +1473,17 @@ class _CFWriter:
     def finish(self):
         """Publish the completed file atomically and return its Path."""
         if self.closed:
-            raise ValueError("Writer is already closed")
+            raise ValueError(
+                f"Writer is already closed for {str(self.filename)!r}; "
+                "initialize a new exporter for another output."
+            )
         try:
             if self.count != self.expected:
                 raise ValueError(
-                    f"Incomplete forecast: wrote {self.count} of {self.expected} batches"
+                    f"Incomplete forecast: wrote {self.count} of {self.expected} "
+                    f"batches for {str(self.filename)!r} (incremental={self.incremental!r}). "
+                    "Regenerate the forecast with every expected callback batch "
+                    "before closing; partial output is discarded."
                 )
             for name, (low, high) in self._code_ranges.items():
                 fill = self.encoding[name]["_FillValue"]
@@ -1250,7 +1569,8 @@ def export_netcdf_cf(
     Notes
     -----
     Preserve floating precision by default, using zlib level 4 and shuffle. Physical
-    int16 storage requires an explicit positive scale_factor in canonical units.
+    int16 storage requires an explicit positive scale_factor in pySTEPS normalized
+    units (mm/h, mm or dBZ).
     Both scale_factor and add_offset are stored as float64; add_offset defaults to
     zero and _FillValue to -32768. Packing uses stored =
     round((physical - add_offset) / scale_factor). Preserve missing masks before
@@ -1263,7 +1583,10 @@ def export_netcdf_cf(
     _netcdf4()
     filename = Path(filename)
     if filename.exists() and not overwrite:
-        raise FileExistsError(filename)
+        raise FileExistsError(
+            f"Output {str(filename)!r} already exists; choose a new filename "
+            "or set overwrite=True to replace it on successful completion."
+        )
     prepared = _prepare(dataset, variables, include_latlon)
     options = _encoding(prepared, encoding)
     # Validate the schema before creation, then each batch before region writes.
@@ -1297,13 +1620,21 @@ def _legacy_forecast_writer(
     from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
     if incremental not in (None, "timestep", "member"):
-        raise ValueError("incremental must be None, 'timestep' or 'member'")
+        raise ValueError(
+            "incremental must be None, 'timestep' or 'member'; "
+            f"received {incremental!r}. Choose the callback axis or None for bulk export."
+        )
     if unit_spec(metadata["unit"])[2] != 1:
         raise ValueError(
-            "Legacy NetCDF exporter requires canonical physical values; normalize units before export"
+            "Legacy NetCDF exporter requires pySTEPS normalized physical values; "
+            f"received unit={metadata['unit']!r}; normalize units before export "
+            "by converting values and metadata to mm/h, mm or dBZ."
         )
-    if not np.isscalar(timestep) or not np.isfinite(timestep) or timestep <= 0:
-        raise ValueError("timestep must be positive minutes")
+    if not _real_scalar(timestep) or not np.isfinite(timestep) or timestep <= 0:
+        raise ValueError(
+            f"timestep must be positive minutes; received {timestep!r}. "
+            "Supply the sampling cadence as a finite positive number."
+        )
     leads = np.asarray(
         n_timesteps if isinstance(n_timesteps, list) else np.arange(1, n_timesteps + 1),
         dtype=float,
@@ -1315,13 +1646,21 @@ def _legacy_forecast_writer(
         or np.any(leads <= 0)
         or np.any(np.diff(leads) <= 0)
     ):
-        raise ValueError("Forecast leads must be positive and increasing")
+        raise ValueError(
+            f"Forecast leads must be positive and increasing; received {_describe(leads)}. "
+            "Supply a nonempty one-dimensional list of increasing positive "
+            "multiples of timestep, or a positive number of forecast steps."
+        )
     if not isinstance(n_ens_members, (int, np.integer)) or n_ens_members < 1:
-        raise ValueError("n_ens_members must be a positive integer")
+        raise ValueError(
+            f"n_ens_members must be a positive integer; received {n_ens_members!r}"
+        )
     if len(shape) != 2 or any(
         not isinstance(size, (int, np.integer)) or size < 1 for size in shape
     ):
-        raise ValueError("shape must contain two positive integers")
+        raise ValueError(
+            f"shape must contain two positive integers (ny, nx); received {shape!r}"
+        )
     defaults = {
         "institution": kwargs.get("institution", "the pySTEPS community"),
         **metadata,
@@ -1344,7 +1683,10 @@ def _legacy_forecast_writer(
     if n_ens_members > 1 or incremental == "member":
         labels = kwargs.get("ensemble_ids", np.arange(1, n_ens_members + 1))
         if len(labels) != n_ens_members:
-            raise ValueError("ensemble_ids must match n_ens_members")
+            raise ValueError(
+                f"ensemble_ids must match n_ens_members={n_ens_members}; "
+                f"received {len(labels)} labels. Supply one label per member."
+            )
         base = base.assign_coords(
             ens_number=(
                 "ens_number",
@@ -1369,14 +1711,11 @@ def _legacy_forecast_writer(
     bounds = None
     if method != "point":
         minutes = metadata.get("accutime")
-        if (
-            minutes is None
-            or not np.isscalar(minutes)
-            or not np.isfinite(minutes)
-            or minutes <= 0
-        ):
+        if not _real_scalar(minutes) or not np.isfinite(minutes) or minutes <= 0:
             raise ValueError(
-                "Interval forecast export requires metadata accutime; timestep is not duration"
+                "Interval forecast export requires metadata accutime; timestep is "
+                f"not duration. Received accutime={minutes!r}. Supply the actual "
+                "positive accumulation/averaging duration in minutes."
             )
         bounds = np.column_stack(
             [times - np.timedelta64(int(round(minutes * 60e6)), "us"), times]

@@ -70,6 +70,11 @@ meaning. Cumulative totals must be differenced before temporal aggregation.
 A reset is not treated as negative rainfall. Keep a forecast reference time
 when available; it does not replace accumulation start/end bounds.
 
+These are pySTEPS normalized units. The CF standard-name table's canonical
+unit for ``lwe_precipitation_rate`` is ``m s-1``; CF permits physically
+equivalent units such as ``mm h-1``. Packing precision is expressed in the
+pySTEPS normalized units, rather than the CF canonical units.
+
 Sampling cadence is distinct from accumulation duration. The conversion
 helpers use each interval's bounds::
 
@@ -158,7 +163,7 @@ Compact storage and missing values
 
 Floating output preserves input precision and defaults to zlib level 4,
 shuffle, single time/member chunks and spatial tiles up to 256 cells. Integer
-packing is opt-in and applies to canonical physical units::
+packing is opt-in and applies to pySTEPS normalized physical units::
 
     variable = dataset.attrs["precip_var"]
     io.export_netcdf_cf(dataset, "packed.nc", encoding={
@@ -173,6 +178,26 @@ the reserved missing code raise errors. Choose depth precision for the maximum
 expected total; 0.01 mm steps have less range than 0.1 mm steps. Choose dBZ
 precision independently. Source encoding is retained as provenance, not
 silently reused for another physical quantity or output file.
+
+This is `CF packed data (section 8.1)
+<https://cfconventions.org/Data/cf-conventions/cf-conventions-1.8/cf-conventions.html#packed-data>`_.
+Both ``scale_factor`` and ``add_offset`` are stored as float64; ``_FillValue``
+and validity attributes use the stored variable's dtype. Omit ``_FillValue``
+from the encoding to use the explicit reserved code ``-32768`` for int16.
+Setting it to ``None`` is rejected for packed physical fields. This is a
+pySTEPS writer policy that keeps missing-code assignment and collision checks
+explicit; NetCDF itself also permits an implicit default fill value.
+
+Packing quantizes values before writing; zlib and shuffle then operate
+losslessly on the stored codes. Optional ``fletcher32=True`` checks those
+stored bytes for corruption and does not measure quantization error. It is
+compatible with this packing, but should not be combined with lossy HDF5
+compression filters. The default is ``False``.
+
+Source packing and compression settings are cleared before export because
+decoded values may have changed units or precision. Reusing the source
+encoding could apply an obsolete storage contract. Source settings remain
+available as provenance; explicit output encoding defines the new file.
 
 NaN is missing; observed zero remains observed zero. Missing raw integer
 codes are masked before scaling on input, and assigned after rounding on
