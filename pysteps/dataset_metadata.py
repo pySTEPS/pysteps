@@ -33,6 +33,17 @@ _RATE_UNITS = {
     "m/s": 3600000.0,
     "m h-1": 1000.0,
 }
+# Mass flux becomes a liquid-water-equivalent depth rate using this conventional
+# reference density, independent of the actual precipitation phase or density.
+_LIQUID_WATER_DENSITY_KG_M3 = 1000.0
+_MASS_FLUX_UNITS = {
+    "kg m-2 s-1",
+    "kg m^-2 s^-1",
+    "kg m**-2 s**-1",
+    "kg/m2/s",
+    "kg/m^2/s",
+    "kg m-2/s",
+}
 _DEPTH_UNITS = {"mm": 1.0, "cm": 10.0, "m": 1000.0}
 _LENGTH_UNITS = {
     "m": 1.0,
@@ -74,6 +85,8 @@ def unit_spec(unit):
         from the CF standard-name table's canonical units.
     multiplier : float
         Factor multiplying input values to obtain pySTEPS normalized values.
+        Precipitation mass flux in kg m-2 s-1 uses a reference liquid-water
+        density of 1000 kg m-3, giving a multiplier of 3600 to mm/h.
 
     Raises
     ------
@@ -85,6 +98,8 @@ def unit_spec(unit):
     unit = " ".join(unit.strip().split())
     if unit in _RATE_UNITS:
         return "rate", "mm/h", _RATE_UNITS[unit]
+    if unit in _MASS_FLUX_UNITS:
+        return "rate", "mm/h", 1000.0 * 3600.0 / _LIQUID_WATER_DENSITY_KG_M3
     if unit in _DEPTH_UNITS:
         return "depth", "mm", _DEPTH_UNITS[unit]
     if unit == "dBZ":
@@ -124,11 +139,17 @@ def variable_metadata(unit, method=None):
         name, long_name = "precip_accum", "accumulated precipitation depth"
     else:
         name, long_name = "reflectivity", "equivalent reflectivity factor"
-    return name, {
+    attrs = {
         "units": normalized_unit,
         "standard_name": STANDARD_NAMES[quantity],
         "long_name": long_name,
     }
+    if " ".join(unit.strip().split()) in _MASS_FLUX_UNITS:
+        attrs.update(
+            pysteps_source_units=unit,
+            pysteps_liquid_water_density_kg_m3=_LIQUID_WATER_DENSITY_KG_M3,
+        )
+    return name, attrs
 
 
 def linked(variable, key):
@@ -766,7 +787,7 @@ def physical_variables(dataset, *, legacy=False):
     candidates = []
     for name, variable in dataset.data_vars.items():
         standard = variable.attrs.get("standard_name")
-        if standard in STANDARD_NAMES.values() or (
+        if standard in (*STANDARD_NAMES.values(), "precipitation_flux") or (
             legacy
             and name
             in (
@@ -999,18 +1020,43 @@ def normalize_units(dataset, variable):
     -----
     Update the supplied dataset without changing variable names or temporal support.
     Scale thresholds and dry values consistently and discard stale source packing.
+    Precipitation mass flux is converted to liquid-water-equivalent rate using
+    1000 kg m-3. Source units/standard name and this density are recorded as
+    provenance. This conversion does not identify the precipitation as rain.
     """
     attrs = dataset[variable].attrs.copy()
     quantity, normalized_unit, scale = unit_spec(attrs.get("units"))
     standard = attrs.get("standard_name")
-    if standard is not None and standard != STANDARD_NAMES[quantity]:
-        raise ValueError(f"{variable!r} standard_name conflicts with its units")
+    mass_flux = " ".join(attrs["units"].strip().split()) in _MASS_FLUX_UNITS
+    expected_standard = "precipitation_flux" if mass_flux else STANDARD_NAMES[quantity]
+    if standard is not None and standard != expected_standard:
+        raise ValueError(
+            f"{variable!r} standard_name conflicts with its units: "
+            f"standard_name={standard!r}, units={attrs['units']!r}; "
+            f"expected standard_name={expected_standard!r}. "
+            "Correct the source standard name or units; a change of physical "
+            "quantity is not inferred."
+        )
     transform = attrs.get("transform")
     if transform is not None and not (quantity == "reflectivity" and transform == "dB"):
         raise ValueError(
             "Physical metadata normalization requires an untransformed field"
         )
     attrs.pop("transform", None)
+    if mass_flux:
+        attrs.setdefault("pysteps_source_units", attrs["units"])
+        if standard is not None:
+            attrs.setdefault("pysteps_source_standard_name", standard)
+        if "long_name" in attrs:
+            attrs.setdefault("pysteps_source_long_name", attrs["long_name"])
+        attrs["long_name"] = "liquid water equivalent precipitation rate"
+        attrs["pysteps_liquid_water_density_kg_m3"] = _LIQUID_WATER_DENSITY_KG_M3
+        dataset.attrs["history"] = (
+            dataset.attrs.get("history", "")
+            + f"\nConverted precipitation mass flux in {variable!r} from "
+            f"{attrs['units']} to mm/h using reference liquid-water density "
+            f"{_LIQUID_WATER_DENSITY_KG_M3:g} kg m-3"
+        ).strip()
     if scale != 1:
         dataset[variable] = dataset[variable] * scale
         for key in ("threshold", "zerovalue", "pysteps_no_detection_value"):

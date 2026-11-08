@@ -261,11 +261,8 @@ def convert_input_to_xarray_dataset(
         grid_mapping_params,
     ) = _convert_proj4_to_grid_mapping(metadata["projection"])
 
-    precip_attrs = {
-        "units": attrs["units"],
-        "standard_name": attrs["standard_name"],
-        "long_name": attrs["long_name"],
-    }
+    # Include conversion provenance, such as the reference density for mass flux.
+    precip_attrs = attrs.copy()
     if grid_mapping_name is not None:
         precip_attrs["grid_mapping"] = grid_mapping_name
 

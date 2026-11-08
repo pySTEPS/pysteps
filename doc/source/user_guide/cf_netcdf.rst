@@ -75,6 +75,23 @@ unit for ``lwe_precipitation_rate`` is ``m s-1``; CF permits physically
 equivalent units such as ``mm h-1``. Packing precision is expressed in the
 pySTEPS normalized units, rather than the CF canonical units.
 
+Mass-flux input with ``standard_name="precipitation_flux"`` and units
+``kg m-2 s-1`` is converted to ``lwe_precipitation_rate`` using the conventional
+reference liquid-water density of 1000 kg m-3: multiply by 3600 to obtain mm/h.
+For example, 0.001 kg m-2 s-1 becomes 3.6 mm/h. Accepted spellings also include
+``kg m^-2 s^-1``, ``kg m**-2 s**-1``, ``kg/m2/s``, ``kg/m^2/s`` and ``kg m-2/s``.
+The original variable name, time bounds, temporal method and missing mask are
+preserved. Thresholds, dry values and physical validity limits are converted
+with the data. Source units and standard name, reference density and processing
+history document the conversion; exports use ``mm h-1`` and packing precision
+in those normalized units.
+
+This conversion expresses total precipitation as liquid-water-equivalent depth;
+it does not establish that all precipitation is rain. Mass-flux units paired
+with ``lwe_precipitation_rate``, or depth-rate units paired with
+``precipitation_flux``, are contradictory metadata and are rejected. Other mass
+fluxes, such as evaporation, are not selected as precipitation fields.
+
 Sampling cadence is distinct from accumulation duration. The conversion
 helpers use each interval's bounds::
 

@@ -116,7 +116,7 @@ def test_io_validation_does_not_invent_model_parameters():
         (
             "instantaneous_rate",
             lambda ds: ds.precip_intensity.attrs.update(units="kg m-2 s-1"),
-            "Unsupported",
+            "standard_name conflicts",
         ),
     ],
 )
