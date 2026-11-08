@@ -198,8 +198,13 @@ def plot_map_cartopy(
             ax = plt.subplot(*subplot, projection=crs)
 
     if not isinstance(ax, GeoAxesSubplot):
-        ax = plt.subplot(ax.get_subplotspec(), projection=crs)
-        # cax.clear()
+        # Replace the regular axis with a cartopy axis at the same position.
+        # Matplotlib >= 3.8 no longer removes overlapping axes automatically,
+        # so the original axis has to be removed explicitly to avoid leaving
+        # an extra (empty) axis behind the map.
+        old_ax = ax
+        ax = plt.subplot(old_ax.get_subplotspec(), projection=crs)
+        old_ax.remove()
         ax.set_axis_off()
 
     ax.add_feature(

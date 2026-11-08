@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 
 from pysteps.tests.helpers import get_precipitation_fields
@@ -43,6 +44,36 @@ def test_visualization_plot_precip_field(source, map_kwargs, pass_geodata):
         geodata = None
 
     plot_precip_field(field, ptype="intensity", geodata=geodata, map_kwargs=map_kwargs)
+
+
+def test_visualization_plot_precip_field_no_extra_axes():
+    """The regular axis replaced by the map must not be left in the figure."""
+    pytest.importorskip("cartopy")
+    pytest.importorskip("pyproj")
+    from cartopy.mpl.geoaxes import GeoAxes
+
+    geodata = {
+        "projection": "+proj=stere +lat_0=90 +lon_0=25 +lat_ts=60 +ellps=WGS84",
+        "x1": 0.0,
+        "x2": 500000.0,
+        "y1": 6500000.0,
+        "y2": 7000000.0,
+        "yorigin": "upper",
+    }
+    field = np.linspace(0.0, 10.0, 20 * 20).reshape(20, 20)
+
+    fig = plt.figure()
+    try:
+        ax = plot_precip_field(
+            field,
+            geodata=geodata,
+            colorbar=False,
+            map_kwargs={"cartopy_scale": "110m", "drawlonlatlines": False},
+        )
+        assert isinstance(ax, GeoAxes)
+        assert fig.axes == [ax]
+    finally:
+        plt.close(fig)
 
 
 if __name__ == "__main__":
