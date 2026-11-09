@@ -274,60 +274,21 @@ def aggregate_fields(
                 f"dataset.sizes[dim]={dataset.sizes[d]}"
             )
 
+    windows = dict(zip(dim, window_size))
     dataset_ref = dataset
-    dataset = (
-        dataset.rolling(dict(zip(dim, window_size)))
-        .reduce(_aggregation_methods[method])
-        .isel(
-            {
-                d: slice(ws - 1, dataset.sizes[d] - dataset.sizes[d] % ws, ws)
-                for d, ws in zip(dim, window_size)
-            }
-        )
-    )
+    dataset = _block_reduce(dataset, windows, _aggregation_methods[method])
     if "velocity_x" in dataset_ref:
-        dataset["velocity_x"] = (
-            dataset_ref["velocity_x"]
-            .rolling(dict(zip(dim, window_size)))
-            .reduce(_aggregation_methods[velocity_method])
-            .isel(
-                {
-                    d: slice(
-                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
-                    )
-                    for d, ws in zip(dim, window_size)
-                }
-            )
+        dataset["velocity_x"] = _block_reduce(
+            dataset_ref["velocity_x"], windows, _aggregation_methods[velocity_method]
         )
     if "velocity_y" in dataset_ref:
-        dataset["velocity_y"] = (
-            dataset_ref["velocity_y"]
-            .rolling(dict(zip(dim, window_size)))
-            .reduce(_aggregation_methods[velocity_method])
-            .isel(
-                {
-                    d: slice(
-                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
-                    )
-                    for d, ws in zip(dim, window_size)
-                }
-            )
+        dataset["velocity_y"] = _block_reduce(
+            dataset_ref["velocity_y"], windows, _aggregation_methods[velocity_method]
         )
     if "quality" in dataset_ref:
-        dataset["quality"] = (
-            dataset_ref["quality"]
-            .rolling(dict(zip(dim, window_size)))
-            .reduce(_aggregation_methods["min"])
-            .isel(
-                {
-                    d: slice(
-                        ws - 1, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws
-                    )
-                    for d, ws in zip(dim, window_size)
-                }
-            )
+        dataset["quality"] = _block_reduce(
+            dataset_ref["quality"], windows, _aggregation_methods["min"]
         )
-
     for d, ws in zip(dim, window_size):
         if d == "time":
             # for accumulation we use last timestamp else first timestamp
@@ -346,26 +307,24 @@ def aggregate_fields(
                     {d: slice(0, dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws, ws)}
                 )
         else:
-            dataset[d] = (
-                dataset_ref[d]
-                .rolling({d: ws})
-                .reduce(_aggregation_methods["mean"])
-                .isel(
-                    {
-                        d: slice(
-                            ws - 1,
-                            dataset_ref.sizes[d] - dataset_ref.sizes[d] % ws,
-                            ws,
-                        )
-                    }
-                )
-            )
+            dataset[d] = dataset_ref[d].coarsen({d: ws}, boundary="trim").mean()
 
     for d, ws in zip(dim, window_size):
         if "stepsize" in dataset[d].attrs:
             dataset[d].attrs["stepsize"] = dataset[d].attrs["stepsize"] * ws
 
     return dataset
+
+
+def _block_reduce(obj, windows, func):
+    """
+    Reduce the non-overlapping blocks of ``windows`` cells of a dataset or data
+    array with ``func``. Incomplete blocks at the end are dropped. The
+    coordinates take the value of the last cell of each block.
+    """
+    last_cells = obj.isel({d: slice(w - 1, None, w) for d, w in windows.items()})
+    reduced = obj.coarsen(windows, boundary="trim").reduce(func)
+    return reduced.assign_coords(last_cells.coords)
 
 
 def clip_domain(dataset: xr.Dataset, extent=None):
