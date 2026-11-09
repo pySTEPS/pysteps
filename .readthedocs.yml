@@ -5,9 +5,9 @@ version: 2
 
 # the build.os and build.tools section is mandatory
 build:
-  os: "ubuntu-22.04"
+  os: ubuntu-lts-latest
   tools:
-    python: "3.11"
+    python: "3"
 
 sphinx:
   configuration: doc/source/conf.py
@@ -17,7 +17,7 @@ formats:
 
 python:
   install:
-    - requirements: requirements.txt
-    - requirements: doc/requirements.txt
-    - method: pip
-      path: .
+    - method: uv
+      command: sync
+      extras:
+        - doc

@@ -22,7 +22,6 @@ import os
 from datetime import datetime
 
 import numpy as np
-import pysteps_nwp_importers
 from matplotlib import pyplot as plt
 from pysteps_nwp_importers.importer_dwd_nwp import unstructured2regular
 
