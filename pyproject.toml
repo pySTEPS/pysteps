@@ -120,6 +120,3 @@ select = [
 [tool.ruff.format]
 # Use `\n` line endings for all files
 line-ending = "lf"
-
-[tool.setuptools]
-py-modules = ["pysteps"]
