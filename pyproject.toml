@@ -134,7 +134,3 @@ select = [
 [tool.ruff.format]
 # Use `\n` line endings for all files
 line-ending = "lf"
-
-#FIXME when merged in pysteps-nwp-importers main and released, this can go away
-[tool.uv.sources]
-pysteps-nwp-importers = { git = "https://github.com/pySTEPS/pysteps-nwp-importers", branch = "adapt-to-pysteps-v2" }
