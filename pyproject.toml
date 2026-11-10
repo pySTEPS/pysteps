@@ -28,50 +28,49 @@ readme = "README.rst"
 version = "2.0.0-rc.1"
 requires-python = ">=3.11.0,<3.14.0"
 dependencies = [
-    "jsmin",
-    "jsonschema",
-    "matplotlib",
-    "netCDF4",
-    "numpy",
-    "opencv-python",
-    "pandas",
-    "pillow",
-    "pyproj",
-    "scipy",
-    "xarray",
+    "jsmin==3.0.1",
+    "jsonschema==4.26.0",
+    "matplotlib==3.11.2",
+    "netCDF4==1.7.5.1.post1",
+    "numpy==2.4.6",
+    "opencv-python==5.0.0.93",
+    "pillow==13.0.0",
+    "pyproj==3.7.2",
+    "scipy==1.17.1",
+    "xarray==2026.9.0",
 ]
 
 [project.optional-dependencies]
 optional = [
-    "cartopy>=0.18",
-    "cookiecutter",
-    "dask",
-    "geotiff",
-    "h5py",
-    "pandas",
-    "pyfftw",
-    "pywavelets",
-    "rasterio",
-    "scikit-image",
-    "scikit-learn",
+    "cartopy==0.26.0",
+    "cookiecutter==2.7.1",
+    "dask==2026.8.0",
+    "geotiff==0.2.10",
+    "h5py==3.16.0",
+    "pandas==3.1.0",
+    "pyfftw==0.15.1",
+    "pywavelets==1.9.0",
+    "rasterio==1.4.4",
+    "scikit-image==0.26.0",
+    "scikit-learn==1.9.1",
 ]
 pygrib = [
-    "pygrib"
+    "pygrib==2.1.8"
 ]
 gdal =[
     # gdal must match what's installed locally -- see add_gdal[_brew].sh
-    "pip",
-    "setuptools>=67",
-    "wheel",
+    "pip==26.3",
+    "setuptools==84.2.1",
+    "wheel==0.48.0",
 ]
 
 [dependency-groups]
 dev = [
-    "bandit",
-    "pre-commit",
-    "pytest",
-    "pytest-cov",
-    "ruff",
+    "bandit==1.9.4",
+    "pre-commit==4.7.0",
+    "pytest==9.2.0",
+    "pytest-cov==7.1.0",
+    "ruff==0.17.3",
 ]
 
 [project.urls]
