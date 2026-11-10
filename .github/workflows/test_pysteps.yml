@@ -78,26 +78,26 @@ jobs:
           gcc-13 --version || brew install gcc@13
           brew install gdal
           uv python install ${{ matrix.python-version }}
-          uv sync --python ${{ matrix.python-version }} --frozen
+          uv sync --python ${{ matrix.python-version }}
           bash add_gdal_brew.sh
-          uv sync --python ${{ matrix.python-version }} --all-extras --frozen
+          uv sync --python ${{ matrix.python-version }} --all-extras
 
       - name: Install pysteps (Linux)
         if: matrix.os == 'ubuntu-latest'
         working-directory: ${{github.workspace}}
         run: |
           uv python install ${{ matrix.python-version }}
-          uv sync --python ${{ matrix.python-version }} --frozen
+          uv sync --python ${{ matrix.python-version }}
           bash add_gdal.sh
-          uv sync --python ${{ matrix.python-version }} --all-extras --frozen
+          uv sync --python ${{ matrix.python-version }} --all-extras
 
       - name: Install pysteps (Windows)
         if: matrix.os == 'windows-latest'
         working-directory: ${{github.workspace}}
         run: |
           uv python install ${{ matrix.python-version }}
-          uv sync --python ${{ matrix.python-version }} --frozen
-          uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal --frozen
+          uv sync --python ${{ matrix.python-version }}
+          uv sync --python ${{ matrix.python-version }} --extra optional --extra gdal
 
       - name: Download pysteps data
         env:
