@@ -40,6 +40,7 @@ from pysteps.nowcasts import (
     sprog,
     sseps,
     steps,
+    stan,
 )
 
 eulerian_persistence = partial(extrapolation.forecast, extrap_method="eulerian")
@@ -55,6 +56,7 @@ _nowcast_methods["probability"] = lagrangian_probability.forecast
 _nowcast_methods["sprog"] = sprog.forecast
 _nowcast_methods["sseps"] = sseps.forecast
 _nowcast_methods["steps"] = steps.forecast
+_nowcast_methods["stan"] = stan.forecast
 
 
 def get_method(name):
@@ -92,6 +94,9 @@ def get_method(name):
     +-----------------+-------------------------------------------------------+
     |  sseps          | short-space ensemble prediction system (SSEPS).       |
     |                 | Essentially, this is a localization of STEPS          |
+    +-----------------+-------------------------------------------------------+
+    |  stan           | short-term autoregressive nowcasting (STAN).          |
+    |                 | Integrates SPROG-LOC, ANVIL and STEPS methods         |
     +-----------------+-------------------------------------------------------+
     """
     if isinstance(name, str):
