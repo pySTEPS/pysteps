@@ -25,7 +25,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 readme = "README.rst"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 requires-python = ">=3.11.0,<3.14.0"
 dependencies = [
     "jsmin",
@@ -120,6 +120,3 @@ select = [
 [tool.ruff.format]
 # Use `\n` line endings for all files
 line-ending = "lf"
-
-[tool.setuptools]
-py-modules = ["pysteps"]
