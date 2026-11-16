@@ -264,4 +264,9 @@ sphinx_gallery_conf = {
     "gallery_dirs": "auto_examples",  # path where to save gallery generated examples
     "filename_pattern": r"/*\.py",  # Include all the files in the examples dir
     "ignore_pattern": r"blend",  # Exclude too-slow / broken blending examples for nowame
+    # Make the build log informative, so slow or failing examples can be spotted
+    "min_reported_time": 0,  # Report the run time of every example
+    "show_memory": True,  # Report the peak memory of every example
+    "only_warn_on_example_error": True,  # A failing example must not abort the build
+    "example_timeout": 300,  # Abort examples running longer than 5 min (seconds)
 }
