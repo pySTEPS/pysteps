@@ -375,17 +375,10 @@ def create_default_pystepsrc(
     with open(os.path.join(pysteps_lib_root, "pystepsrc"), "r") as f:
         rcparams_json = json.loads(jsmin(f.read()))
 
-    # The paths of the data sources are relative to the pysteps data directory.
     for key, value in rcparams_json["data_sources"].items():
         value["root_path"] = os.path.abspath(
             os.path.join(pysteps_data_dir, value["root_path"])
         )
-        # Unfortunately this needs special treatment as it doesn't reside in the logical subdirectory.
-        importer_kwargs = value.get("importer_kwargs", {})
-        if "grid_file_path" in importer_kwargs:
-            importer_kwargs["grid_file_path"] = os.path.abspath(
-                os.path.join(pysteps_data_dir, importer_kwargs["grid_file_path"])
-            )
 
     if config_dir is None:
         home_dir = os.path.expanduser("~")

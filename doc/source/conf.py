@@ -3,10 +3,13 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import json
 import os
 import subprocess
 import sys
 from datetime import datetime
+
+from jsmin import jsmin
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -99,25 +102,32 @@ todo_include_todos = False
 # -- Read the Docs build --------------------------------------------------
 
 
-if "READTHEDOCS" in os.environ:
-    import pysteps
-    from pysteps.datasets import create_default_pystepsrc
+def set_root():
+    fn = os.path.abspath(os.path.join("..", "..", "pysteps", "pystepsrc"))
+    with open(fn, "r") as f:
+        rcparams = json.loads(jsmin(f.read()))
 
+    for key, value in rcparams["data_sources"].items():
+        new_path = os.path.join("..", "..", "pysteps-data", value["root_path"])
+        new_path = os.path.abspath(new_path)
+
+        value["root_path"] = new_path
+
+    fn = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
+    with open(fn, "w") as f:
+        json.dump(rcparams, f, indent=4)
+
+
+if "READTHEDOCS" in os.environ:
     repourl = "https://github.com/pySTEPS/pysteps-data.git"
-    dir = os.path.abspath(os.path.join("..", "..", "pysteps-data"))
+    dir = os.path.join(os.getcwd(), "..", "..", "pysteps-data")
+    dir = os.path.abspath(dir)
     subprocess.check_call(["rm", "-rf", dir])
     subprocess.check_call(["git", "clone", repourl, dir])
     os.environ["PYSTEPS_DATA_PATH"] = dir
-
-    # Write a configuration file with the paths of the data sources, like for the
-    # tests, and load it: pysteps was already imported with the default one.
-    pystepsrc = create_default_pystepsrc(
-        dir,
-        config_dir=os.path.abspath(os.path.join("..", "..")),
-        file_name="pystepsrc.rtd",
-    )
+    set_root()
+    pystepsrc = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
     os.environ["PYSTEPSRC"] = pystepsrc
-    pysteps.load_config_file(pystepsrc)
 
 # -- Options for HTML output ----------------------------------------------
 
