@@ -76,7 +76,8 @@ doc = [
     "pandas",
     "pysteps-nwp-importers",
     "pygrib",
-    "h5py"
+    "h5py",
+    "cartopy>=0.18",  # for the maps in the gallery examples
 ]
 
 [dependency-groups]
