@@ -79,7 +79,9 @@ fns = io.find_by_date(
 importer = io.get_method(importer_name, "importer")
 radar_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Import the NWP data.
+# Import the NWP data. The pysteps-nwp-importers plugin has not been migrated
+# to the new xarray-based data model yet, so it still returns the old-style
+# (precip, quality, metadata) tuple. We wrap it into an xarray dataset by hand.
 filename = os.path.join(
     nwp_data_source["root_path"],
     datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),

@@ -66,7 +66,7 @@ fns = io.find_by_date(
 importer = io.get_method(importer_name, "importer")
 radar_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Import the NWP data.
+# Import the NWP data. 
 filename = os.path.join(
     nwp_data_source["root_path"],
     datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),
