@@ -268,5 +268,4 @@ sphinx_gallery_conf = {
     "min_reported_time": 0,  # Report the run time of every example
     "show_memory": True,  # Report the peak memory of every example
     "only_warn_on_example_error": True,  # A failing example must not abort the build
-    "example_timeout": 300,  # Abort examples running longer than 5 min (seconds)
 }
