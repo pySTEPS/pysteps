@@ -26,7 +26,7 @@ classifiers = [
 ]
 readme = "README.rst"
 version = "2.0.0-rc.1"
-requires-python = ">=3.11.0,<3.14.0"
+requires-python = ">=3.11.5,<3.14.0"
 dependencies = [
     "jsmin",
     "jsonschema",
@@ -76,7 +76,8 @@ doc = [
     "pandas",
     "pysteps-nwp-importers",
     "pygrib",
-    "h5py"
+    "h5py",
+    "cartopy>=0.18",  # for the maps in the gallery examples
 ]
 
 [dependency-groups]

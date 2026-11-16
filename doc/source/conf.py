@@ -253,4 +253,8 @@ sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path where to save gallery generated examples
     "filename_pattern": r"/*\.py",  # Include all the files in the examples dir
+    "ignore_pattern": r"blend|linda",  # Exclude too-slow / broken examples (blending, LINDA) for now
+    # Make the build log informative, so slow or failing examples can be spotted
+    "min_reported_time": 0,  # Report the run time of every example
+    "only_warn_on_example_error": True,  # A failing example must not abort the build
 }
