@@ -11,6 +11,7 @@ Module with xarray helper functions.
     convert_to_xarray_dataset
 """
 
+import logging
 import warnings
 from datetime import datetime, timedelta
 
@@ -18,6 +19,8 @@ import numpy as np
 import numpy.typing as npt
 import pyproj
 import xarray as xr
+
+logger = logging.getLogger(__name__)
 
 # TODO(converters): Write methods for converting Proj.4 projection definitions
 # into CF grid mapping attributes. Currently this has been implemented for
@@ -89,7 +92,9 @@ def _convert_proj4_to_grid_mapping(proj4str):
         v2 = d["lat_2"] if "lat_2" in d else float(0)
         params["standard_parallel"] = (float(v1), float(v2))
     else:
-        print("unknown projection", d["proj"])
+        # Not a supported CF grid mapping: the dataset is created without a
+        # grid_mapping attribute, the proj4 string is still kept in its attrs.
+        logger.debug("no CF grid mapping for projection %s", d["proj"])
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
@@ -204,12 +209,12 @@ def convert_input_to_xarray_dataset(
     else:
         ypixelsize = y_r[1] - y_r[0]
 
-    if x_r[1] - x_r[0] != xpixelsize:
+    if not np.isclose(x_r[1] - x_r[0], xpixelsize, rtol=1e-6, atol=0):
         # XR: This should be an error, but the importers don't always provide correct pixelsizes
         warnings.warn(
             "xpixelsize does not match x1, x2 and array shape, using xpixelsize for pixel size"
         )
-    if y_r[1] - y_r[0] != ypixelsize:
+    if not np.isclose(y_r[1] - y_r[0], ypixelsize, rtol=1e-6, atol=0):
         # XR: This should be an error, but the importers don't always provide correct pixelsizes
         warnings.warn(
             "ypixelsize does not match y1, y2 and array shape, using ypixelsize for pixel size"
