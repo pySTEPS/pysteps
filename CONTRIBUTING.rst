@@ -383,17 +383,24 @@ Preparing a new release
 
 Core developers should follow the steps to prepare a new release (version):
 
-1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
+1. Before creating the actual release in GitHub, prepare the release in a separate, dedicated branch.
+   If new dependencies were added to pysteps since the last release, make sure they are listed in
+   **pyproject.toml**. Then, in this branch, simply run::
 
-   * In the file pyproject.toml, update the **version = "X.X.X"** field.
-   * If new dependencies were added to pysteps since the last release, make sure
-     they are listed in **pyproject.toml** and run ``uv lock`` to update **uv.lock**.
+       uv version --bump rc|stable|patch|minor|major
+
+   Choose one of the options depending on the type of version update. We use
+   `semantic versioning <https://semver.org/>`_, so the version is **major.minor.patch**.
+   What the command above does:
+
+   * In the file pyproject.toml, it updates the **version = "X.X.X"** field.
+   * It runs ``uv lock`` to update **uv.lock**.
 
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
 #. Generating the source distribution for new pysteps version and upload it to
-   the `Python Package Index <https://pypi.org/>`_ (PyPI).
+   the `Python Package Index <https://pypi.org/>`_ (PyPI) -- this is done automatically.
    See `Packaging the pysteps project <https://pysteps.readthedocs.io/en/latest/developer_guide/pypi.html#pypi-relase>`__
    for a detailed description of this process.
 
