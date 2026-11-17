@@ -397,7 +397,7 @@ Core developers should follow the steps to prepare a new release (version):
    * In the file **pyproject.toml**, it updates the **version = "X.X.X"** field.
    * It runs ``uv lock`` to update **uv.lock**.
 
-#. Push your branch and ask for a review, then merge it into the main branch.
+#. Commit these files, push your branch and ask for a review, then merge it into the main branch.
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
