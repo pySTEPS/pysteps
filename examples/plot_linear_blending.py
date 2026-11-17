@@ -79,9 +79,7 @@ fns = io.find_by_date(
 importer = io.get_method(importer_name, "importer")
 radar_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Import the NWP data. The pysteps-nwp-importers plugin has not been migrated
-# to the new xarray-based data model yet, so it still returns the old-style
-# (precip, quality, metadata) tuple. We wrap it into an xarray dataset by hand.
+# Import the NWP data.
 filename = os.path.join(
     nwp_data_source["root_path"],
     datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),
@@ -91,27 +89,11 @@ filename = os.path.join(
 )
 
 nwp_importer = io.get_method("bom_nwp", "importer")
-nwp_precip, _, nwp_metadata = nwp_importer(filename)
+model_dataset = nwp_importer(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # End of the forecast is 18 time steps (+3 hours) in advance.
-nwp_precip = nwp_precip[24:43, :, :]
-
-# The importer sets metadata["transform"] = None to indicate "no transform",
-# but convert_input_to_xarray_dataset/to_rainrate expect the key to be absent
-# in that case.
-nwp_metadata = dict(nwp_metadata)
-if nwp_metadata.get("transform") is None:
-    nwp_metadata.pop("transform", None)
-
-model_dataset = convert_input_to_xarray_dataset(
-    nwp_precip,
-    None,
-    nwp_metadata,
-    startdate=date_radar,
-    timestep=int(timestep * 60),
-)
-
+model_dataset = model_dataset.sel(time=slice(date_radar, None)).isel(time=slice(0, 19))
 
 ################################################################################
 # Pre-processing steps
