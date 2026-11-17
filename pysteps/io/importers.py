@@ -212,9 +212,8 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib.pyplot import imread
-
 import xarray as xr
+from matplotlib.pyplot import imread
 
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
 from pysteps.utils import aggregate_fields
