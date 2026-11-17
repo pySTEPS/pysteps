@@ -94,6 +94,7 @@ root::
     uv run pre-commit install
 
 The pre-commit hooks are scripts executed automatically in every commit to identify simple issues with the code.
+
 When an issue is identified (the pre-commit script exits with non-zero status), the hook aborts the commit and prints the error.
 Currently, PySTEPS only tests that the code to be committed complies with :code:`bandit`, :code:`ruff format` and :code:`ruff`'s import sorter.
 In case that the commit is aborted, can run these to try to find the issues::
@@ -393,9 +394,10 @@ Core developers should follow the steps to prepare a new release (version):
    `semantic versioning <https://semver.org/>`_, so the version is **major.minor.patch**.
    What the command above does:
 
-   * In the file pyproject.toml, it updates the **version = "X.X.X"** field.
+   * In the file **pyproject.toml**, it updates the **version = "X.X.X"** field.
    * It runs ``uv lock`` to update **uv.lock**.
 
+#. Push your branch and ask for a review, then merge it into the main branch.
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
