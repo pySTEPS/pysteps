@@ -57,7 +57,7 @@ to upload the distribution packages. Alternatively, the package can be
 uploaded manually from the **Test PyPI** page.
 
 If Twine is not installed, you can install it by running
-``pip install twine`` or ``conda install twine``.
+``uv tool install twine``.
 
 
 Test PyPI
@@ -90,52 +90,18 @@ Before uploading the package to the official `Python Package
 Index <https://pypi.org/>`_, test that the package can be installed
 using pip.
 
-Automatic test
-^^^^^^^^^^^^^^
+To test the installation in a new, empty environment, create and activate
+one with uv, in a folder outside the pysteps source::
 
-The simplest way to hat the package can be installed using pip is using tox
-and the tox-conda plugin (conda needed).
-To install these packages activate your conda development environment and run::
+    uv venv pysteps_test
+    source pysteps_test/bin/activate
 
-    conda install -c conda-forge tox tox-conda
+Now, install the pysteps package from test.pypi.org.
+Since not all the dependencies are available in the Test PyPI repository, we need to add the official repo as an extra index. By doing so, uv will look first in the Test PyPI index and then in the official PyPI::
 
-Then, to test the installation in a minimal and an environment with all the
-dependencies (full env), run::
+    uv pip install --no-cache --index-strategy unsafe-best-match --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysteps pytest
 
-    tox -r -e pypi_test        # Test the installation in a minimal env
-    tox -r -e pypi_test_full   # Test the installation in an full env
-
-
-Manual test
-^^^^^^^^^^^
-
-To manually test the installation on new environment,
-create a copy of the basic development environment using the
-`environment_dev.yml <https://github.com/pySTEPS/pysteps/blob/master/environment_dev.yml>`_
-file in the root folder of the pysteps project::
-
-    conda env create -f environment_dev.yml -n pysteps_test
-
-Then we activate the environment::
-
-    source activate pysteps_test
-
-or::
-
-    conda activate pysteps_test
-
-If the environment pysteps_test was already created, remove any version of
-pysteps already installed::
-
-    pip uninstall pysteps
-
-Now, install the pysteps package from test.pypi.org. 
-Since not all the dependecies are available in the Test PyPI repository, we need to add the official repo as an extra index to pip. By doing so, pip will look first in the Test PyPI index and then in the official PyPI::
-
-    pip install --no-cache-dir --index-url https://test.pypi.org/simple/  --extra-index-url=https://pypi.org/simple/ pysteps
-
-To test that the installation was successful, from a folder different
-than the pysteps source, run::
+To test that the installation was successful, run::
 
     pytest --pyargs pysteps
 
@@ -158,20 +124,14 @@ Now, **pysteps** can be installed by simply running::
 
    pip install pysteps
 
+or, if you are using uv::
+
+   uv pip install pysteps
+
 As an extra sanity measure, it is recommended to test the pysteps package
 installed from the Official PyPi repository
 (instead of the test PyPi).
 
-Automatic test
-^^^^^^^^^^^^^^
-
-Similarly to the `Test the uploaded package`_ section, to test the
-installation from PyPI in a clean environment, run::
-
-    tox -r -e pypi
-
-Manual test
-^^^^^^^^^^^
-
-Follow test instructions in `Test PyPI`_ section.
+Follow the test instructions in the `Test the uploaded package`_ section,
+installing with ``uv pip install --no-cache pysteps pytest`` instead.
 
