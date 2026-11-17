@@ -11,7 +11,6 @@ Module with xarray helper functions.
     convert_to_xarray_dataset
 """
 
-import logging
 import warnings
 from datetime import datetime, timedelta
 
@@ -19,8 +18,6 @@ import numpy as np
 import numpy.typing as npt
 import pyproj
 import xarray as xr
-
-logger = logging.getLogger(__name__)
 
 # TODO(converters): Write methods for converting Proj.4 projection definitions
 # into CF grid mapping attributes. Currently this has been implemented for
@@ -94,7 +91,10 @@ def _convert_proj4_to_grid_mapping(proj4str):
     else:
         # Not a supported CF grid mapping: the dataset is created without a
         # grid_mapping attribute, the proj4 string is still kept in its attrs.
-        logger.debug("no CF grid mapping for projection %s", d["proj"])
+        warnings.warn(
+            f"No CF grid mapping available for projection '{d['proj']}'; "
+            "the dataset is created without a grid_mapping attribute"
+        )
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
