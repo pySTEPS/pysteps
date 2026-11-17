@@ -64,7 +64,8 @@ Then, get a copy of pysteps and install it with all its dependencies::
     uv sync
 
 This creates a virtual environment in the **.venv** folder inside the pysteps
-directory. To also install the optional dependencies listed above, run instead::
+directory. To also install most of the optional dependencies listed above
+(all except pygrib and gdal), run instead::
 
     uv sync --extra optional
 
