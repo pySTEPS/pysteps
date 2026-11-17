@@ -150,6 +150,6 @@ def check_previous_radar_obs(precip, ar_order, check_norain_kwargs=None):
         if precip.shape[0] - 1 < ar_order:
             # Give a warning
             print(
-                f"[WARNING] Radar input only with {precip.shape[0]} non-zero time steps and ar_order set to {precip.shape[0]-1}."
+                f"[WARNING] Radar input only with {precip.shape[0]} non-zero time steps and ar_order set to {precip.shape[0] - 1}."
             )
         return precip, min(ar_order, precip.shape[0] - 1)

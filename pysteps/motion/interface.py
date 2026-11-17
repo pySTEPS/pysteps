@@ -28,10 +28,10 @@ import numpy as np
 
 from pysteps.motion.constant import constant
 from pysteps.motion.darts import DARTS
+from pysteps.motion.farneback import farneback
 from pysteps.motion.lucaskanade import dense_lucaskanade
 from pysteps.motion.proesmans import proesmans
 from pysteps.motion.vet import vet
-from pysteps.motion.farneback import farneback
 
 _methods = dict()
 _methods["constant"] = constant

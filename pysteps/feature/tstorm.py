@@ -116,11 +116,11 @@ def detection(
     """
     if not SKIMAGE_IMPORTED:
         raise MissingOptionalDependency(
-            "skimage is required for thunderstorm DATing " "but it is not installed"
+            "skimage is required for thunderstorm DATing but it is not installed"
         )
     if not PANDAS_IMPORTED:
         raise MissingOptionalDependency(
-            "pandas is required for thunderstorm DATing " "but it is not installed"
+            "pandas is required for thunderstorm DATing but it is not installed"
         )
     filt_image = np.zeros(input_image.shape)
     filt_image[input_image >= minref] = input_image[input_image >= minref]

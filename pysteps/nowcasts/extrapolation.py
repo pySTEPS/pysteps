@@ -113,7 +113,7 @@ def forecast(
 
 def _check_inputs(precip, velocity, timesteps):
     if precip.ndim != 2:
-        raise ValueError("The input precipitation must be a " "two-dimensional array")
+        raise ValueError("The input precipitation must be a two-dimensional array")
     if velocity.ndim != 3:
         raise ValueError("Input velocity must be a three-dimensional array")
     if precip.shape != velocity.shape[1:3]:

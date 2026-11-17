@@ -501,8 +501,8 @@ def import_mrms_grib(
     proj_params = _get_grib_projection(grib_msg)
     proj_def = " ".join([f"+{key}={value} " for key, value in proj_params.items()])
 
-    xsize = grib_msg["iDirectionIncrementInDegrees"] * window_size[0]
-    ysize = grib_msg["jDirectionIncrementInDegrees"] * window_size[1]
+    xsize = grib_msg["iDirectionIncrementInDegrees"]
+    ysize = grib_msg["jDirectionIncrementInDegrees"]
 
     metadata = dict(
         institution="NOAA National Severe Storms Laboratory",

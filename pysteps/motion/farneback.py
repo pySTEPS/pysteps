@@ -19,11 +19,12 @@ available in OpenCV_.
     farneback
 """
 
+import time
+
 import numpy as np
+import scipy.ndimage as sndi
 import xarray as xr
 from numpy.ma.core import MaskedArray
-import scipy.ndimage as sndi
-import time
 
 from pysteps.decorators import check_input_frames
 from pysteps.exceptions import MissingOptionalDependency

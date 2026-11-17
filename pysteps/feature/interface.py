@@ -29,9 +29,7 @@ All implemented methods support the following keyword arguments:
     get_method
 """
 
-from pysteps.feature import blob
-from pysteps.feature import tstorm
-from pysteps.feature import shitomasi
+from pysteps.feature import blob, shitomasi, tstorm
 
 _detection_methods = dict()
 _detection_methods["blob"] = blob.detection

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
+
 from pysteps import downscaling
 from pysteps.tests.helpers import get_precipitation_fields
-from pysteps.utils import aggregate_fields_space, square_domain, aggregate_fields
+from pysteps.utils import aggregate_fields, aggregate_fields_space, square_domain
 
 
 @pytest.fixture(scope="module")

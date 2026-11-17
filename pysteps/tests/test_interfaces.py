@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
+
 import numpy
 import pytest
 
@@ -42,7 +43,7 @@ def test_nowcasts_interface():
 def test_cascade_interface():
     """Test the cascade module interface."""
 
-    from pysteps.cascade import decomposition, bandpass_filters
+    from pysteps.cascade import bandpass_filters, decomposition
 
     method_getter = pysteps.cascade.interface.get_method
 
@@ -60,9 +61,7 @@ def test_extrapolation_interface():
     """Test the extrapolation module interface."""
 
     from pysteps import extrapolation
-    from pysteps.extrapolation import semilagrangian
-
-    from pysteps.extrapolation import eulerian_persistence
+    from pysteps.extrapolation import eulerian_persistence, semilagrangian
     from pysteps.extrapolation.interface import _do_nothing as do_nothing
 
     method_getter = extrapolation.interface.get_method
@@ -95,20 +94,21 @@ def test_extrapolation_interface():
 def test_io_interface():
     """Test the io module interface."""
 
-    from pysteps.io import import_bom_rf3
-    from pysteps.io import import_fmi_geotiff
-    from pysteps.io import import_fmi_pgm
-    from pysteps.io import import_knmi_hdf5
-    from pysteps.io import import_mch_gif
-    from pysteps.io import import_mch_hdf5
-    from pysteps.io import import_mch_metranet
-    from pysteps.io import import_mrms_grib
-    from pysteps.io import import_opera_hdf5
-    from pysteps.io import import_saf_crri
-
-    from pysteps.io import initialize_forecast_exporter_geotiff
-    from pysteps.io import initialize_forecast_exporter_kineros
-    from pysteps.io import initialize_forecast_exporter_netcdf
+    from pysteps.io import (
+        import_bom_rf3,
+        import_fmi_geotiff,
+        import_fmi_pgm,
+        import_knmi_hdf5,
+        import_mch_gif,
+        import_mch_hdf5,
+        import_mch_metranet,
+        import_mrms_grib,
+        import_opera_hdf5,
+        import_saf_crri,
+        initialize_forecast_exporter_geotiff,
+        initialize_forecast_exporter_kineros,
+        initialize_forecast_exporter_netcdf,
+    )
 
     # Test importers
     valid_names_func_pair = [
@@ -157,7 +157,7 @@ def test_postprocessing_interface():
     """Test the postprocessing module interface."""
 
     # ensemblestats pre-installed methods
-    from pysteps.postprocessing import mean, excprob, banddepth
+    from pysteps.postprocessing import banddepth, excprob, mean
 
     # Test ensemblestats
     valid_names_func_pair = [
@@ -247,15 +247,14 @@ def test_noise_interface():
     """Test the noise module interface."""
 
     from pysteps.noise.fftgenerators import (
-        initialize_param_2d_fft_filter,
         generate_noise_2d_fft_filter,
-        initialize_nonparam_2d_fft_filter,
-        initialize_nonparam_2d_ssft_filter,
         generate_noise_2d_ssft_filter,
+        initialize_nonparam_2d_fft_filter,
         initialize_nonparam_2d_nested_filter,
+        initialize_nonparam_2d_ssft_filter,
+        initialize_param_2d_fft_filter,
     )
-
-    from pysteps.noise.motion import initialize_bps, generate_bps
+    from pysteps.noise.motion import generate_bps, initialize_bps
 
     method_getter = pysteps.noise.interface.get_method
 
@@ -287,8 +286,8 @@ def test_nowcasts_interface():
         lagrangian_probability,
         linda,
         sprog,
-        steps,
         sseps,
+        steps,
     )
 
     method_getter = pysteps.nowcasts.interface.get_method
@@ -313,16 +312,18 @@ def test_nowcasts_interface():
 def test_utils_interface():
     """Test utils module interface."""
 
-    from pysteps.utils import arrays
-    from pysteps.utils import cleansing
-    from pysteps.utils import conversion
-    from pysteps.utils import dimension
-    from pysteps.utils import images
-    from pysteps.utils import interpolate
-    from pysteps.utils import reprojection
-    from pysteps.utils import spectral
-    from pysteps.utils import tapering
-    from pysteps.utils import transformation
+    from pysteps.utils import (
+        arrays,
+        cleansing,
+        conversion,
+        dimension,
+        images,
+        interpolate,
+        reprojection,
+        spectral,
+        tapering,
+        transformation,
+    )
 
     method_getter = pysteps.utils.interface.get_method
 
@@ -378,9 +379,7 @@ def test_downscaling_interface():
 def test_feature_interface():
     """Test the feature detection module interface."""
 
-    from pysteps.feature import blob
-    from pysteps.feature import tstorm
-    from pysteps.feature import shitomasi
+    from pysteps.feature import blob, shitomasi, tstorm
 
     method_getter = pysteps.feature.interface.get_method
 
@@ -397,8 +396,7 @@ def test_feature_interface():
 def test_tracking_interface():
     """Test the feature tracking module interface."""
 
-    from pysteps.tracking import lucaskanade
-    from pysteps.tracking import tdating
+    from pysteps.tracking import lucaskanade, tdating
 
     method_getter = pysteps.tracking.interface.get_method
 

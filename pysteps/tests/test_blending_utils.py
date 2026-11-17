@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime, timezone
 import os
+from datetime import datetime, timezone
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal
 import xarray as xr
+from numpy.testing import assert_array_almost_equal
+
 import pysteps
 from pysteps.blending.utils import (
     blend_cascades,

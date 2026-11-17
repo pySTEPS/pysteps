@@ -14,10 +14,11 @@ Methods for plotting verification results.
     plot_ROC
 """
 
-from matplotlib import cm
 import matplotlib.pylab as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
+from matplotlib import cm
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
 from pysteps.verification import ensscores, probscores, spatialscores
 
 

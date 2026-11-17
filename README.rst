@@ -10,7 +10,7 @@ pysteps - Python framework for short-term ensemble prediction systems
     * - docs
       - |stable| |colab| |gallery|
     * - status
-      - |test| |docs| |codecov| |codacy| |black|
+      - |test| |docs| |codecov| |codacy| |formatting|
     * - package
       - |github| |conda| |pypi| |zenodo|
     * - community
@@ -25,11 +25,11 @@ pysteps - Python framework for short-term ensemble prediction systems
     :alt: Test pysteps
     :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Test+Pysteps"
 
-.. |black| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20Black/badge.svg
-    :alt: Check Black
-    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+Black"
+.. |formatting| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20formatting/badge.svg
+    :alt: Check formatting
+    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+formatting"
 
-.. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
+.. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/main/graph/badge.svg
     :alt: Coverage
     :target: https://codecov.io/gh/pySTEPS/pysteps
 
@@ -59,7 +59,7 @@ pysteps - Python framework for short-term ensemble prediction systems
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
     :alt: My first nowcast
-    :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
+    :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/main/examples/my_first_nowcast.ipynb
 
 .. |gallery| image:: https://img.shields.io/badge/example-gallery-blue.svg
     :alt: pysteps example gallery
@@ -92,16 +92,14 @@ The pysteps library supports standard input/output file formats and implements s
 Quick start
 -----------
 
-Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab with `this interactive notebook <https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb>`_.
+Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab with `this interactive notebook <https://colab.research.google.com/github/pySTEPS/pysteps/blob/main/examples/my_first_nowcast.ipynb>`_.
 
 Installation
 ============
 
-The recommended way to install pysteps is with `conda <https://docs.conda.io/>`_ from the conda-forge channel::
+PySTEPS can be installed using `uv <https://docs.astral.sh/uv/getting-started/installation/>`_::
 
-    $ conda install -c conda-forge pysteps
-
-More details can be found in the `installation guide <https://pysteps.readthedocs.io/en/stable/user_guide/install_pysteps.html>`_.
+    uv sync
 
 Usage
 =====

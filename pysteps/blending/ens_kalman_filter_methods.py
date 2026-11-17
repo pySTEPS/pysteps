@@ -77,7 +77,6 @@ except ImportError:
 
 
 class EnsembleKalmanFilter:
-
     def __init__(self, config, params):
 
         self._config = config
@@ -399,7 +398,6 @@ class EnsembleKalmanFilter:
 
 
 class MaskedEnKF(EnsembleKalmanFilter):
-
     def __init__(self, config, params):
 
         EnsembleKalmanFilter.__init__(self, config, params)

@@ -8,20 +8,22 @@ from jsmin import jsmin
 from jsonschema import Draft4Validator
 
 # import subpackages
-from . import blending
-from . import cascade
-from . import datasets
-from . import decorators
-from . import downscaling
-from . import exceptions
-from . import extrapolation
-from . import io
-from . import motion
-from . import noise
-from . import nowcasts
-from . import postprocessing
-from . import timeseries
-from . import utils
+from . import (
+    blending,
+    cascade,
+    datasets,
+    decorators,
+    downscaling,
+    exceptions,
+    extrapolation,
+    io,
+    motion,
+    noise,
+    nowcasts,
+    postprocessing,
+    timeseries,
+    utils,
+)
 from . import verification as vf
 from . import visualization as plt
 

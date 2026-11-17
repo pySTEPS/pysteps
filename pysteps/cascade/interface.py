@@ -10,7 +10,7 @@ Interface for the cascade module.
     get_method
 """
 
-from pysteps.cascade import decomposition, bandpass_filters
+from pysteps.cascade import bandpass_filters, decomposition
 
 _cascade_methods = dict()
 _cascade_methods["fft"] = (decomposition.decomposition_fft, decomposition.recompose_fft)

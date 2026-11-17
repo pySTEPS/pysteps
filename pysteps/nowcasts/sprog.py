@@ -20,8 +20,8 @@ from pysteps.nowcasts import utils as nowcast_utils
 from pysteps.nowcasts.utils import compute_percentile_mask, nowcast_main_loop
 from pysteps.postprocessing import probmatching
 from pysteps.timeseries import autoregression, correlation
-from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 from pysteps.utils.check_norain import check_norain
+from pysteps.xarray_helpers import convert_output_to_xarray_dataset
 
 try:
     import dask

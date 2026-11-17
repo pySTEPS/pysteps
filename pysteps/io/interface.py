@@ -14,9 +14,9 @@ Interface for the io module.
 """
 
 from importlib.metadata import entry_points
-
-from pysteps.io import importers, exporters, interface
 from pprint import pprint
+
+from pysteps.io import exporters, importers, interface
 
 _importer_methods = dict(
     bom_rf3=importers.import_bom_rf3,

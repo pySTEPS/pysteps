@@ -186,7 +186,7 @@ def detect_outliers(input_array, thr, coord=None, k=None, verbose=False):
 
         elif coord.ndim > 2:
             raise ValueError(
-                "coord must have 2 dimensions (n, d)," f"but it has {coord.ndim}"
+                f"coord must have 2 dimensions (n, d),but it has {coord.ndim}"
             )
 
         if coord.shape[0] != nsamples:

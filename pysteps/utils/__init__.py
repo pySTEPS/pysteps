@@ -4,10 +4,10 @@ from .arrays import *
 from .cleansing import *
 from .conversion import *
 from .dimension import *
+from .fft import *
 from .images import *
 from .interface import get_method
 from .interpolate import *
-from .fft import *
 from .pca import *
 from .reprojection import *
 from .spectral import *

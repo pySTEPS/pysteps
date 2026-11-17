@@ -16,6 +16,7 @@ dimensional model fields with the latest observation field.
 """
 
 import numpy as np
+
 from pysteps.blending import clim
 
 

@@ -226,12 +226,12 @@ def test_pca_enkf_combination(
         ~np.isfinite(model_dataset[model_precip_var].values)
     ] = model_dataset[model_precip_var].attrs["zerovalue"]
 
-    assert (
-        np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False
-    ), "There are still infinite values in the input radar data"
-    assert (
-        np.any(~np.isfinite(model_dataset[model_precip_var].values)) == False
-    ), "There are still infinite values in the NWP data"
+    assert np.any(~np.isfinite(radar_dataset[radar_precip_var].values)) == False, (
+        "There are still infinite values in the input radar data"
+    )
+    assert np.any(~np.isfinite(model_dataset[model_precip_var].values)) == False, (
+        "There are still infinite values in the NWP data"
+    )
 
     # Initialize radar velocity
     oflow_method = motion.get_method("LK")
@@ -300,25 +300,25 @@ def test_pca_enkf_combination(
     combined_forecast = combined_forecast_dataset[radar_precip_var].values
 
     assert combined_forecast.ndim == 4, "Wrong amount of dimensions in forecast output"
-    assert (
-        combined_forecast.shape[0] == n_ens_members
-    ), "Wrong amount of output ensemble members in forecast output"
-    assert (
-        combined_forecast.shape[1] == forecast_length // temporal_res_radar + 1
-    ), "Wrong amount of output time steps in forecast output"
+    assert combined_forecast.shape[0] == n_ens_members, (
+        "Wrong amount of output ensemble members in forecast output"
+    )
+    assert combined_forecast.shape[1] == forecast_length // temporal_res_radar + 1, (
+        "Wrong amount of output time steps in forecast output"
+    )
 
     # Transform the data back into mm/h
     combined_forecast_mmh_dataset = converter(combined_forecast_dataset)
     combined_forecast = combined_forecast_mmh_dataset[radar_precip_var].values
 
-    assert (
-        combined_forecast.ndim == 4
-    ), "Wrong amount of dimensions in converted forecast output"
-    assert (
-        combined_forecast.shape[0] == n_ens_members
-    ), "Wrong amount of output ensemble members in converted forecast output"
-    assert (
-        combined_forecast.shape[1] == forecast_length // temporal_res_radar + 1
-    ), "Wrong amount of output time steps in converted forecast output"
+    assert combined_forecast.ndim == 4, (
+        "Wrong amount of dimensions in converted forecast output"
+    )
+    assert combined_forecast.shape[0] == n_ens_members, (
+        "Wrong amount of output ensemble members in converted forecast output"
+    )
+    assert combined_forecast.shape[1] == forecast_length // temporal_res_radar + 1, (
+        "Wrong amount of output time steps in converted forecast output"
+    )
 
     return

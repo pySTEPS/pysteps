@@ -15,6 +15,7 @@ two-dimensional fields.
 
 import numpy as np
 from scipy import ndimage
+
 from pysteps.utils import spectral
 
 

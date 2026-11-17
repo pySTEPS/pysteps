@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pysteps.feature.tstorm import detection
-from pysteps.utils import to_reflectivity
 from pysteps.tests.helpers import get_precipitation_fields
+from pysteps.utils import to_reflectivity
 
 try:
     from pandas import DataFrame

@@ -11,10 +11,9 @@ Blob detection methods.
 """
 
 import numpy as np
+from scipy.ndimage import gaussian_laplace
 
 from pysteps.exceptions import MissingOptionalDependency
-
-from scipy.ndimage import gaussian_laplace
 
 try:
     from skimage import feature

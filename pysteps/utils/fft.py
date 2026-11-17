@@ -13,8 +13,9 @@ Interface module for different FFT methods.
     get_pyfftw
 """
 
-from pysteps.exceptions import MissingOptionalDependency
 from types import SimpleNamespace
+
+from pysteps.exceptions import MissingOptionalDependency
 
 
 def get_numpy(shape, fftn_shape=None, **kwargs):
@@ -60,8 +61,8 @@ def get_scipy(shape, fftn_shape=None, **kwargs):
 
 def get_pyfftw(shape, fftn_shape=None, n_threads=1, **kwargs):
     try:
-        import pyfftw.interfaces.numpy_fft as pyfftw_fft
         import pyfftw
+        import pyfftw.interfaces.numpy_fft as pyfftw_fft
 
         pyfftw.interfaces.cache.enable()
     except ImportError:

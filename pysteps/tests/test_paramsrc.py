@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-
 from tempfile import NamedTemporaryFile
 
 import pysteps

@@ -14,7 +14,7 @@ The Spatial-Amplitude-Location (SAL) score by :cite:`WPHF2008`.
     sal_location
 """
 
-from math import sqrt, hypot
+from math import hypot, sqrt
 
 import numpy as np
 from scipy.ndimage import center_of_mass

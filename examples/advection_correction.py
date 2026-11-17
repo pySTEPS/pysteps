@@ -17,13 +17,14 @@ precipitation features.
 """
 
 from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.ndimage import map_coordinates
 
 from pysteps import io, motion, rcparams
 from pysteps.utils import conversion, dimension
 from pysteps.visualization import plot_precip_field
-from scipy.ndimage import map_coordinates
 
 ################################################################################
 # Read the radar input images

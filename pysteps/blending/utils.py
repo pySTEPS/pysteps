@@ -19,9 +19,9 @@ Module with common utilities used by the blending methods.
 """
 
 import datetime
-from typing import Any, Callable
 import warnings
 from pathlib import Path
+from typing import Any, Callable
 
 import numpy as np
 import xarray as xr
@@ -405,8 +405,7 @@ def preprocess_nwp_data(
 
     if not NETCDF4_IMPORTED:
         raise MissingOptionalDependency(
-            "netCDF4 package is required to save the NWP data, "
-            "but it is not installed"
+            "netCDF4 package is required to save the NWP data, but it is not installed"
         )
 
     if "ens_number" in precip_nwp_dataset.dims:

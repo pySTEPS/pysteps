@@ -89,7 +89,12 @@ def _convert_proj4_to_grid_mapping(proj4str):
         v2 = d["lat_2"] if "lat_2" in d else float(0)
         params["standard_parallel"] = (float(v1), float(v2))
     else:
-        print("unknown projection", d["proj"])
+        # Not a supported CF grid mapping: the dataset is created without a
+        # grid_mapping attribute, the proj4 string is still kept in its attrs.
+        warnings.warn(
+            f"No CF grid mapping available for projection '{d['proj']}'; "
+            "the dataset is created without a grid_mapping attribute"
+        )
         return None, None, None
 
     return grid_mapping_var_name, grid_mapping_name, params
@@ -204,12 +209,12 @@ def convert_input_to_xarray_dataset(
     else:
         ypixelsize = y_r[1] - y_r[0]
 
-    if x_r[1] - x_r[0] != xpixelsize:
+    if not np.isclose(x_r[1] - x_r[0], xpixelsize, rtol=1e-6, atol=0):
         # XR: This should be an error, but the importers don't always provide correct pixelsizes
         warnings.warn(
             "xpixelsize does not match x1, x2 and array shape, using xpixelsize for pixel size"
         )
-    if y_r[1] - y_r[0] != ypixelsize:
+    if not np.isclose(y_r[1] - y_r[0], ypixelsize, rtol=1e-6, atol=0):
         # XR: This should be an error, but the importers don't always provide correct pixelsizes
         warnings.warn(
             "ypixelsize does not match y1, y2 and array shape, using ypixelsize for pixel size"

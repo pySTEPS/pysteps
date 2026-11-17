@@ -71,6 +71,7 @@ Available methods
 """
 
 import numpy as np
+
 from pysteps import utils
 
 
@@ -171,7 +172,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
     ):
         raise ValueError(
             "Dimension mismatch between field and bp_filter: "
-            "int(field.shape[1]/2)+1=%d , " % (int(field.shape[1] / 2) + 1)
+            "int(field.shape[1]/2)+1=%d , "
+            % (int(field.shape[1] / 2) + 1)
             + "bp_filter['weights_2d'].shape[2]"
             "=%d" % bp_filter["weights_2d"].shape[2]
         )
@@ -182,7 +184,8 @@ def decomposition_fft(field, bp_filter, **kwargs):
     ):
         raise ValueError(
             "Dimension mismatch between field and bp_filter: "
-            "field.shape[1]=%d , " % (field.shape[1] + 1)
+            "field.shape[1]=%d , "
+            % (field.shape[1] + 1)
             + "bp_filter['weights_2d'].shape[2]"
             "=%d" % bp_filter["weights_2d"].shape[2]
         )

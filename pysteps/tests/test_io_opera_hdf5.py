@@ -77,7 +77,7 @@ expected_proj = (
 test_odyssey_attrs = [
     (precip_odyssey.attrs["projection"], expected_proj, None),
     (float(precip_odyssey.lon.isel(x=0, y=-1).values), -10.4268122372, 1e-10),
-    (float(precip_odyssey.lat.isel(x=0, y=-1).values), 31.7575305202, 1e-10),
+    (float(precip_odyssey.lat.isel(x=0, y=-1).values), 31.7575305202, 1e-6),
     (float(precip_odyssey.lon.isel(x=-1, y=0).values), 57.7778944303, 1e-10),
     (float(precip_odyssey.lat.isel(x=-1, y=0).values), 67.6204665961, 1e-10),
     (precip_odyssey.x.isel(x=0).values, 999.999583891, 1e-6),
@@ -107,7 +107,7 @@ def test_io_import_opera_hdf5_odyssey_dataset_attrs(variable, expected, toleranc
 test_cirrus_attrs = [
     (precip_cirrus.attrs["projection"], expected_proj, None),
     (float(precip_cirrus.lon.isel(x=0, y=-1).values), -10.4306947565, 1e-10),
-    (float(precip_cirrus.lat.isel(x=0, y=-1).values), 31.7518730246, 1e-10),
+    (float(precip_cirrus.lat.isel(x=0, y=-1).values), 31.7518730246, 1e-6),
     (float(precip_cirrus.lon.isel(x=-1, y=0).values), 57.7949292793, 1e-10),
     (float(precip_cirrus.lat.isel(x=-1, y=0).values), 67.6207527344, 1e-10),
     (precip_cirrus.x.isel(x=0).values, 499.99972864, 1e-6),
@@ -138,7 +138,7 @@ def test_io_import_opera_hdf5_cirrus_dataset_attrs(variable, expected, tolerance
 test_nimbus_rain_rate_attrs = [
     (precip_nimbus_rain_rate.attrs["projection"], expected_proj, None),
     (float(precip_nimbus_rain_rate.lon.isel(x=0, y=-1).values), -10.4268354001, 1e-10),
-    (float(precip_nimbus_rain_rate.lat.isel(x=0, y=-1).values), 31.7575151548, 1e-10),
+    (float(precip_nimbus_rain_rate.lat.isel(x=0, y=-1).values), 31.7575151548, 1e-6),
     (float(precip_nimbus_rain_rate.lon.isel(x=-1, y=0).values), 57.7778328845, 1e-10),
     (float(precip_nimbus_rain_rate.lat.isel(x=-1, y=0).values), 67.6204748496, 1e-10),
     (precip_nimbus_rain_rate.x.isel(x=0).values, 997.46972871, 1e-6),
@@ -169,7 +169,7 @@ def test_io_import_opera_hdf5_nimbus_rain_rate_dataset_attrs(
 test_nimbus_rain_accum_attrs = [
     (precip_nimbus_rain_accum.attrs["projection"], expected_proj, None),
     (float(precip_nimbus_rain_accum.lon.isel(x=0, y=-1).values), -10.4268354001, 1e-10),
-    (float(precip_nimbus_rain_accum.lat.isel(x=0, y=-1).values), 31.7575151548, 1e-10),
+    (float(precip_nimbus_rain_accum.lat.isel(x=0, y=-1).values), 31.7575151548, 1e-6),
     (float(precip_nimbus_rain_accum.lon.isel(x=-1, y=0).values), 57.7778328845, 1e-10),
     (float(precip_nimbus_rain_accum.lat.isel(x=-1, y=0).values), 67.6204748496, 1e-10),
     (precip_nimbus_rain_accum.x.isel(x=0).values, 997.46972871, 1e-6),

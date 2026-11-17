@@ -16,6 +16,7 @@ Fourier domain.
 """
 
 import numpy as np
+
 from . import arrays
 
 

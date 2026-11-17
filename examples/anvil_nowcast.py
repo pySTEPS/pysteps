@@ -10,13 +10,14 @@ extrapolation nowcast and S-PROG.
 Load the libraries.
 """
 
-from datetime import datetime, timedelta
 import warnings
+from datetime import datetime, timedelta
 
 warnings.simplefilter("ignore")
 import matplotlib.pyplot as plt
 import numpy as np
-from pysteps import motion, io, rcparams, utils
+
+from pysteps import io, motion, rcparams, utils
 from pysteps.nowcasts import anvil, extrapolation, sprog
 from pysteps.utils import transformation
 from pysteps.visualization import plot_precip_field
