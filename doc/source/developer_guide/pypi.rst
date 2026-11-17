@@ -96,10 +96,13 @@ one with uv, in a folder outside the pysteps source::
     uv venv pysteps_test
     source pysteps_test/bin/activate
 
-Now, install the pysteps package from test.pypi.org.
-Since not all the dependencies are available in the Test PyPI repository, we need to add the official repo as an extra index. By doing so, uv will look first in the Test PyPI index and then in the official PyPI::
+Now, install the uploaded pysteps version from test.pypi.org. Since not all
+dependencies are available in the Test PyPI repository, we add the official
+PyPI as an extra index. The ``first-index`` strategy selects pysteps from Test
+PyPI and uses PyPI to find its dependencies. Replace ``a.b.c`` with the
+version uploaded above::
 
-    uv pip install --no-cache --index-strategy unsafe-best-match --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysteps pytest
+    uv pip install --no-cache --index-strategy first-index --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysteps==a.b.c pytest
 
 Before running the tests, install the example data and configure its paths
 as described in :ref:`example_data`.
