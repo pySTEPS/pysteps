@@ -10,9 +10,9 @@ pysteps - Python framework for short-term ensemble prediction systems
     * - docs
       - |stable| |colab| |gallery|
     * - status
-      - |test| |docs| |codecov| |codacy| |formatting|
+      - |test| |docs| |codecov| |codacy|
     * - package
-      - |github| |conda| |pypi| |zenodo|
+      - |github| |pypi| |zenodo|
     * - community
       - |contributors| |downloads| |license|
 
@@ -25,10 +25,6 @@ pysteps - Python framework for short-term ensemble prediction systems
     :alt: Test pysteps
     :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Test+Pysteps"
 
-.. |formatting| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20formatting/badge.svg
-    :alt: Check formatting
-    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+formatting"
-
 .. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/main/graph/badge.svg
     :alt: Coverage
     :target: https://codecov.io/gh/pySTEPS/pysteps
@@ -36,10 +32,6 @@ pysteps - Python framework for short-term ensemble prediction systems
 .. |github| image:: https://img.shields.io/github/release/pySTEPS/pysteps.svg
     :target: https://github.com/pySTEPS/pysteps/releases/latest
     :alt: Latest github release
-
-.. |conda| image:: https://anaconda.org/conda-forge/pysteps/badges/version.svg
-    :target: https://anaconda.org/conda-forge/pysteps
-    :alt: Anaconda Cloud
 
 .. |pypi| image:: https://badge.fury.io/py/pysteps.svg
     :target: https://pypi.org/project/pysteps/
@@ -53,9 +45,9 @@ pysteps - Python framework for short-term ensemble prediction systems
     :alt: GitHub contributors
     :target: https://github.com/pySTEPS/pysteps/graphs/contributors
 
-.. |downloads| image:: https://img.shields.io/conda/dn/conda-forge/pysteps
-    :alt: Conda downloads
-    :target: https://anaconda.org/conda-forge/pysteps
+.. |downloads| image:: https://img.shields.io/pypi/dm/pysteps
+    :alt: PyPI downloads
+    :target: https://pypistats.org/packages/pysteps
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
     :alt: My first nowcast
