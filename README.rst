@@ -17,7 +17,7 @@ pysteps - Python framework for short-term ensemble prediction systems
       - |contributors| |downloads| |license|
 
 
-.. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
+.. |docs| image:: https://app.readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
     :target: https://pysteps.readthedocs.io/
 
