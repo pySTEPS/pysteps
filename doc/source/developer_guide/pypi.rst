@@ -101,6 +101,9 @@ Since not all the dependencies are available in the Test PyPI repository, we nee
 
     uv pip install --no-cache --index-strategy unsafe-best-match --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysteps pytest
 
+Before running the tests, install the example data and configure its paths
+as described in :ref:`example_data`.
+
 To test that the installation was successful, run::
 
     pytest --pyargs pysteps
