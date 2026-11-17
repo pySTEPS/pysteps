@@ -220,15 +220,11 @@ from pysteps.utils import aggregate_fields
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 try:
-    from osgeo import gdal, gdalconst, osr
+    import rioxarray
 
-    # Preserve current behavior explicitly (no GDAL exceptions) and avoid the
-    # GDAL 4.0 future-warning emitted when neither mode is selected.
-    if hasattr(gdal, "DontUseExceptions"):
-        gdal.DontUseExceptions()
-    GDAL_IMPORTED = True
+    RIOXARRAY_IMPORTED = True
 except ImportError:
-    GDAL_IMPORTED = False
+    RIOXARRAY_IMPORTED = False
 
 try:
     import h5py
@@ -764,9 +760,16 @@ def import_fmi_geotiff(filename, fillna=np.nan, dtype="double"):
         the associated quality field and metadata.
         The quality field is currently set to None.
     """
-    if not GDAL_IMPORTED:
+    if not RIOXARRAY_IMPORTED:
         raise MissingOptionalDependency(
-            "gdal package is required to import "
+            "rioxarray package is required to import "
+            "FMI's radar reflectivity composite in GeoTIFF format "
+            "but it is not installed"
+        )
+
+    if not PYPROJ_IMPORTED:
+        raise MissingOptionalDependency(
+            "pyproj package is required to import "
             "FMI's radar reflectivity composite in GeoTIFF format "
             "but it is not installed"
         )
