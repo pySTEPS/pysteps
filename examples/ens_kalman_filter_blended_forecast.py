@@ -62,7 +62,7 @@ fn_pattern = radar_data_source["fn_pattern"]
 fn_ext = radar_data_source["fn_ext"]
 importer_name = radar_data_source["importer"]
 importer_kwargs = radar_data_source["importer_kwargs"]
-timestep_radar = radar_data_source["timestep"]
+timestep_radar_min = radar_data_source["timestep"]
 
 # Find the radar files in the archive
 fns = io.find_by_date(
@@ -71,7 +71,7 @@ fns = io.find_by_date(
     path_fmt,
     fn_pattern,
     fn_ext,
-    timestep_radar,
+    timestep_radar_min,
     num_prev_files=2,
 )
 
@@ -121,16 +121,16 @@ log_zerovalue = 10.0 * np.log10(zerovalue)
 # We change the time step from the DWD NWP data to 15 min (it is actually 5 min)
 # to have a longer forecast horizon available for this example, as pysteps_data
 # only contains 1 hour of DWD forecast data (to minimize storage).
-nwp_timestep = 15
+nwp_timestep_min = 15
 model_precip_var = model_dataset.attrs["precip_var"]
 model_dataset[model_precip_var] = model_dataset[model_precip_var] * 3.0
-model_dataset[model_precip_var].attrs["accutime"] = nwp_timestep
+model_dataset[model_precip_var].attrs["accutime"] = nwp_timestep_min
 
 # Build the forecast time coordinate and preserve its metadata.
 forecast_times = date_nwp + np.arange(model_dataset.sizes["time"]) * timedelta(
-    minutes=nwp_timestep
+    minutes=nwp_timestep_min
 )
-time_attrs = {**model_dataset["time"].attrs, "stepsize": nwp_timestep * 60}
+time_attrs = {**model_dataset["time"].attrs, "stepsize": nwp_timestep_min * 60}
 model_dataset = model_dataset.assign_coords(time=("time", forecast_times, time_attrs))
 
 # Reproject ICON data onto a regular grid matching the (still full-resolution)
@@ -278,7 +278,7 @@ model_dataset_mmh = conversion.to_rainrate(model_dataset)
 # The NWP rainfall forecast has a much lower weight than the radar-based
 # extrapolation # forecast at the issue time of the forecast (+0 min). Therefore,
 # the first time steps consist mostly of the extrapolation. However, near the end
-# of the forecast (+180 min), the NWP share in the blended forecast has become
+# of the forecast (+120 min), the NWP share in the blended forecast has become
 # the more dominant contribution to the forecast and thus the forecast starts
 # to resemble the NWP forecast.
 
@@ -286,15 +286,15 @@ fig = plt.figure(figsize=(5, 12))
 
 leadtimes_min = [15, 30, 45, 60, 90, 120]
 n_leadtimes = len(leadtimes_min)
-for n, leadtime in enumerate(leadtimes_min):
+for n, leadtime_min in enumerate(leadtimes_min):
     # Nowcast with blending into NWP
     plt.subplot(n_leadtimes, 2, n * 2 + 1)
     plot_precip_field(
         precip_forecast_dataset[forecast_precip_var].isel(
-            ens_number=0, time=int(leadtime / timestep_radar) - 1
+            ens_number=0, time=int(leadtime_min / timestep_radar_min) - 1
         ),
         geodata=geodata_from_dataset(radar_dataset),
-        title=f"Blended +{leadtime} min",
+        title=f"Blended +{leadtime_min} min",
         axis="off",
         colorscale="STEPS-NL",
         colorbar=False,
@@ -305,10 +305,10 @@ for n, leadtime in enumerate(leadtimes_min):
     plot_precip_field(
         model_dataset_mmh[model_precip_var].isel(
             ens_number=0,
-            time=int(leadtime / int(model_dataset["time"].attrs["stepsize"] / 60)) - 1,
+            time=int(leadtime_min / nwp_timestep_min) - 1,
         ),
         geodata=geodata_from_dataset(model_dataset),
-        title=f"NWP +{leadtime} min",
+        title=f"NWP +{leadtime_min} min",
         axis="off",
         colorscale="STEPS-NL",
         colorbar=False,
