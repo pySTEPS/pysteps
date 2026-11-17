@@ -388,10 +388,10 @@ Core developers should follow the steps to prepare a new release (version):
    If new dependencies were added to pysteps since the last release, make sure they are listed in
    **pyproject.toml**. Then, in this branch, simply run::
 
-       uv version --bump rc|stable|patch|minor|major
+       uv version --bump patch
 
-   Choose one of the options depending on the type of version update. We use
-   `semantic versioning <https://semver.org/>`_, so the version is **major.minor.patch**.
+   Replace ``patch`` with ``rc``, ``stable``, ``minor``, or ``major`` as appropriate.
+   We use `semantic versioning <https://semver.org/>`_, so the version is **major.minor.patch**.
    What the command above does:
 
    * In the file **pyproject.toml**, it updates the **version = "X.X.X"** field.
