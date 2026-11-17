@@ -138,7 +138,7 @@ Or, from a local copy of the repo::
     cd pysteps
     pip install .
 
-The above commands install the latest version of the **master** branch,
+The above commands install the latest version of the **main** branch,
 which is continuously under development.
 
 .. warning::
