@@ -1456,6 +1456,11 @@ class StepsBlendingNowcaster:
                     starttime = time.time()
 
                 precip_forecast_min = np.min(self.__state.precip_noise_input)
+
+                # Conditonal = False leads to issue with blending. See #579
+                # Conditional=True is hardcoded currently and bypasses the user provided values
+                # will always require user to provide a threshold as it is needed to compute the precipitation mask
+
                 self.__params.noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
                     self.__state.precip_noise_input[-1, :, :],
                     self.__params.precip_threshold,
@@ -1465,7 +1470,7 @@ class StepsBlendingNowcaster:
                     self.__params.perturbation_generator,
                     self.__params.noise_generator,
                     20,
-                    conditional=self.__config.conditional,
+                    conditional=True,
                     num_workers=self.__config.num_workers,
                     seed=self.__config.seed,
                 )
