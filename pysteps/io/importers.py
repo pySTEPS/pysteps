@@ -212,6 +212,7 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+import xarray as xr
 from matplotlib.pyplot import imread
 
 from pysteps.exceptions import DataModelError, MissingOptionalDependency
@@ -219,15 +220,11 @@ from pysteps.utils import aggregate_fields
 from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 try:
-    from osgeo import gdal, gdalconst, osr
+    import rioxarray
 
-    # Preserve current behavior explicitly (no GDAL exceptions) and avoid the
-    # GDAL 4.0 future-warning emitted when neither mode is selected.
-    if hasattr(gdal, "DontUseExceptions"):
-        gdal.DontUseExceptions()
-    GDAL_IMPORTED = True
+    RIOXARRAY_IMPORTED = True
 except ImportError:
-    GDAL_IMPORTED = False
+    RIOXARRAY_IMPORTED = False
 
 try:
     import h5py
@@ -763,35 +760,36 @@ def import_fmi_geotiff(filename, fillna=np.nan, dtype="double"):
         the associated quality field and metadata.
         The quality field is currently set to None.
     """
-    if not GDAL_IMPORTED:
+    if not RIOXARRAY_IMPORTED:
         raise MissingOptionalDependency(
-            "gdal package is required to import "
+            "rioxarray package is required to import "
             "FMI's radar reflectivity composite in GeoTIFF format "
             "but it is not installed"
         )
 
-    f = gdal.Open(filename, gdalconst.GA_ReadOnly)
+    if not PYPROJ_IMPORTED:
+        raise MissingOptionalDependency(
+            "pyproj package is required to import "
+            "FMI's radar reflectivity composite in GeoTIFF format "
+            "but it is not installed"
+        )
 
-    rb = f.GetRasterBand(1)
-    precip = rb.ReadAsArray().astype(float)
+    with xr.open_dataset(filename, engine="rasterio") as ds:
+        precip = ds["band_data"].squeeze("band").values
+
     mask = precip == 255
     precip = (precip - 64.0) / 2.0
     precip[mask] = np.nan
 
-    sr = osr.SpatialReference()
-    pr = f.GetProjection()
-    sr.ImportFromWkt(pr)
-
-    projdef = sr.ExportToProj4()
-
-    gt = f.GetGeoTransform()
+    projdef = pyproj.CRS.from_user_input(ds.spatial_ref.attrs["crs_wkt"]).to_proj4()
+    gt = [float(g) for g in ds.spatial_ref.attrs["GeoTransform"].split(" ")]
 
     metadata = {}
 
     metadata["projection"] = projdef
     metadata["x1"] = gt[0]
-    metadata["y1"] = gt[3] + gt[5] * f.RasterYSize
-    metadata["x2"] = metadata["x1"] + gt[1] * f.RasterXSize
+    metadata["y1"] = gt[3] + gt[5] * ds.y.size
+    metadata["x2"] = metadata["x1"] + gt[1] * ds.x.size
     metadata["y2"] = gt[3]
     metadata["xpixelsize"] = abs(gt[1])
     metadata["ypixelsize"] = abs(gt[5])

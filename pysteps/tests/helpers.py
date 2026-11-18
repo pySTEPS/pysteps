@@ -156,7 +156,7 @@ def get_precipitation_fields(
 
     if source == "fmi_geotiff":
         pytest.importorskip("pyproj")
-        pytest.importorskip("osgeo")
+        pytest.importorskip("rioxarray")
 
     if source == "knmi":
         pytest.importorskip("h5py")
