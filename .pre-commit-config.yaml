@@ -4,26 +4,25 @@ repos:
       - id: run-bandit
         name: run-bandit
         entry: bandit -c pyproject.toml -r .
-        language: python
-        additional_dependencies: [bandit]
+        language: system
         verbose: true
         pass_filenames: false
-        stages: [pre-commit]
-
+        stages: [ pre-commit ]
+  - repo: local
+    hooks:
       - id: sort-imports
         name: sort-imports
-        entry: ruff check --fix
-        language: python
-        additional_dependencies: [ruff]
+        entry: uv run ruff check --fix
+        language: system
         verbose: true
         pass_filenames: false
-        stages: [pre-commit]
-
+        stages: [ pre-commit ]
+  - repo: local
+    hooks:
       - id: run-ruff
         name: run-ruff
-        entry: ruff format
-        language: python
-        additional_dependencies: [ruff]
+        entry: uv run ruff format
+        language: system
         verbose: true
         pass_filenames: false
-        stages: [pre-commit]
+        stages: [ pre-commit ]
