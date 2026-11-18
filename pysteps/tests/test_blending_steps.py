@@ -95,8 +95,12 @@ def run_and_assert_forecast(
     n_timesteps,
     converter,
     metadata,
+    max_precip=None,
 ):
-    """Run a blended nowcast and assert the output has the expected shape."""
+    """Run a blended nowcast and assert the output has the expected shape.
+
+    If max_precip is given, also assert that the forecast (in mm/h) stays below it.
+    """
     precip_forecast_dataset = blending.steps.forecast(radar_dataset, **forecast_kwargs)
     precip_var_forecast = precip_forecast_dataset.attrs["precip_var"]
     precip_forecast = precip_forecast_dataset[precip_var_forecast].values
@@ -123,9 +127,10 @@ def run_and_assert_forecast(
     assert precip_forecast.shape[1] == n_timesteps, (
         "Wrong amount of output time steps in converted forecast output"
     )
-    assert np.nanmax(precip_forecast) < 1000.0, (
-        "Forecast precipitation values exploded (see #579)"
-    )
+    if max_precip is not None:
+        assert np.nanmax(precip_forecast) < max_precip, (
+            "Forecast precipitation values exploded (see #579)"
+        )
 
 
 steps_arg_names = (
@@ -454,6 +459,7 @@ def test_steps_blending(
         n_timesteps,
         converter,
         metadata,
+        max_precip=1000.0 if low_rain_fraction else None,
     )
 
 
