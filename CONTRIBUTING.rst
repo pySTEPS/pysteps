@@ -24,7 +24,7 @@ through the `project's issue tracker <https://github.com/pySTEPS/pysteps/issues>
 
 
 **First Time Contributors**
------------------------
+---------------------------
 
 If you are interested in helping to improve pysteps,
 the best way to get started is by looking for "Good First Issue" or creating
@@ -91,18 +91,19 @@ Install the pre-commit hooks
 After setting up your development environment, install the git pre-commit hook by executing the following command in the repository's
 root::
 
-    pre-commit install
+    uv run pre-commit install
 
 The pre-commit hooks are scripts executed automatically in every commit to identify simple issues with the code.
+
 When an issue is identified (the pre-commit script exits with non-zero status), the hook aborts the commit and prints the error.
 Currently, PySTEPS only tests that the code to be committed complies with :code:`bandit`, :code:`ruff format` and :code:`ruff`'s import sorter.
 In case that the commit is aborted, can run these to try to find the issues::
 
-    uv run bandit -c bandit.yaml .
+    uv run bandit -c pyproject.toml -r .
     uv run ruff check
     uv run ruff format --check
 
-This can also be done by running :code:`pre-commit run --all-files`. The latter is recommended since it indicates if the
+This can also be done by running :code:`uv run pre-commit run --all-files`. The latter is recommended since it indicates if the
 commit contained any formatting errors (that are automatically corrected).
 
 For more information about git hooks and the pre-commit package, see:
@@ -338,7 +339,7 @@ For changes out of the scope of the issue, please open a new issue and associate
 
 
 **Testing your changes**
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before committing changes or creating pull requests, check that all the tests in the pysteps suite pass.
 See the `Testing pysteps <https://pysteps.readthedocs.io/en/latest/developer_guide/test_pysteps.html#testing-pysteps>`__
@@ -383,19 +384,25 @@ Preparing a new release
 
 Core developers should follow the steps to prepare a new release (version):
 
-1. Before creating the actual release in GitHub, be sure that every item in the following checklist was followed:
+1. Before creating the actual release in GitHub, prepare the release in a separate, dedicated branch.
+   If new dependencies were added to pysteps since the last release, make sure they are listed in
+   **pyproject.toml**. Then, in this branch, simply run::
 
-  * In the file setup.py, update the **version="X.X.X"** keyword in the setup
-    function.
-  * Update the version in PKG-INFO file.
-  * If new dependencies were added to pysteps since the last release, add
-    them to the **environment.yml, requirements.txt**, and
-    **requirements_dev.txt** files.
+       uv version --bump patch
+
+   Replace ``patch`` with ``rc``, ``stable``, ``minor``, or ``major`` as appropriate.
+   We use `semantic versioning <https://semver.org/>`_, so the version is **major.minor.patch**.
+   What the command above does:
+
+   * In the file **pyproject.toml**, it updates the **version = "X.X.X"** field.
+   * It runs ``uv lock`` to update **uv.lock**.
+
+#. Commit these files, push your branch and ask for a review, then merge it into the main branch.
 #. Create a new release in GitHub following
    `these guidelines <https://help.github.com/en/articles/creating-releases>`_.
    Include a detailed changelog in the release.
 #. Generating the source distribution for new pysteps version and upload it to
-   the `Python Package Index <https://pypi.org/>`_ (PyPI).
+   the `Python Package Index <https://pypi.org/>`_ (PyPI) -- this is done automatically.
    See `Packaging the pysteps project <https://pysteps.readthedocs.io/en/latest/developer_guide/pypi.html#pypi-relase>`__
    for a detailed description of this process.
 
@@ -435,7 +442,7 @@ This document was based on information from
 and contributors guides of two Python open-source projects:
 
 * Py-Art_: Copyright (c) 2013, UChicago Argonne, LLC.
-  `License <https://github.com/ARM-DOE/pyart/blob/master/LICENSE.txt>`_.
+  `License <https://github.com/ARM-DOE/pyart/blob/main/LICENSE.txt>`_.
 * mypy_: Copyright (c) 2015-2016 Jukka Lehtosalo and contributors.
   `MIT License <https://github.com/python/mypy/blob/master/LICENSE>`_.
 
