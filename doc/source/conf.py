@@ -3,13 +3,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import json
 import os
 import subprocess
 import sys
 from datetime import datetime
-
-from jsmin import jsmin
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -102,32 +99,25 @@ todo_include_todos = False
 # -- Read the Docs build --------------------------------------------------
 
 
-def set_root():
-    fn = os.path.abspath(os.path.join("..", "..", "pysteps", "pystepsrc"))
-    with open(fn, "r") as f:
-        rcparams = json.loads(jsmin(f.read()))
-
-    for key, value in rcparams["data_sources"].items():
-        new_path = os.path.join("..", "..", "pysteps-data", value["root_path"])
-        new_path = os.path.abspath(new_path)
-
-        value["root_path"] = new_path
-
-    fn = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
-    with open(fn, "w") as f:
-        json.dump(rcparams, f, indent=4)
-
-
 if "READTHEDOCS" in os.environ:
+    import pysteps
+    from pysteps.datasets import create_default_pystepsrc
+
     repourl = "https://github.com/pySTEPS/pysteps-data.git"
-    dir = os.path.join(os.getcwd(), "..", "..", "pysteps-data")
-    dir = os.path.abspath(dir)
+    dir = os.path.abspath(os.path.join("..", "..", "pysteps-data"))
     subprocess.check_call(["rm", "-rf", dir])
     subprocess.check_call(["git", "clone", repourl, dir])
     os.environ["PYSTEPS_DATA_PATH"] = dir
-    set_root()
-    pystepsrc = os.path.abspath(os.path.join("..", "..", "pystepsrc.rtd"))
+
+    # Write a configuration file with the paths of the data sources, like for the
+    # tests, and load it: pysteps was already imported with the default one.
+    pystepsrc = create_default_pystepsrc(
+        dir,
+        config_dir=os.path.abspath(os.path.join("..", "..")),
+        file_name="pystepsrc.rtd",
+    )
     os.environ["PYSTEPSRC"] = pystepsrc
+    pysteps.load_config_file(pystepsrc)
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -263,4 +253,8 @@ sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path where to save gallery generated examples
     "filename_pattern": r"/*\.py",  # Include all the files in the examples dir
+    "ignore_pattern": r"blend|linda",  # Exclude too-slow / broken examples (blending, LINDA) for now
+    # Make the build log informative, so slow or failing examples can be spotted
+    "min_reported_time": 0,  # Report the run time of every example
+    "only_warn_on_example_error": True,  # A failing example must not abort the build
 }

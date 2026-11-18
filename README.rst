@@ -29,7 +29,7 @@ pysteps - Python framework for short-term ensemble prediction systems
     :alt: Check formatting
     :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+formatting"
 
-.. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/master/graph/badge.svg
+.. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/main/graph/badge.svg
     :alt: Coverage
     :target: https://codecov.io/gh/pySTEPS/pysteps
 
@@ -59,7 +59,7 @@ pysteps - Python framework for short-term ensemble prediction systems
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
     :alt: My first nowcast
-    :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb
+    :target: https://colab.research.google.com/github/pySTEPS/pysteps/blob/main/examples/my_first_nowcast.ipynb
 
 .. |gallery| image:: https://img.shields.io/badge/example-gallery-blue.svg
     :alt: pysteps example gallery
@@ -92,7 +92,7 @@ The pysteps library supports standard input/output file formats and implements s
 Quick start
 -----------
 
-Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab with `this interactive notebook <https://colab.research.google.com/github/pySTEPS/pysteps/blob/master/examples/my_first_nowcast.ipynb>`_.
+Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab with `this interactive notebook <https://colab.research.google.com/github/pySTEPS/pysteps/blob/main/examples/my_first_nowcast.ipynb>`_.
 
 Installation
 ============

@@ -25,8 +25,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 readme = "README.rst"
-version = "2.0.0"
-requires-python = ">=3.11.0,<3.14.0"
+version = "2.0.0rc2"
+requires-python = ">=3.11.5,<3.14.0"
 dependencies = [
     "jsmin",
     "jsonschema",
@@ -64,6 +64,21 @@ gdal =[
     "pip",
     "setuptools>=67",
     "wheel",
+]
+
+doc = [
+    # Additional requirements related to the documentation build only
+    "sphinx",
+    "sphinxcontrib.bibtex",
+    "sphinx-book-theme",
+    "sphinx_gallery",
+    "scikit-image",
+    "scikit-learn",
+    "pandas",
+    "pysteps-nwp-importers",
+    "pygrib",
+    "h5py",
+    "cartopy>=0.18",  # for the maps in the gallery examples
 ]
 
 [dependency-groups]
@@ -122,5 +137,6 @@ select = [
 # Use `\n` line endings for all files
 line-ending = "lf"
 
-[tool.setuptools]
-py-modules = ["pysteps"]
+#FIXME when merged in pysteps-nwp-importers main and released, this can go away
+[tool.uv.sources]
+pysteps-nwp-importers = { git = "https://github.com/pySTEPS/pysteps-nwp-importers", branch = "adapt-to-pysteps-v2" }

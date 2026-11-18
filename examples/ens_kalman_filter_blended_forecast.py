@@ -19,10 +19,9 @@ The datasets used in this tutorial are provided by the German Weather Service (D
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
-import pysteps_nwp_importers
 from matplotlib import pyplot as plt
 from pysteps_nwp_importers.importer_dwd_nwp import unstructured2regular
 
@@ -63,7 +62,7 @@ fn_pattern = radar_data_source["fn_pattern"]
 fn_ext = radar_data_source["fn_ext"]
 importer_name = radar_data_source["importer"]
 importer_kwargs = radar_data_source["importer_kwargs"]
-timestep_radar = radar_data_source["timestep"]
+timestep_radar_min = radar_data_source["timestep"]
 
 # Find the radar files in the archive
 fns = io.find_by_date(
@@ -72,7 +71,7 @@ fns = io.find_by_date(
     path_fmt,
     fn_pattern,
     fn_ext,
-    timestep_radar,
+    timestep_radar_min,
     num_prev_files=2,
 )
 
@@ -101,12 +100,11 @@ nwp_importer = io.get_method("dwd_nwp", "importer")
 # grid_file_path in importer_kwargs is already resolvable from the repo root,
 # like every other data_sources path in pystepsrc.
 kwargs = dict(nwp_data_source["importer_kwargs"])
-nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
+model_dataset = nwp_importer(filename, **kwargs)
 # We lower the number of ens members to 10 to reduce the memory needs in the
 # example here. However, it is advised to have a minimum of 20 members for the
 # Reduced-Space Ensemble Kalman filter approach
-nwp_precip = nwp_precip[:, 0:10, :].astype("single")
-
+model_dataset = model_dataset.isel(ens_number=slice(0, 10)).astype("single")
 
 ################################################################################
 # Pre-processing steps
@@ -120,52 +118,24 @@ zerovalue = 0.027
 log_thr_prec = 10.0 * np.log10(prec_thr)
 log_zerovalue = 10.0 * np.log10(zerovalue)
 
-# Reproject the DWD ICON NWP data onto a regular grid
-nwp_metadata["clon"] = nwp_precip["longitude"].values
-nwp_metadata["clat"] = nwp_precip["latitude"].values
 # We change the time step from the DWD NWP data to 15 min (it is actually 5 min)
 # to have a longer forecast horizon available for this example, as pysteps_data
 # only contains 1 hour of DWD forecast data (to minimize storage).
-nwp_metadata["accutime"] = 15.0
-nwp_precip = (
-    nwp_precip.values.astype("single") * 3.0
-)  # (to account for the change in time step from 5 to 15 min)
+nwp_timestep_min = 15
+model_precip_var = model_dataset.attrs["precip_var"]
+model_dataset[model_precip_var] = model_dataset[model_precip_var] * 3.0
+model_dataset[model_precip_var].attrs["accutime"] = nwp_timestep_min
+
+# Build the forecast time coordinate and preserve its metadata.
+forecast_times = date_nwp + np.arange(model_dataset.sizes["time"]) * timedelta(
+    minutes=nwp_timestep_min
+)
+time_attrs = {**model_dataset["time"].attrs, "stepsize": nwp_timestep_min * 60}
+model_dataset = model_dataset.assign_coords(time=("time", forecast_times, time_attrs))
 
 # Reproject ICON data onto a regular grid matching the (still full-resolution)
-# radar grid. unstructured2regular is part of the old (non-xarray) plugin API,
-# so it takes/returns plain arrays and old-style metadata dicts.
-nwp_precip_rprj, nwp_metadata_rprj = unstructured2regular(
-    nwp_precip, nwp_metadata, geodata_from_dataset(radar_dataset)
-)
-nwp_precip = None
-
-# convert_input_to_xarray_dataset expects a 4-D precip array with dims
-# (ens_number, time, y, x); unstructured2regular returns (time, ens, y, x).
-nwp_precip_rprj = nwp_precip_rprj.transpose(1, 0, 2, 3)
-
-# The importer sets metadata["transform"] = None to indicate "no transform",
-# but convert_input_to_xarray_dataset/to_rainrate expect the key to be absent
-# in that case.
-if nwp_metadata_rprj.get("transform") is None:
-    nwp_metadata_rprj.pop("transform", None)
-
-model_dataset = convert_input_to_xarray_dataset(
-    nwp_precip_rprj.astype("single"),
-    None,
-    nwp_metadata_rprj,
-    startdate=date_nwp,
-    timestep=int(nwp_metadata_rprj["accutime"] * 60),
-)
-
-# model_dataset's reprojected grid is a few pixels smaller than radar_dataset's
-# native grid (a side-effect of the unstructured-to-regular reprojection
-# above). Crop both datasets to a common, cleanly divisible-by-4 grid so that
-# radar_dataset and model_dataset end up with identical shapes after
-# upscaling below (blending.get_method("pca_enkf") requires this).
-common_ny = 4 * (min(radar_dataset.sizes["y"], model_dataset.sizes["y"]) // 4)
-common_nx = 4 * (min(radar_dataset.sizes["x"], model_dataset.sizes["x"]) // 4)
-radar_dataset = radar_dataset.isel(y=slice(0, common_ny), x=slice(0, common_nx))
-model_dataset = model_dataset.isel(y=slice(0, common_ny), x=slice(0, common_nx))
+# radar grid.
+model_dataset = unstructured2regular(model_dataset, radar_dataset)
 
 # Upscale both the radar and NWP data to a twice as coarse resolution to lower
 # the memory needs (for this example). aggregate_fields_space's meter-based
@@ -308,7 +278,7 @@ model_dataset_mmh = conversion.to_rainrate(model_dataset)
 # The NWP rainfall forecast has a much lower weight than the radar-based
 # extrapolation # forecast at the issue time of the forecast (+0 min). Therefore,
 # the first time steps consist mostly of the extrapolation. However, near the end
-# of the forecast (+180 min), the NWP share in the blended forecast has become
+# of the forecast (+120 min), the NWP share in the blended forecast has become
 # the more dominant contribution to the forecast and thus the forecast starts
 # to resemble the NWP forecast.
 
@@ -316,15 +286,15 @@ fig = plt.figure(figsize=(5, 12))
 
 leadtimes_min = [15, 30, 45, 60, 90, 120]
 n_leadtimes = len(leadtimes_min)
-for n, leadtime in enumerate(leadtimes_min):
+for n, leadtime_min in enumerate(leadtimes_min):
     # Nowcast with blending into NWP
     plt.subplot(n_leadtimes, 2, n * 2 + 1)
     plot_precip_field(
         precip_forecast_dataset[forecast_precip_var].isel(
-            ens_number=0, time=int(leadtime / timestep_radar) - 1
+            ens_number=0, time=int(leadtime_min / timestep_radar_min) - 1
         ),
         geodata=geodata_from_dataset(radar_dataset),
-        title=f"Blended +{leadtime} min",
+        title=f"Blended +{leadtime_min} min",
         axis="off",
         colorscale="STEPS-NL",
         colorbar=False,
@@ -335,10 +305,10 @@ for n, leadtime in enumerate(leadtimes_min):
     plot_precip_field(
         model_dataset_mmh[model_precip_var].isel(
             ens_number=0,
-            time=int(leadtime / int(model_dataset["time"].attrs["stepsize"] / 60)) - 1,
+            time=int(leadtime_min / nwp_timestep_min) - 1,
         ),
         geodata=geodata_from_dataset(model_dataset),
-        title=f"NWP +{leadtime} min",
+        title=f"NWP +{leadtime_min} min",
         axis="off",
         colorscale="STEPS-NL",
         colorbar=False,

@@ -1,7 +1,7 @@
 name: Test pysteps
 
 on:
-  # Triggers the workflow on push or pull request events to the master branch
+  # Triggers the workflow on push or pull request events to the main branch
   push:
     branches:
       - main
