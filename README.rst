@@ -89,9 +89,21 @@ Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab wi
 Installation
 ============
 
-PySTEPS can be installed using `uv <https://docs.astral.sh/uv/getting-started/installation/>`_::
+PySTEPS can be installed from the GitHub repository or from PyPI.
 
+To install from the GitHub repository, clone it and use `uv <https://docs.astral.sh/uv/getting-started/installation/>`_ to install its dependencies::
+
+    git clone https://github.com/pySTEPS/pysteps.git
+    cd pysteps
     uv sync
+
+To install the latest release from PyPI, run::
+
+    pip install pysteps
+
+or, if using `uv`, run::
+
+    uv pip install pysteps
 
 Usage
 =====
