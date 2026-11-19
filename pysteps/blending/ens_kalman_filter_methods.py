@@ -5,10 +5,11 @@ pysteps.blending.ens_kalman_filter_methods
 Methods to calculate the ensemble Kalman filter based correction methods for blending
 between nowcast and NWP.
 The core of the method occurs in the EnsembleKalmanFilter class. The specific method
-to use this core class can be selected. Currently, only the implementation of the
-ensemble Kalman filter from :cite:`Nerini2019MWR` is available.
+to use this core class can be selected. Currently, ensemble Kalman filter techniques
+from :cite:`Nerini2019MWR` ('masked_enkf') and :cite:`Rempel2026` ('distances_enkf')
+are implemented.
 
-Additional keyword arguments for the ensemble Kalman filter are:
+Additional keyword arguments for the ensemble Kalman filters are:
 
 n_tapering: int, default=0
     Tapering parameter controlling the number of covariance pairs (i, i ± n_tapering)
@@ -61,6 +62,8 @@ use_accum_sampling_prob: bool, (False)
 ensure_full_nwp_weight: bool, (True)
     Flag to specify whether the end of the combination should be represent the pure NWP
     forecast. Defaults to True.
+adjust_transformed_variance: bool, (True)
+    Flag to specify whether the observation ensemble variance should be adjusted after dry area transformation to keep the ratio between both original ensemble variances
 use_linear_space: bool, (True)
     Flag to specify whether dry area transformation within distances enkf should be
     additionally backed by transforming precipitation values back into linear space.
@@ -894,6 +897,9 @@ class DistancesEnKF(EnsembleKalmanFilter):
         self.__ensure_full_nwp_weight = self.__params.combination_kwargs.get(
             "ensure_full_nwp_weight", True
         )
+        self.__adjust_transformed_variance = self.__params.combination_kwargs.get(
+            "adjust_transformed_variance", True
+        )
         self.__local_maxima_adjustment = self.__params.combination_kwargs.get(
             "local_maxima_adjustment", True
         )
@@ -908,6 +914,7 @@ class DistancesEnKF(EnsembleKalmanFilter):
         self.__accumulated_sampling_prob = 0.0
         self.__degradation_timestep = 0.2
         self.__inflation_factor_obs_tmp = 1.0
+        self.__transform_var_adj = 1.0
 
         # Dedicated, per-member random generators for the iterative probability
         # matching resampling below, so that "seed" fully controls the
@@ -919,8 +926,8 @@ class DistancesEnKF(EnsembleKalmanFilter):
             for j in range(self._config.n_ens_members)
         ]
 
-        print("Initialize distances ensemble Kalman filter")
-        print("===========================================")
+        print("Initialize dry area-transformed ensemble Kalman filter")
+        print("======================================================")
         print("")
 
         print(f"Computation in linear space:        {self.__use_linear_space}")
@@ -932,6 +939,9 @@ class DistancesEnKF(EnsembleKalmanFilter):
         print(f"Sampling probability source:        {self.__sampling_prob_source}")
         print(f"Use accum. sampling probability:    {self.__use_accum_sampling_prob}")
         print(f"Ensure full NWP weight:             {self.__ensure_full_nwp_weight}")
+        print(
+            f"Adjust transformed variance:        {self.__adjust_transformed_variance}"
+        )
         print(f"Local maxima adjustment:            {self.__local_maxima_adjustment}")
         print(f"Local maxima minimum ratio:         {self.__local_maxima_residual}")
         print(f"Apply adj. only on existing prec.:  {self.__use_only_exist_prec}")
@@ -1010,6 +1020,22 @@ class DistancesEnKF(EnsembleKalmanFilter):
 
         dask_worker_collection = None
 
+        # Adjust the variances of transformed ensembles to the average variance ratio
+        # between the origin ensembles and use it as inflation factor of the
+        # observation covariance matrix
+        if self.__adjust_transformed_variance:
+            var_bg_orig = np.mean(np.var(background_ensemble, axis=0))
+            var_obs_orig = np.mean(np.var(observation_ensemble, axis=0))
+            var_bg_trans = np.mean(
+                np.var(forecast_ens_stacked[: self._config.n_ens_members], axis=0)
+            )
+            var_obs_trans = np.mean(
+                np.var(forecast_ens_stacked[self._config.n_ens_members :], axis=0)
+            )
+            self.__transform_var_adj = (var_obs_orig / var_bg_orig) * (
+                var_bg_trans / var_obs_trans
+            )
+
         # Truncate stacked ensemble forecasts onto the precipitation area.
         forecast_ens_stacked = forecast_ens_stacked[:, idx_prec]
 
@@ -1019,12 +1045,14 @@ class DistancesEnKF(EnsembleKalmanFilter):
             forecast_ens=forecast_ens_stacked, get_params=True, **kwargs
         )
 
-        # Relax inflation factor with increasing sampling probability.
+        # Relax the preconfigured inflation factor with increasing sampling probability.
+        # The transformation variance adjustment is computed for each time step
+        # individually and is therefore excluded from that relaxation.
         if not np.isclose(self.__accumulated_sampling_prob, 1.0, rtol=1e-2):
             self.__inflation_factor_obs_tmp = (
                 self.__inflation_factor_obs
                 - self.__accumulated_sampling_prob * (self.__inflation_factor_obs - 1.0)
-            )
+            ) * self.__transform_var_adj
         else:
             self.__inflation_factor_obs_tmp = np.cos(self.__degradation_timestep)
             self.__degradation_timestep += 0.2
@@ -1045,20 +1073,6 @@ class DistancesEnKF(EnsembleKalmanFilter):
         analysis_ensemble = utils.pca.pca_backtransform(
             forecast_ens_pc=analysis_ensemble_pc.T, pca_params=pca_params
         )
-
-        # Some brute method to get rid of possible outliers in analysis ensemble.
-        K = (
-            analysis_ensemble - forecast_ens_stacked[: background_ensemble.shape[0]]
-        ) / (
-            forecast_ens_stacked[background_ensemble.shape[0] :]
-            - forecast_ens_stacked[: background_ensemble.shape[0]]
-        )
-        analysis_ensemble[K > 1] = forecast_ens_stacked[background_ensemble.shape[0] :][
-            K > 1
-        ]
-        analysis_ensemble[K < 0] = forecast_ens_stacked[: background_ensemble.shape[0]][
-            K < 0
-        ]
 
         # Get the sampling probability either based on the ensembles...
         if self.__sampling_prob_source == "ensemble":

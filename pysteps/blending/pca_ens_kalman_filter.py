@@ -3,10 +3,12 @@
 pysteps.blending.pca_ens_kalman_filter
 ======================================
 
-Implementation of the reduced-space ensemble Kalman filter method described in
-:cite:`Nerini2019MWR`. The nowcast is iteratively corrected by NWP data using
-an ensemble Kalman filter in principal component (PC) space. The reduced-space
-ensemble Kalman filter method consists of the following main steps:
+Implementation of ensemble Kalman filter blending methods. Currently, two techniques are
+selectable: The reduced-space ensemble Kalman filter described in :cite:`Nerini2019MWR`
+and the dry area-transformed ensemble Kalman filter described in :cite:`Rempel2026`. In
+both methods, the nowcast is iteratively corrected by NWP data using an ensemble Kalman 
+filter in principal component (PC) space. The ensemble Kalman filter methods consist of 
+the following main steps:
 
 Initialization step
 -------------------
@@ -770,7 +772,7 @@ class ForecastModel:
             self.__sigma = np.sqrt(
                 self.__forecast_state.params.PHI[:, 0] ** 2.0 * self.__sigma**2.0
                 + self.__forecast_state.params.PHI[:, 1] ** 2.0
-                * self.__forecast_state.params.noise_std_coeffs**2.0
+                * self.__sigma*self.__forecast_state.params.noise_std_coeffs
             )
 
             # Use the standard deviations of the currently decomposed field for spatial
@@ -1082,8 +1084,8 @@ class EnKFCombinationNowcaster:
             case "distances_enkf":
                 kalman_filter_model = DistancesEnKF
             case _:
-                raise ValueError("Currently, only 'masked_enkf' and 'distances_enkf' are implemented as ensemble"
-                                 "Kalman filter method!")
+                raise ValueError("Currently, only 'masked_enkf' and 'distances_enkf'"
+                                 "are implemented as ensemble Kalman filter method!")
 
         self.KalmanFilterModel = kalman_filter_model(self.__config, self.__params)
 

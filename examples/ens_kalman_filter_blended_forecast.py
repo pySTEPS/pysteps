@@ -78,13 +78,8 @@ fns = io.find_by_date(
 
 # Read the radar composites (which are already in mm/h)
 importer = io.get_method(importer_name, "importer")
-# radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
 radar_ds = io.read_timeseries(fns, importer, **importer_kwargs)
 radar_ds = conversion.to_rainrate(radar_ds)
-
-# Extract precipitation variable. In this case it is equal to "precip_intensity"
-precip_var = radar_ds.attrs["precip_var"]
-radar_precip = radar_ds[precip_var]
 
 radar_metadata = {
     "projection": radar_ds.attrs["projection"],
@@ -114,8 +109,7 @@ nwp_precip, _, nwp_metadata = nwp_importer(filename, **kwargs)
 # We lower the number of ens members to 10 to reduce the memory needs in the
 # example here. However, it is advised to have a minimum of 20 members for the
 # Reduced-Space Ensemble Kalman filter approach
-# nwp_precip = nwp_precip[:, 0:10, :].astype("single")
-# nwp_precip = nwp_precip[:, :, :].astype("single")
+nwp_precip = nwp_precip[:, 0:10, :].astype("single")
 
 
 ################################################################################
@@ -136,11 +130,10 @@ nwp_metadata["clat"] = nwp_precip["latitude"].values
 # We change the time step from the DWD NWP data to 15 min (it is actually 5 min)
 # to have a longer forecast horizon available for this example, as pysteps_data
 # only contains 1 hour of DWD forecast data (to minimize storage).
-nwp_metadata["accutime"] = 5.0
-# nwp_precip = (
-#    nwp_precip.values.astype("single") * 3.0
-# )  # (to account for the change in time step from 5 to 15 min)
-nwp_precip = nwp_precip.values.astype("single")
+nwp_metadata["accutime"] = 15.0
+nwp_precip = (
+    nwp_precip.values.astype("single") * 3.0
+)  # (to account for the change in time step from 5 to 15 min)
 
 # Reproject ID2 data onto a regular grid
 nwp_precip_rprj, nwp_metadata_rprj = (
@@ -150,72 +143,66 @@ nwp_precip_rprj, nwp_metadata_rprj = (
 )
 
 nwp_precip = None
+startdate = np.array(nwp_metadata["time_stamps"].astype("datetime64[us]").tolist())[0]
 nwp_precip_ds = convert_input_to_xarray_dataset(
     precip=nwp_precip_rprj,
     quality=None,
     metadata=nwp_metadata_rprj,
-    startdate=datetime(2025, 6, 4, 17, 0),
-    timestep=300,
+    startdate=startdate,
+    timestep=nwp_metadata["accutime"] * 60.0,
 )
 nwp_precip_ds = conversion.to_rainrate(nwp_precip_ds)
-precip_var_nwp = nwp_precip_ds.attrs["precip_var"]
-nwp_precip_rprj = nwp_precip_ds[precip_var_nwp]
 
 # Upscale both the radar and NWP data to a twice as coarse resolution to lower
 # the memory needs (for this example)
-# radar_precip, radar_metadata = aggregate_fields_space(
-#    radar_precip, radar_metadata, radar_metadata["xpixelsize"] * 4
-# )
-# nwp_precip_rprj, nwp_metadata_rprj = aggregate_fields_space(
-#    nwp_precip_rprj.astype("single"),
-#    nwp_metadata_rprj,
-#    nwp_metadata_rprj["xpixelsize"] * 4,
-# )
+radar_ds = aggregate_fields_space(radar_ds, radar_metadata["xpixelsize"] * 4)
+nwp_precip_ds = aggregate_fields_space(
+    nwp_precip_ds,
+    nwp_metadata_rprj["xpixelsize"] * 4,
+)
 
 # Make sure the units are in mm/h
 # Convert to rain rate
-
 converter = pysteps.utils.get_method("mm/h")
 radar_ds = converter(radar_ds)  # The radar data should already be in mm/h
 nwp_precip_ds = converter(nwp_precip_ds)
+
+# Extract precipitation variables. In this case it is equal to "precip_intensity"
+precip_var = radar_ds.attrs["precip_var"]
+radar_precip = radar_ds[precip_var]
+
+precip_var_nwp = nwp_precip_ds.attrs["precip_var"]
+nwp_precip_rprj = nwp_precip_ds[precip_var_nwp]
 
 # Threshold the data
 radar_precip.data[radar_precip.data < prec_thr] = 0.0
 nwp_precip_rprj.data[nwp_precip_rprj.data < prec_thr] = 0.0
 
-
 # Plot the radar rainfall field and the first time step and first ensemble member
 # of the NWP forecast.
-# date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
-# plt.figure(figsize=(10, 5))
-# plt.subplot(121)
-# plot_precip_field(
-#     radar_precip[-1, :, :],
-#     geodata=radar_metadata,
-#     title=f"Radar observation at {date_str}",
-#     colorscale="STEPS-NL",
-# )
-# plt.subplot(122)
-# plot_precip_field(
-#     nwp_precip_rprj[0, 0, :, :],
-#     geodata=nwp_metadata_rprj,
-#     title=f"NWP forecast at {date_str}",
-#     colorscale="STEPS-NL",
-# )
-# plt.tight_layout()
-# plt.show()
+date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
+plt.figure(figsize=(10, 5))
+plt.subplot(121)
+plot_precip_field(
+    radar_precip[-1, :, :],
+    geodata=radar_metadata,
+    title=f"Radar observation at {date_str}",
+    colorscale="STEPS-NL",
+)
+plt.subplot(122)
+plot_precip_field(
+    nwp_precip_rprj[0, 0, :, :],
+    geodata=nwp_metadata_rprj,
+    title=f"NWP forecast at {date_str}",
+    colorscale="STEPS-NL",
+)
+plt.tight_layout()
+plt.show()
 
 # transform the data to dB
 transformer = pysteps.utils.get_method("dB")
 radar_ds = transformer(radar_ds, threshold=prec_thr, zerovalue=log_zerovalue)
 nwp_precip_ds = transformer(nwp_precip_ds, threshold=prec_thr, zerovalue=log_zerovalue)
-# radar_precip, radar_metadata = transformer(
-#    radar_precip, radar_metadata, threshold=prec_thr, zerovalue=log_zerovalue
-# )
-# nwp_precip_rprj, nwp_metadata_rprj = transformer(
-#    nwp_precip_rprj, nwp_metadata_rprj, threshold=prec_thr, zerovalue=log_zerovalue
-# )
-
 
 ###############################################################################
 # Determine the velocity fields
@@ -274,7 +261,7 @@ combination_kwargs_masked = dict(
     ensure_full_nwp_weight=True,
 )
 
-# Set the combination kwargs for the distances enkf
+# Set the combination kwargs for the dry area-transformed enkf
 combination_kwargs_distances = dict(
     # Tapering parameter: controls how many diagonals of the error covariance matrices
     # are kept (0 = no tapering)
@@ -291,7 +278,7 @@ combination_kwargs_distances = dict(
     prob_matching="none",
     # Inflation factor of the background (NWC) covariance matrix. (This value indicates
     # a faster convergence towards the NWP ensemble.)
-    inflation_factor_bg=0.3,
+    inflation_factor_bg=1.0,
     # Inflation factor of the observation (NWP) covariance matrix.
     inflation_factor_obs=1.0,
     # Offset of the background (NWC) covariance matrix.
@@ -299,26 +286,29 @@ combination_kwargs_distances = dict(
     # Offset of the observation (NWP) covariance matrix.
     offset_obs=0.0,
     # Effective horizontal resolution of the utilized NWP model (in km here).
-    nwp_hres_eff=0.0,
+    nwp_hres_eff=14.0,
     # Computation method of the sampling probability for the probability matching.
     # 'ensemble' computes this probability as the ratio between the ensemble
     # differences.
     sampling_prob_source="explained_var",
     # Specifies whether the current sampling probability should be used for the
     # probability matching or a probability integrated over the previous forecast time.
-    use_accum_sampling_prob=True,
+    use_accum_sampling_prob=False,
     # Specifies whether the end of the combination should be represent the pure NWP
     # forecast.
     ensure_full_nwp_weight=True,
     # Specifies whether dry area transformation within distances enkf should be
     # additionally backed by transforming precipitation values back into linear space.
     use_linear_space=True,
+    # Specifies whether the observation ensemble variance should be adjusted after dry
+    # area transformation to keep the ratio between both original ensemble variances
+    adjust_transformed_variance=True,
     # Specifies whether the ensemble variance should be additionally adjusted in
     # regions of local precipitation maxima.
     local_maxima_adjustment=True,
     # Minimum ratio by what ensemble variance is adjusted if local maxima adjustment is
     # used.
-    local_maxima_residual=0.02,
+    local_maxima_residual=0.05,
     # Specifies whether that adjustment should only take place in already existing
     # precipitation features or whether it should be used also in regions in that
     # there's only NWP forecast precipitation.
@@ -330,9 +320,9 @@ blending_method = blending.get_method("pca_enkf")
 precip_forecast = blending_method(
     radar_dataset=radar_ds,  # Radar data in dBR
     model_dataset=nwp_precip_ds,  # NWP in dBR
-    forecast_horizon=60,  # Forecast length (horizon) in minutes - only a short forecast horizon due to the limited dataset length stored here.
+    forecast_horizon=120,  # Forecast length (horizon) in minutes - only a shortforecast horizon due to the limited dataset length stored here.
     issuetime=date_radar,  # Forecast issue time as datetime object
-    n_ens_members=20,  # No. of ensemble members
+    n_ens_members=10,  # No. of ensemble members
     precip_mask_dilation=1,  # Dilation of precipitation mask in grid boxes
     n_cascade_levels=12,  # No. of cascade levels
     precip_thr=log_thr_prec,  # Precip threshold
@@ -373,9 +363,7 @@ pf = precip_forecast[pv]
 
 fig = plt.figure(figsize=(16, 28))
 
-# leadtimes_min = [15, 30, 45, 60, 90, 120]
-leadtimes_min = [0, 10, 20, 30, 45, 60]
-# leadtimes_min = [0, 5, 10, 15]
+leadtimes_min = [0, 15, 30, 60, 90, 120]
 n_leadtimes = len(leadtimes_min)
 for n, leadtime in enumerate(leadtimes_min):
     idx_obs = 0 if leadtime == 0 else int(leadtime / timestep_radar) - 1
