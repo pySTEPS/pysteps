@@ -8,8 +8,10 @@ nowcasts using Swiss radar data.
 
 """
 
-from datetime import datetime
 import warnings
+from datetime import datetime
+
+from pysteps.xarray_helpers import geodata_from_dataset
 
 warnings.simplefilter("ignore")
 
@@ -44,19 +46,23 @@ fns = io.find_by_date(
 
 # Read the data from the archive
 importer = io.get_method(datasource_params["importer"], "importer")
-reflectivity, _, metadata = io.read_timeseries(
+precip_dataset = io.read_timeseries(
     fns, importer, **datasource_params["importer_kwargs"]
 )
 
 # Convert reflectivity to rain rate
-rainrate, metadata = conversion.to_rainrate(reflectivity, metadata)
+precip_dataset = conversion.to_rainrate(precip_dataset)
+precip_var = precip_dataset.attrs["precip_var"]
 
 # Upscale data to 2 km to reduce computation time
-rainrate, metadata = dimension.aggregate_fields_space(rainrate, metadata, 2000)
+precip_dataset = dimension.aggregate_fields_space(precip_dataset, 2000)
+
+# Build the geodata dict expected by the plotting routines
+geodata = geodata_from_dataset(precip_dataset)
 
 # Plot the most recent rain rate field
 plt.figure()
-plot_precip_field(rainrate[-1, :, :])
+plot_precip_field(precip_dataset[precip_var][-1])
 plt.show()
 
 ###############################################################################
@@ -64,7 +70,7 @@ plt.show()
 # ----------------------------
 
 # The advection field is estimated using the Lucas-Kanade optical flow
-advection = dense_lucaskanade(rainrate, verbose=True)
+precip_dataset_with_motion = dense_lucaskanade(precip_dataset, verbose=True)
 
 ###############################################################################
 # Deterministic nowcast
@@ -72,32 +78,32 @@ advection = dense_lucaskanade(rainrate, verbose=True)
 
 # Compute 30-minute LINDA nowcast with 8 parallel workers
 # Restrict the number of features to 15 to reduce computation time
-nowcast_linda = linda.forecast(
-    rainrate,
-    advection,
+nowcast_linda_dataset = linda.forecast(
+    precip_dataset_with_motion,
     6,
     max_num_features=15,
     add_perturbations=False,
     num_workers=8,
     measure_time=True,
 )[0]
+nowcast_linda = nowcast_linda_dataset[precip_var].values
 
 # Compute S-PROG nowcast for comparison
-rainrate_db, _ = transformation.dB_transform(
-    rainrate, metadata, threshold=0.1, zerovalue=-15.0
+precip_dataset_with_motion_db = transformation.dB_transform(
+    precip_dataset_with_motion, threshold=0.1, zerovalue=-15.0
 )
-nowcast_sprog = sprog.forecast(
-    rainrate_db[-3:, :, :],
-    advection,
+nowcast_sprog_dataset = sprog.forecast(
+    precip_dataset_with_motion_db.isel(time=slice(-3, None)),
     6,
     n_cascade_levels=6,
     precip_thr=-10.0,
 )
 
 # Convert reflectivity nowcast to rain rate
-nowcast_sprog = transformation.dB_transform(
-    nowcast_sprog, threshold=-10.0, inverse=True
-)[0]
+nowcast_sprog_dataset = transformation.dB_transform(
+    nowcast_sprog_dataset, threshold=-10.0, inverse=True
+)
+nowcast_sprog = nowcast_sprog_dataset[precip_var].values
 
 # Plot the nowcasts
 fig = plt.figure(figsize=(9, 4))
@@ -127,9 +133,8 @@ plt.show()
 # ---------------------
 
 # Compute 30-minute LINDA nowcast ensemble with 40 members and 8 parallel workers
-nowcast_linda = linda.forecast(
-    rainrate,
-    advection,
+nowcast_linda_dataset = linda.forecast(
+    precip_dataset_with_motion,
     6,
     max_num_features=15,
     add_perturbations=True,
@@ -139,11 +144,11 @@ nowcast_linda = linda.forecast(
     measure_time=True,
     seed=42,  # Fixed seed for reproducible ensemble members
 )[0]
+nowcast_linda = nowcast_linda_dataset[precip_var].values
 
 # Compute 40-member STEPS nowcast for comparison
-nowcast_steps = steps.forecast(
-    rainrate_db[-3:, :, :],
-    advection,
+nowcast_steps_dataset = steps.forecast(
+    precip_dataset_with_motion_db.isel(time=slice(-3, None)),
     6,
     40,
     n_cascade_levels=6,
@@ -156,25 +161,26 @@ nowcast_steps = steps.forecast(
 )
 
 # Convert reflectivity nowcast to rain rate
-nowcast_steps = transformation.dB_transform(
-    nowcast_steps, threshold=-10.0, inverse=True
-)[0]
+nowcast_steps_dataset = transformation.dB_transform(
+    nowcast_steps_dataset, threshold=-10.0, inverse=True
+)
+nowcast_steps = nowcast_steps_dataset[precip_var].values
 
 # Plot two ensemble members of both nowcasts
 fig = plt.figure()
 for i in range(2):
     ax = fig.add_subplot(2, 2, i + 1)
     ax = plot_precip_field(
-        nowcast_linda[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
+        nowcast_linda[i, -1, :, :], geodata=geodata, colorbar=False, axis="off"
     )
-    ax.set_title(f"LINDA Member {i+1}")
+    ax.set_title(f"LINDA Member {i + 1}")
 
 for i in range(2):
     ax = fig.add_subplot(2, 2, 3 + i)
     ax = plot_precip_field(
-        nowcast_steps[i, -1, :, :], geodata=metadata, colorbar=False, axis="off"
+        nowcast_steps[i, -1, :, :], geodata=geodata, colorbar=False, axis="off"
     )
-    ax.set_title(f"STEPS Member {i+1}")
+    ax.set_title(f"STEPS Member {i + 1}")
 
 ###############################################################################
 # The above figure shows the main difference between LINDA and STEPS. In

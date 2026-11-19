@@ -16,8 +16,9 @@ from matplotlib import pyplot as plt
 
 import pysteps
 from pysteps import io, rcparams, nowcasts, blending
-from pysteps.utils import conversion
+from pysteps.utils import conversion, transformation
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import convert_input_to_xarray_dataset
 
 ################################################################################
 # Read the radar images and the NWP forecast
@@ -38,6 +39,25 @@ date_nwp = datetime.strptime("202010310000", "%Y%m%d%H%M")
 radar_data_source = rcparams.data_sources["bom"]
 nwp_data_source = rcparams.data_sources["bom_nwp"]
 
+
+def geodata_from_dataset(dataset):
+    """Build a plot_precip_field/quiver-style geodata dict from a dataset."""
+    x = dataset.x.values
+    y = dataset.y.values
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
+    y1 = y[0] - dy / 2.0
+    y2 = y[-1] + dy / 2.0
+    return {
+        "projection": dataset.attrs["projection"],
+        "x1": x[0] - dx / 2.0,
+        "x2": x[-1] + dx / 2.0,
+        "y1": min(y1, y2),
+        "y2": max(y1, y2),
+        "yorigin": "lower" if dy > 0 else "upper",
+    }
+
+
 ###############################################################################
 # Load the data from the archive
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,9 +77,11 @@ fns = io.find_by_date(
 
 # Read the radar composites
 importer = io.get_method(importer_name, "importer")
-radar_precip, _, radar_metadata = io.read_timeseries(fns, importer, **importer_kwargs)
+radar_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
 
-# Import the NWP data
+# Import the NWP data. The pysteps-nwp-importers plugin has not been migrated
+# to the new xarray-based data model yet, so it still returns the old-style
+# (precip, quality, metadata) tuple. We wrap it into an xarray dataset by hand.
 filename = os.path.join(
     nwp_data_source["root_path"],
     datetime.strftime(date_nwp, nwp_data_source["path_fmt"]),
@@ -73,7 +95,22 @@ nwp_precip, _, nwp_metadata = nwp_importer(filename)
 
 # Only keep the NWP forecasts from the last radar observation time (2020-10-31 04:00)
 # End of the forecast is 18 time steps (+3 hours) in advance.
-precip_nwp = nwp_precip[24:43, :, :]
+nwp_precip = nwp_precip[24:43, :, :]
+
+# The importer sets metadata["transform"] = None to indicate "no transform",
+# but convert_input_to_xarray_dataset/to_rainrate expect the key to be absent
+# in that case.
+nwp_metadata = dict(nwp_metadata)
+if nwp_metadata.get("transform") is None:
+    nwp_metadata.pop("transform", None)
+
+model_dataset = convert_input_to_xarray_dataset(
+    nwp_precip,
+    None,
+    nwp_metadata,
+    startdate=date_radar,
+    timestep=int(timestep * 60),
+)
 
 
 ################################################################################
@@ -81,13 +118,18 @@ precip_nwp = nwp_precip[24:43, :, :]
 # --------------------
 
 # Make sure the units are in mm/h
-converter = pysteps.utils.get_method("mm/h")
-radar_precip, radar_metadata = converter(radar_precip, radar_metadata)
-precip_nwp, nwp_metadata = converter(precip_nwp, nwp_metadata)
+radar_dataset = conversion.to_rainrate(radar_dataset)
+model_dataset = conversion.to_rainrate(model_dataset)
+radar_precip_var = radar_dataset.attrs["precip_var"]
+model_precip_var = model_dataset.attrs["precip_var"]
 
 # Threshold the data
-radar_precip[radar_precip < 0.1] = 0.0
-precip_nwp[precip_nwp < 0.1] = 0.0
+radar_dataset[radar_precip_var] = radar_dataset[radar_precip_var].where(
+    radar_dataset[radar_precip_var] >= 0.1, 0.0
+)
+model_dataset[model_precip_var] = model_dataset[model_precip_var].where(
+    model_dataset[model_precip_var] >= 0.1, 0.0
+)
 
 # Plot the radar rainfall field and the first time step of the NWP forecast.
 # For the initial time step (t=0), the NWP rainfall forecast is not that different
@@ -98,27 +140,28 @@ date_str = datetime.strftime(date_radar, "%Y-%m-%d %H:%M")
 plt.figure(figsize=(10, 5))
 plt.subplot(121)
 plot_precip_field(
-    radar_precip[-1, :, :],
-    geodata=radar_metadata,
+    radar_dataset[radar_precip_var].isel(time=-1),
+    geodata=geodata_from_dataset(radar_dataset),
     title=f"Radar observation at {date_str}",
 )
 plt.subplot(122)
 plot_precip_field(
-    precip_nwp[0, :, :], geodata=nwp_metadata, title=f"NWP forecast at {date_str}"
+    model_dataset[model_precip_var].isel(time=0),
+    geodata=geodata_from_dataset(model_dataset),
+    title=f"NWP forecast at {date_str}",
 )
 plt.tight_layout()
 plt.show()
 
 # Only keep the NWP forecasts from 2020-10-31 04:05 onwards, because the first
 # forecast lead time starts at 04:05.
-precip_nwp = precip_nwp[1:]
+model_dataset = model_dataset.isel(time=slice(1, None))
 
 # Transform the radar data to dB - this transformation is useful for the motion
 # field estimation and the subsequent nowcasts. The NWP forecast is not
 # transformed, because the linear blending code sets everything back in mm/h
 # after the nowcast.
-transformer = pysteps.utils.get_method("dB")
-radar_precip, radar_metadata = transformer(radar_precip, radar_metadata, threshold=0.1)
+radar_dataset = transformation.dB_transform(radar_dataset, threshold=0.1)
 
 
 ################################################################################
@@ -126,7 +169,7 @@ radar_precip, radar_metadata = transformer(radar_precip, radar_metadata, thresho
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 oflow_method = pysteps.motion.get_method("lucaskanade")
-velocity_radar = oflow_method(radar_precip)
+radar_dataset = oflow_method(radar_dataset)
 
 
 ################################################################################
@@ -134,15 +177,12 @@ velocity_radar = oflow_method(radar_precip)
 # --------------------------------------------------------
 
 # Calculate the blended precipitation field
-precip_blended = blending.linear_blending.forecast(
-    precip=radar_precip[-1, :, :],
-    precip_metadata=radar_metadata,
-    velocity=velocity_radar,
+precip_blended_dataset = blending.linear_blending.forecast(
+    radar_dataset,
     timesteps=18,
     timestep=10,
     nowcast_method="extrapolation",  # simple advection nowcast
-    precip_nwp=precip_nwp,
-    precip_nwp_metadata=nwp_metadata,
+    model_dataset=model_dataset,
     start_blending=60,  # in minutes (this is an arbritrary choice)
     end_blending=120,  # in minutes (this is an arbritrary choice)
 )
@@ -161,15 +201,12 @@ precip_blended = blending.linear_blending.forecast(
 # the same ranking number.
 
 # Calculate the salient blended precipitation field
-precip_salient_blended = blending.linear_blending.forecast(
-    precip=radar_precip[-1, :, :],
-    precip_metadata=radar_metadata,
-    velocity=velocity_radar,
+precip_salient_blended_dataset = blending.linear_blending.forecast(
+    radar_dataset,
     timesteps=18,
     timestep=10,
     nowcast_method="extrapolation",  # simple advection nowcast
-    precip_nwp=precip_nwp,
-    precip_nwp_metadata=nwp_metadata,
+    model_dataset=model_dataset,
     start_blending=60,  # in minutes (this is an arbritrary choice)
     end_blending=120,  # in minutes (this is an arbritrary choice)
     saliency=True,
@@ -184,14 +221,22 @@ precip_salient_blended = blending.linear_blending.forecast(
 # Calculate the radar rainfall nowcasts for visualization
 
 nowcast_method_func = nowcasts.get_method("extrapolation")
-precip_nowcast = nowcast_method_func(
-    precip=radar_precip[-1, :, :],
-    velocity=velocity_radar,
-    timesteps=18,
-)
+precip_nowcast_dataset = nowcast_method_func(radar_dataset, timesteps=18)
 
 # Make sure that precip_nowcast are in mm/h
-precip_nowcast, _ = conversion.to_rainrate(precip_nowcast, metadata=radar_metadata)
+precip_nowcast_dataset = conversion.to_rainrate(precip_nowcast_dataset)
+nowcast_precip_var = precip_nowcast_dataset.attrs["precip_var"]
+
+precip_nowcast = precip_nowcast_dataset[nowcast_precip_var].values
+precip_blended = precip_blended_dataset[
+    precip_blended_dataset.attrs["precip_var"]
+].values
+precip_salient_blended = precip_salient_blended_dataset[
+    precip_salient_blended_dataset.attrs["precip_var"]
+].values
+precip_nwp = model_dataset[model_precip_var].values
+nwp_geodata = geodata_from_dataset(model_dataset)
+radar_geodata = geodata_from_dataset(radar_dataset)
 
 ################################################################################
 # The linear blending starts at 60 min, so during the first 60 minutes the
@@ -213,7 +258,7 @@ for n, leadtime in enumerate(leadtimes_min):
     plt.subplot(n_leadtimes, 4, n * 4 + 1)
     plot_precip_field(
         precip_nowcast[int(leadtime / timestep) - 1, :, :],
-        geodata=radar_metadata,
+        geodata=radar_geodata,
         title=f"Nowcast + {leadtime} min",
         axis="off",
         colorbar=False,
@@ -223,7 +268,7 @@ for n, leadtime in enumerate(leadtimes_min):
     plt.subplot(n_leadtimes, 4, n * 4 + 2)
     plot_precip_field(
         precip_blended[int(leadtime / timestep) - 1, :, :],
-        geodata=radar_metadata,
+        geodata=radar_geodata,
         title=f"Linear + {leadtime} min",
         axis="off",
         colorbar=False,
@@ -233,7 +278,7 @@ for n, leadtime in enumerate(leadtimes_min):
     plt.subplot(n_leadtimes, 4, n * 4 + 3)
     plot_precip_field(
         precip_salient_blended[int(leadtime / timestep) - 1, :, :],
-        geodata=radar_metadata,
+        geodata=radar_geodata,
         title=f"Salient + {leadtime} min",
         axis="off",
         colorbar=False,
@@ -243,7 +288,7 @@ for n, leadtime in enumerate(leadtimes_min):
     plt.subplot(n_leadtimes, 4, n * 4 + 4)
     plot_precip_field(
         precip_nwp[int(leadtime / timestep) - 1, :, :],
-        geodata=nwp_metadata,
+        geodata=nwp_geodata,
         title=f"NWP + {leadtime} min",
         axis="off",
         colorbar=False,

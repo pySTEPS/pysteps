@@ -104,6 +104,27 @@ def compute_lat_lon(
     return lat.reshape(x_2d.shape), lon.reshape(x_2d.shape)
 
 
+def geodata_from_dataset(dataset):
+    """Build a plot_precip_field-style geodata dict from a dataset."""
+    x = dataset.x.values
+    y = dataset.y.values
+    dx = dataset.x.attrs["stepsize"]
+    dy = dataset.y.attrs["stepsize"]
+    yorigin = "upper" if dy < 0 else "lower"
+    y1, y2 = y[0] - dy * 0.5, y[-1] + dy * 0.5
+    return {
+        "projection": dataset.attrs["projection"],
+        "x1": x[0] - dx * 0.5,
+        "x2": x[-1] + dx * 0.5,
+        "y1": min(y1, y2),
+        "y2": max(y1, y2),
+        "yorigin": yorigin,
+        "xpixelsize": dx,
+        "ypixelsize": abs(dy),
+        "cartesian_unit": dataset.x.attrs["units"],
+    }
+
+
 def convert_input_to_xarray_dataset(
     precip: np.ndarray,
     quality: np.ndarray | None,

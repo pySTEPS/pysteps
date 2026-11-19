@@ -28,16 +28,19 @@ References:
     Stochastic rainfall downscaling of climate models. J. Hydrometeorol., 15(2):830–843.
 """
 
+import logging
+import os
+from datetime import datetime
+from pprint import pprint
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-from pprint import pprint
-import logging
 
 from pysteps import io, rcparams
-from pysteps.utils import aggregate_fields_space, square_domain, to_rainrate
 from pysteps.downscaling import rainfarm
+from pysteps.utils import aggregate_fields_space, square_domain, to_rainrate
 from pysteps.visualization import plot_precip_field
+from pysteps.xarray_helpers import geodata_from_dataset
 
 # Configure logging
 logging.basicConfig(
@@ -54,12 +57,17 @@ logging.basicConfig(
 
 def read_precipitation_data(file_path):
     """Read and process precipitation data from a file."""
-    precip, _, metadata = io.import_mch_gif(
+    precip_dataset = io.import_mch_gif(
         file_path, product="AQC", unit="mm", accutime=5.0
     )
-    precip, metadata = to_rainrate(precip, metadata)
-    precip, metadata = square_domain(precip, metadata, "crop")
-    return precip, metadata
+    # rainfarm.downscale() requires a time dimension, which a single imported
+    # frame does not have.
+    precip_dataset = precip_dataset.expand_dims(
+        time=[np.datetime64(datetime(2016, 7, 11, 19, 32, 10))]
+    )
+    precip_dataset = to_rainrate(precip_dataset)
+    precip_dataset = square_domain(precip_dataset, "crop")
+    return precip_dataset
 
 
 # Import the example radar composite
@@ -67,18 +75,23 @@ root_path = rcparams.data_sources["mch"]["root_path"]
 filename = os.path.join(root_path, "20160711", "AQC161932100V_00005.801.gif")
 
 # Read and process data
-precip, metadata = read_precipitation_data(filename)
+precip_dataset = read_precipitation_data(filename)
+precip_var = precip_dataset.attrs["precip_var"]
 
 # Nicely print the metadata
-pprint(metadata)
+pprint(precip_dataset[precip_var].attrs)
 
 # Plot the original rainfall field
-plot_precip_field(precip, geodata=metadata)
+plot_precip_field(
+    precip_dataset[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset),
+)
 plt.title("Original Rainfall Field")
 plt.show()
 
 # Assign the fill value to all the Nans
-precip[~np.isfinite(precip)] = metadata["zerovalue"]
+precip = precip_dataset[precip_var].values
+precip[~np.isfinite(precip)] = precip_dataset[precip_var].attrs["zerovalue"]
 
 ###############################################################################
 # Upscale the field
@@ -90,21 +103,21 @@ precip[~np.isfinite(precip)] = metadata["zerovalue"]
 # We are going to use a factor of 16 x.
 
 
-def upscale_field(precip, metadata, scale_factor):
+def upscale_field(precip_dataset, scale_factor):
     """Upscale the precipitation field by a given scale factor."""
-    upscaled_resolution = metadata["xpixelsize"] * scale_factor
-    precip_lr, metadata_lr = aggregate_fields_space(
-        precip, metadata, upscaled_resolution
-    )
-    return precip_lr, metadata_lr
+    upscaled_resolution = precip_dataset.x.attrs["stepsize"] * scale_factor
+    return aggregate_fields_space(precip_dataset, upscaled_resolution)
 
 
 scale_factor = 16
-precip_lr, metadata_lr = upscale_field(precip, metadata, scale_factor)
+precip_dataset_lr = upscale_field(precip_dataset, scale_factor)
 
 # Plot the upscaled rainfall field
 plt.figure()
-plot_precip_field(precip_lr, geodata=metadata_lr)
+plot_precip_field(
+    precip_dataset_lr[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset_lr),
+)
 plt.title("Upscaled Rainfall Field")
 plt.show()
 
@@ -118,11 +131,14 @@ plt.show()
 np.random.seed(42)
 
 # Basic downscaling
-precip_hr = rainfarm.downscale(precip_lr, ds_factor=scale_factor)
+precip_dataset_hr = rainfarm.downscale(precip_dataset_lr, ds_factor=scale_factor)
 
 # Plot the downscaled rainfall field
 plt.figure()
-plot_precip_field(precip_hr, geodata=metadata)
+plot_precip_field(
+    precip_dataset_hr[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset),
+)
 plt.title("Downscaled Rainfall Field")
 plt.show()
 
@@ -132,13 +148,16 @@ plt.show()
 #
 # Add smoothing with a Gaussian kernel during the downscaling process.
 
-precip_hr_smooth = rainfarm.downscale(
-    precip_lr, ds_factor=scale_factor, kernel_type="gaussian"
+precip_dataset_hr_smooth = rainfarm.downscale(
+    precip_dataset_lr, ds_factor=scale_factor, kernel_type="gaussian"
 )
 
 # Plot the downscaled rainfall field with smoothing
 plt.figure()
-plot_precip_field(precip_hr_smooth, geodata=metadata)
+plot_precip_field(
+    precip_dataset_hr_smooth[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset),
+)
 plt.title("Downscaled Rainfall Field with Gaussian Smoothing")
 plt.show()
 
@@ -148,13 +167,16 @@ plt.show()
 #
 # Apply spectral merging as described in D'Onofrio et al. (2014).
 
-precip_hr_fusion = rainfarm.downscale(
-    precip_lr, ds_factor=scale_factor, spectral_fusion=True
+precip_dataset_hr_fusion = rainfarm.downscale(
+    precip_dataset_lr, ds_factor=scale_factor, spectral_fusion=True
 )
 
 # Plot the downscaled rainfall field with spectral fusion
 plt.figure()
-plot_precip_field(precip_hr_fusion, geodata=metadata)
+plot_precip_field(
+    precip_dataset_hr_fusion[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset),
+)
 plt.title("Downscaled Rainfall Field with Spectral Fusion")
 plt.show()
 
@@ -165,13 +187,19 @@ plt.show()
 # Apply both smoothing with a Gaussian kernel and spectral fusion during the
 # downscaling process to observe the combined effect.
 
-precip_hr_combined = rainfarm.downscale(
-    precip_lr, ds_factor=scale_factor, kernel_type="gaussian", spectral_fusion=True
+precip_dataset_hr_combined = rainfarm.downscale(
+    precip_dataset_lr,
+    ds_factor=scale_factor,
+    kernel_type="gaussian",
+    spectral_fusion=True,
 )
 
 # Plot the downscaled rainfall field with smoothing and spectral fusion
 plt.figure()
-plot_precip_field(precip_hr_combined, geodata=metadata)
+plot_precip_field(
+    precip_dataset_hr_combined[precip_var].isel(time=0),
+    geodata=geodata_from_dataset(precip_dataset),
+)
 plt.title("Downscaled Rainfall Field with Gaussian Smoothing and Spectral Fusion")
 plt.show()
 

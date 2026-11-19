@@ -1271,21 +1271,6 @@ class StepsNowcaster:
             return elapsed_time
         return None
 
-    def reset_states_and_params(self):
-        """
-        Reset the internal state and parameters of the nowcaster to allow multiple forecasts.
-        This method resets the state and params to their initial conditions without reinitializing
-        the inputs like precip, velocity, time_steps, or config.
-        """
-        # Re-initialize the state and parameters
-        self.__state = StepsNowcasterState()
-        self.__params = StepsNowcasterParams()
-
-        # Reset time measurement variables
-        self.__start_time_init = None
-        self.__init_time = None
-        self.__mainloop_time = None
-
 
 # Wrapper function to preserve backward compatibility
 def forecast(
