@@ -476,6 +476,7 @@ def estimate_ar_params_yw(gamma, d=0, check_stationarity=True):
     return phi_out
 
 
+
 def estimate_ar_params_yw_localized(gamma, d=0):
     r"""
     Estimate the parameters of a localized AR(p) model
@@ -483,8 +484,8 @@ def estimate_ar_params_yw_localized(gamma, d=0):
     :math:`x_{k+1,i}=\phi_{1,i}x_{k,i}+\phi_{2,i}x_{k-1,i}+\dots+\phi_{p,i}x_{k-p,i}+\phi_{p+1}\epsilon`
 
     from the Yule-Walker equations using the given set of autocorrelation
-    coefficients :math`\gamma_{l,i}`, where :math`l` denotes time lag and
-    :math:`i` denote spatial coordinates with arbitrary dimension.
+    coefficients :math:`\gamma_{l,i}`, where :math:`l` denotes time lag and
+    :math:`i` denotes spatial coordinates with arbitrary dimension.
 
     Parameters
     ----------
@@ -510,6 +511,11 @@ def estimate_ar_params_yw_localized(gamma, d=0):
     correlation coefficients gamma by calling
     :py:func:`pysteps.timeseries.correlation.temporal_autocorrelation` with d>0
     and window_radius<np.inf.
+    
+    Optimized analytical solutions are implemented for AR(1) and AR(2)
+    models to reduce computational cost by avoiding the numerical solution
+    of individual Yule-Walker systems at each spatial location. For AR
+    models of order p>2, the general numerical Yule-Walker solver is used.
     """
     for i in range(1, len(gamma)):
         if gamma[i].shape != gamma[0].shape:
@@ -523,21 +529,41 @@ def estimate_ar_params_yw_localized(gamma, d=0):
     p = len(gamma)
     n = np.prod(gamma[0].shape)
 
-    gamma_1d = [gamma[i].flatten() for i in range(len(gamma))]
+    gamma_1d = np.asarray(gamma).reshape(p, n)
 
-    phi = np.empty((p, n))
-    for i in range(n):
-        g = np.hstack([[1.0], [gamma_1d[k][i] for k in range(len(gamma_1d))]])
-        G = []
-        for k in range(p):
-            G.append(np.roll(g[:-1], k))
-        G = np.array(G)
-        try:
-            phi_ = np.linalg.solve(G, g[1:].flatten())
-        except np.linalg.LinAlgError:
-            phi_ = np.ones(p) * np.nan
+    phi = np.full((p, n), np.nan)
 
-        phi[:, i] = phi_
+    if p == 1:
+        # Optimized analytical solution for AR(1)
+        phi[0] = gamma_1d[0]
+
+    elif p == 2:
+        # Optimized analytical solution for AR(2)
+        g1, g2 = gamma_1d
+        denom = 1.0 - g1**2
+        valid = np.isfinite(g1) & np.isfinite(g2)
+        valid &= ~np.isclose(denom, 0.0)
+        phi[0, valid] = (
+            g1[valid] * (1.0 - g2[valid]) / denom[valid]
+        )
+        phi[1, valid] = (
+            (g2[valid] - g1[valid]**2) / denom[valid]
+        )
+
+    else:
+        # General Yule-Walker solution for AR(p), p > 2
+        for i in range(n):
+            g = np.hstack([[1.0], [gamma_1d[k][i] for k in range(len(gamma_1d))]])
+            G = []
+            for k in range(p):
+                G.append(np.roll(g[:-1], k))
+            G = np.array(G)
+            try:
+                phi_ = np.linalg.solve(G, g[1:].flatten())
+            except np.linalg.LinAlgError:
+                phi_ = np.ones(p) * np.nan
+
+            phi[:, i] = phi_
 
     # Estimate PHI_{j,0} as phi_pert. See Pulkkinen et al. (2019), eq. 6.
     c = 1.0
