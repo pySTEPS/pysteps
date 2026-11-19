@@ -132,17 +132,6 @@ nwp_precip_rprj, nwp_metadata_rprj = unstructured2regular(
     nwp_precip, nwp_metadata, geodata_from_dataset(radar_dataset)
 )
 
-nwp_precip = None
-startdate = np.array(nwp_metadata["time_stamps"].astype("datetime64[us]").tolist())[0]
-nwp_precip_ds = convert_input_to_xarray_dataset(
-    precip=nwp_precip_rprj,
-    quality=None,
-    metadata=nwp_metadata_rprj,
-    startdate=startdate,
-    timestep=nwp_metadata["accutime"] * 60.0,
-)
-nwp_precip_ds = conversion.to_rainrate(nwp_precip_ds)
-
 # convert_input_to_xarray_dataset expects a 4-D precip array with dims
 # (ens_number, time, y, x); unstructured2regular returns (time, ens, y, x).
 nwp_precip_rprj = nwp_precip_rprj.transpose(1, 0, 2, 3)
@@ -153,11 +142,12 @@ nwp_precip_rprj = nwp_precip_rprj.transpose(1, 0, 2, 3)
 if nwp_metadata_rprj.get("transform") is None:
     nwp_metadata_rprj.pop("transform", None)
 
+date_nwp_data = nwp_metadata["time_stamps"][0].astype("datetime64[us]").tolist()
 model_dataset = convert_input_to_xarray_dataset(
     nwp_precip_rprj.astype("single"),
     None,
     nwp_metadata_rprj,
-    startdate=date_nwp,
+    startdate=date_nwp_data,  # The NWP data example only contains forecast lead times between +60min and +120min.
     timestep=int(nwp_metadata_rprj["accutime"] * 60),
 )
 
