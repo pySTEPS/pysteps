@@ -2086,9 +2086,9 @@ def import_dwd_hdf5(filename, qty="RATE", fillna=np.nan, dtype="double", **kwarg
         "institution": file_content["what"]["source"],
         "accutime": accutime,
         "unit": unit,
-        "transform": transform,
         "zerovalue": np.nanmin(precip),
         "threshold": _get_threshold_value(precip),
+        **({"transform": transform} if transform is not None else {}),
     }
 
     metadata.update(kwargs)

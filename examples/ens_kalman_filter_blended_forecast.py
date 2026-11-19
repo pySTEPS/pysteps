@@ -79,12 +79,6 @@ fns = io.find_by_date(
 # Read the radar composites (which are already in mm/h)
 importer = io.get_method(importer_name, "importer")
 radar_dataset = io.read_timeseries(fns, importer, **importer_kwargs)
-# The DWD importer sets attrs["transform"] = None to indicate "no transform",
-# but conversion.to_rainrate/dB_transform expect the key to be absent in that
-# case.
-_radar_precip_var = radar_dataset.attrs["precip_var"]
-if radar_dataset[_radar_precip_var].attrs.get("transform", "unset") is None:
-    del radar_dataset[_radar_precip_var].attrs["transform"]
 
 # Import the NWP data. The pysteps-nwp-importers plugin has not been migrated
 # to the new xarray-based data model yet: it returns an (unstructured-grid)
@@ -374,11 +368,11 @@ precip_forecast_dataset = blending_method(
     num_workers=30,
     noise_stddev_adj="auto",  # Standard deviation adjustment
     noise_method="ssft",  # SSFT as noise method
-    enkf_method="distances_enkf",
+    enkf_method="masked_enkf",
     enable_combination=True,  # Enable combination
     noise_kwargs={"win_size": (512, 512), "win_fun": "hann", "overlap": 0.5},
     extrap_kwargs={"interp_order": 3, "map_coordinates_mode": "nearest"},
-    combination_kwargs=combination_kwargs_distances,
+    combination_kwargs=combination_kwargs_masked,
     filter_kwargs={"include_mean": True},
     seed=42,  # Fixed seed for reproducible ensemble members
 )
@@ -387,9 +381,6 @@ precip_forecast_dataset = blending_method(
 precip_forecast_dataset = conversion.to_rainrate(precip_forecast_dataset)
 forecast_precip_var = precip_forecast_dataset.attrs["precip_var"]
 model_dataset_mmh = conversion.to_rainrate(model_dataset)
-
-pv = precip_forecast.attrs["precip_var"]
-pf = precip_forecast[pv]
 
 ################################################################################
 # Visualize the output
