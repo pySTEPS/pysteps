@@ -154,7 +154,9 @@ class StepsBlendingConfig:
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
-      precip_thr.
+      precip_thr. This setting does not affect the noise standard deviation
+      adjustment (noise_stddev_adj='auto'), which always uses conditional
+      statistics (see #579).
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -3626,7 +3628,9 @@ def forecast(
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
-      precip_thr.
+      precip_thr. This setting does not affect the noise standard deviation
+      adjustment (noise_stddev_adj='auto'), which always uses conditional
+      statistics (see #579).
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
