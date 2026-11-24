@@ -434,7 +434,7 @@ def test_steps_blending(
         smooth_radar_mask_range=smooth_radar_mask_range,
         callback=None,
         return_output=True,
-        seed=None,
+        seed=42,
         num_workers=1,
         fft_method="numpy",
         domain="spatial",
