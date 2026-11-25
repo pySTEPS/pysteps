@@ -94,7 +94,9 @@ class StepsNowcasterConfig:
     conditional: bool, optional
         If set to True, compute the statistics of the precipitation field
         conditionally by excluding pixels where the values are below the
-        threshold precip_thr.
+        threshold precip_thr. This setting does not affect the noise standard
+        deviation adjustment (noise_stddev_adj='auto'), which always uses
+        conditional statistics (see #579).
     mask_method: {'obs','sprog','incremental',None}, optional
         The method to use for masking no precipitation areas in the forecast
         field. The masked pixels are set to the minimum value of the observations.
@@ -773,7 +775,10 @@ class StepsNowcaster:
                 if self.__config.measure_time:
                     starttime = time.time()
 
-                # Compute noise adjustment coefficients
+                # Compute noise adjustment coefficients.
+                # conditional=True is hardcoded and bypasses the user-provided value:
+                # with conditional=False the coefficients explode when only a small
+                # fraction of the domain is rainy. See #579.
                 self.__params.noise_std_coefficients = (
                     noise.utils.compute_noise_stddev_adjs(
                         self.__state.precip[-1, :, :],
@@ -784,7 +789,7 @@ class StepsNowcaster:
                         self.__params.perturbation_generator,
                         self.__params.noise_generator,
                         20,
-                        conditional=self.__config.conditional,
+                        conditional=True,
                         num_workers=self.__config.num_workers,
                         seed=self.__config.seed,
                     )
@@ -1370,7 +1375,9 @@ def forecast(
     conditional: bool, optional
         If set to True, compute the statistics of the precipitation field
         conditionally by excluding pixels where the values are below the
-        threshold precip_thr.
+        threshold precip_thr. This setting does not affect the noise standard
+        deviation adjustment (noise_stddev_adj='auto'), which always uses
+        conditional statistics (see #579).
     mask_method: {'obs','sprog','incremental',None}, optional
         The method to use for masking no precipitation areas in the forecast
         field. The masked pixels are set to the minimum value of the observations.

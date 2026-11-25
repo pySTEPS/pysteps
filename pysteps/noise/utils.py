@@ -44,6 +44,8 @@ def compute_noise_stddev_adjs(
     The calculations are done for n realizations of the noise field, and the
     correction factors are calculated from the average values of the standard
     deviations.
+    If an adjustment factor is undefined (e.g. single wet pixel), it is set to 1.0,
+    i.e. no adjustment.
 
     Parameters
     ----------
@@ -131,5 +133,6 @@ def compute_noise_stddev_adjs(
 
     # for each cascade level, compare the standard deviations between the
     # observed field and the masked noise field, which gives the correction
-    # factors
-    return decomp_R["stds"] / np.mean(np.vstack(N_stds), axis=0)
+    # factors. Undefined factors (e.g. 0/0 for a single-pixel mask) are set to 1.
+    adjs = decomp_R["stds"] / np.mean(np.vstack(N_stds), axis=0)
+    return np.where(np.isfinite(adjs), adjs, 1.0)

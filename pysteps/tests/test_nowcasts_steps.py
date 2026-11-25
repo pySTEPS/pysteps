@@ -249,6 +249,11 @@ def run_and_assert_forecast(
     assert precip_forecast.shape[1] == n_timesteps, (
         "Wrong amount of output time steps in converted forecast output"
     )
+    assert np.nanmax(precip_forecast) < 1000.0, (
+        f"Forecast precipitation values exploded: max value = {np.nanmax(precip_forecast)}"
+    )
+
+    return precip_forecast
 
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
@@ -385,7 +390,7 @@ def test_steps_nowcast(
         mask_method=mask_method,
         callback=None,
         return_output=True,
-        seed=None,
+        seed=42,
         num_workers=1,
         fft_method="numpy",
         domain=domain,
