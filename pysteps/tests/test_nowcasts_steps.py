@@ -249,6 +249,10 @@ def run_and_assert_forecast(
     assert precip_forecast.shape[1] == n_timesteps, (
         "Wrong amount of output time steps in converted forecast output"
     )
+    assert np.nanmax(precip_forecast) < 1000.0, (
+        f"Forecast precipitation values exploded: max value = {np.nanmax(precip_forecast)}"
+    )
+
     return precip_forecast
 
 
@@ -470,7 +474,7 @@ def test_steps_nowcast_partial_zero_radar(ar_order):
     oflow_method = motion.get_method("lucaskanade")
     dataset_w_motion = oflow_method(dataset_input)
 
-    precip_forecast = run_and_assert_forecast(
+    run_and_assert_forecast(
         dataset_w_motion,
         dict(
             timesteps=n_timesteps,
@@ -504,8 +508,4 @@ def test_steps_nowcast_partial_zero_radar(ar_order):
         expected_n_ens_members=2,
         n_timesteps=n_timesteps,
         converter=converter,
-    )
-    # Regression test for #579
-    assert np.nanmax(precip_forecast) < 1000.0, (
-        f"Forecast precipitation values exploded: max value = {np.nanmax(precip_forecast)}"
     )
