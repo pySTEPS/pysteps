@@ -54,6 +54,17 @@ use the :func:`pysteps.load_config_file` function as follows::
     pysteps.load_config_file(config_file_path, verbose=True)
 
 
+.. note::
+    pysteps reads only one configuration file: the first one it finds, in the order
+    described in :ref:`pysteps_lookup`.
+
+    The file created above is found before the default **pysteps/pystepsrc** file
+    that comes with pysteps. From now on, the default file is no longer read, so
+    any changes you made to it have no effect. Copy those changes to the new file.
+
+    To check which file is used, import pysteps and look at the first line it
+    prints: ``Pysteps configuration file found at: ...``.
+
 To customize the default configuration file see the :ref:`pystepsrc` section.
 
 
