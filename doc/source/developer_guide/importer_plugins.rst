@@ -9,6 +9,15 @@ packages, called plugins, without modifying the pysteps installation. These plug
 to follow a particular structure to allow pysteps to discover and integrate the new
 importers to the pysteps interface without any user intervention.
 
+.. warning::
+    The plugin template described below has not been updated to pysteps 2.0 yet.
+    In pysteps 2.0, importers return an ``xarray.Dataset`` instead of the
+    ``(precip, quality, metadata)`` tuple of pysteps 1.x, and the
+    ``pysteps.decorators.postprocess_import`` decorator used by the template no
+    longer exists. Until the template is updated, use the built-in importers in
+    :mod:`pysteps.io.importers` as a reference: they build their output with
+    ``pysteps.xarray_helpers.convert_input_to_xarray_dataset``.
+
 .. contents:: Table of Contents
     :local:
     :depth: 3
