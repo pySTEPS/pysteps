@@ -97,7 +97,7 @@ To install from the GitHub repository, clone it and use `uv <https://docs.astral
     cd pysteps
     uv sync
 
-To install the latest release from PyPI, run::
+To install the latest stable release from PyPI, run::
 
     pip install pysteps
 
@@ -107,6 +107,14 @@ or, if using `uv`, run::
 
 Usage
 =====
+
+If you installed pysteps with ``uv sync``, it lives in the virtual environment in the **.venv**
+folder. Either run your scripts through uv, for example::
+
+    uv run python my_script.py
+
+or activate the environment first with ``source .venv/bin/activate`` (Linux/macOS) or
+``.venv\Scripts\activate`` (Windows) and use ``python`` as usual.
 
 Have a look at the `gallery of examples <https://pysteps.readthedocs.io/en/stable/auto_examples/index.html>`__ to get a good overview of what pysteps can do.
 
