@@ -154,7 +154,9 @@ class StepsBlendingConfig:
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
-      precip_thr.
+      precip_thr. This setting does not affect the noise standard deviation
+      adjustment (noise_stddev_adj='auto'), which always uses conditional
+      statistics (see #579).
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
@@ -1456,6 +1458,11 @@ class StepsBlendingNowcaster:
                     starttime = time.time()
 
                 precip_forecast_min = np.min(self.__state.precip_noise_input)
+
+                # Conditonal = False leads to issue with blending. See #579
+                # Conditional=True is hardcoded currently and bypasses the user provided values
+                # will always require user to provide a threshold as it is needed to compute the precipitation mask
+
                 self.__params.noise_std_coeffs = noise.utils.compute_noise_stddev_adjs(
                     self.__state.precip_noise_input[-1, :, :],
                     self.__params.precip_threshold,
@@ -1465,7 +1472,7 @@ class StepsBlendingNowcaster:
                     self.__params.perturbation_generator,
                     self.__params.noise_generator,
                     20,
-                    conditional=self.__config.conditional,
+                    conditional=True,
                     num_workers=self.__config.num_workers,
                     seed=self.__config.seed,
                 )
@@ -3621,7 +3628,9 @@ def forecast(
     conditional: bool, optional
       If set to True, compute the statistics of the precipitation field
       conditionally by excluding pixels where the values are below the threshold
-      precip_thr.
+      precip_thr. This setting does not affect the noise standard deviation
+      adjustment (noise_stddev_adj='auto'), which always uses conditional
+      statistics (see #579).
     probmatching_method: {'cdf','mean',None}, optional
       Method for matching the statistics of the forecast field with those of
       the most recently observed one. 'cdf'=map the forecast CDF to the observed
