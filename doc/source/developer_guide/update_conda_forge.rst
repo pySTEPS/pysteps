@@ -62,7 +62,7 @@ the conda-forge channel.
 Important
 ---------
 
-For updates, using a branch in the main repo and a subsequent Pull Request (PR) to the master branch is discouraged because:
+For updates, using a branch in the main repo and a subsequent Pull Request (PR) to the main branch is discouraged because:
 - CI is run on both the branch and on the Pull Request (if any) associated with that branch. This wastes CI resources.
 - Branches are automatically published by the CI system. This mean that a for every push, the packages will be published
 before the PR is actually merged.
@@ -86,9 +86,9 @@ The mandatory steps to update the pysteps-feedstock_ are:
 #. Syncing your fork with the pysteps feedstock. This step is only needed if your local repository is not up to date
    the pysteps-feedstock_. If you just cloned the forked pysteps-feedstock_, you can ignore this step.
 
-    * Make sure you are on the master branch::
+    * Make sure you are on the main branch::
 
-        git checkout master
+        git checkout main
 
     * Register conda-forge’s feedstock with::
 
@@ -98,9 +98,9 @@ The mandatory steps to update the pysteps-feedstock_ are:
 
         git fetch upstream
 
-    * Pull in the latest changes into your master branch::
+    * Pull in the latest changes into your main branch::
 
-        git rebase upstream/master
+        git rebase upstream/main
 
 #. Create a new branch::
 
@@ -151,7 +151,7 @@ needs to be updated by:
      not changed but you need to make a new build.
    - In case that the recipe must be updated, increase by 1 the
      **build_number** in the conda recipe in
-     `pysteps-feedstock/recipe/meta.yaml <https://github.com/conda-forge/pysteps-feedstock/blob/master/recipe/meta.yaml>`_.
+     `pysteps-feedstock/recipe/meta.yaml <https://github.com/conda-forge/pysteps-feedstock/blob/main/recipe/meta.yaml>`_.
 
      Some examples for needing to increase the build number are:
 
@@ -209,5 +209,5 @@ These steps are run automatically every six hours.
 Hence, when a new pysteps version is upload to PyPI, this bot will
 automatically update the recipe and submit a PR.
 If the tests in the PR pass, then it can be merger into the
-feedstock's master branch.
+feedstock's main branch.
 

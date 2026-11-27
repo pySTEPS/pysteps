@@ -10,24 +10,20 @@ pysteps - Python framework for short-term ensemble prediction systems
     * - docs
       - |stable| |colab| |gallery|
     * - status
-      - |test| |docs| |codecov| |codacy| |formatting|
+      - |test| |docs| |codecov| |codacy|
     * - package
-      - |github| |conda| |pypi| |zenodo|
+      - |github| |pypi| |zenodo|
     * - community
       - |contributors| |downloads| |license|
 
 
-.. |docs| image:: https://readthedocs.org/projects/pysteps/badge/?version=latest
+.. |docs| image:: https://app.readthedocs.org/projects/pysteps/badge/?version=latest
     :alt: Documentation Status
     :target: https://pysteps.readthedocs.io/
 
 .. |test| image:: https://github.com/pySTEPS/pysteps/workflows/Test%20pysteps/badge.svg
     :alt: Test pysteps
     :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Test+Pysteps"
-
-.. |formatting| image:: https://github.com/pySTEPS/pysteps/workflows/Check%20formatting/badge.svg
-    :alt: Check formatting
-    :target: https://github.com/pySTEPS/pysteps/actions?query=workflow%3A"Check+formatting"
 
 .. |codecov| image:: https://codecov.io/gh/pySTEPS/pysteps/branch/main/graph/badge.svg
     :alt: Coverage
@@ -36,10 +32,6 @@ pysteps - Python framework for short-term ensemble prediction systems
 .. |github| image:: https://img.shields.io/github/release/pySTEPS/pysteps.svg
     :target: https://github.com/pySTEPS/pysteps/releases/latest
     :alt: Latest github release
-
-.. |conda| image:: https://anaconda.org/conda-forge/pysteps/badges/version.svg
-    :target: https://anaconda.org/conda-forge/pysteps
-    :alt: Anaconda Cloud
 
 .. |pypi| image:: https://badge.fury.io/py/pysteps.svg
     :target: https://pypi.org/project/pysteps/
@@ -53,9 +45,9 @@ pysteps - Python framework for short-term ensemble prediction systems
     :alt: GitHub contributors
     :target: https://github.com/pySTEPS/pysteps/graphs/contributors
 
-.. |downloads| image:: https://img.shields.io/conda/dn/conda-forge/pysteps
-    :alt: Conda downloads
-    :target: https://anaconda.org/conda-forge/pysteps
+.. |downloads| image:: https://img.shields.io/pypi/dm/pysteps
+    :alt: PyPI downloads
+    :target: https://pypistats.org/packages/pysteps
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
     :alt: My first nowcast
@@ -97,12 +89,32 @@ Use pysteps to compute and plot a radar extrapolation nowcast in Google Colab wi
 Installation
 ============
 
-PySTEPS can be installed using `uv <https://docs.astral.sh/uv/getting-started/installation/>`_::
+PySTEPS can be installed from the GitHub repository or from PyPI.
 
+To install from the GitHub repository, clone it and use `uv <https://docs.astral.sh/uv/getting-started/installation/>`_ to install its dependencies::
+
+    git clone https://github.com/pySTEPS/pysteps.git
+    cd pysteps
     uv sync
+
+To install the latest stable release from PyPI, run::
+
+    pip install pysteps
+
+or, if using `uv`, run::
+
+    uv pip install pysteps
 
 Usage
 =====
+
+If you installed pysteps with ``uv sync``, it lives in the virtual environment in the **.venv**
+folder. Either run your scripts through uv, for example::
+
+    uv run python my_script.py
+
+or activate the environment first with ``source .venv/bin/activate`` (Linux/macOS) or
+``.venv\Scripts\activate`` (Windows) and use ``python`` as usual.
 
 Have a look at the `gallery of examples <https://pysteps.readthedocs.io/en/stable/auto_examples/index.html>`__ to get a good overview of what pysteps can do.
 
