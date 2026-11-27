@@ -10,80 +10,90 @@ from pysteps import blending, cascade
 
 # fmt:off
 steps_arg_values = [
-    (1, 3, 4, 8, 'steps', None, None, False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 8,'steps', "obs", None, False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 8,'steps', "incremental", None, False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 8,'steps', None, "mean", False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 8,'steps', None, "mean", False, "spn", True, 4, False, False, 0, True, None, None, None),
-    (1, 3, 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (1, [1, 2, 3], 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
+    (1, 3, 4, 8, 'steps', None, None, False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 8,'steps', "obs", None, False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 8,'steps', "incremental", None, False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 8,'steps', None, "mean", False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 8,'steps', None, "mean", False, "spn", True, 4, False, False, 0, True, None, None, None, False),
+    (1, 3, 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (1, [1, 2, 3], 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None, False),
     # Regression test for a gap in the timesteps list (e.g. [1, 3] skips 2): this used to raise
     # "TypeError: 'NoneType' object is not iterable" because the bin for the skipped step never
     # got a value written to final_blended_forecast_all_members_one_timestep.
-    (1, [1, 3], 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 8,'steps', "incremental", "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", True, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", False, 4, False, False, 0, False, None, None, None),
-    (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", False, 4, False, False, 0, True, None, None, None),
-    (1, 3, 4, 9,'steps', "incremental", "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None),
-    (2, 3, 10, 8,'steps', "incremental", "cdf", False, "spn", True, 10, False, False, 0, False, None, None, None),
-    (5, 3, 5, 8,'steps', "incremental", "cdf", False, "spn", True, 5, False, False, 0, False, None, None, None),
-    (1, 10, 1, 8,'steps', "incremental", "cdf", False, "spn", True, 1, False, False, 0, False, None, None, None),
-    (2, 3, 2, 8,'steps', "incremental", "cdf", True, "spn", True, 2, False, False, 0, False, None, None, None),
-    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, False, 0, False, None, None, None),
-    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, False, 0, False, "bps", None, None),
+    (1, [1, 3], 4, 8,'steps', None, "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 8,'steps', "incremental", "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", True, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", False, 4, False, False, 0, False, None, None, None, False),
+    (1, 3, 4, 6,'steps', "incremental", "cdf", False, "bps", False, 4, False, False, 0, True, None, None, None, False),
+    (1, 3, 4, 9,'steps', "incremental", "cdf", False, "spn", True, 4, False, False, 0, False, None, None, None, False),
+    (2, 3, 10, 8,'steps', "incremental", "cdf", False, "spn", True, 10, False, False, 0, False, None, None, None, False),
+    (5, 3, 5, 8,'steps', "incremental", "cdf", False, "spn", True, 5, False, False, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'steps', "incremental", "cdf", False, "spn", True, 1, False, False, 0, False, None, None, None, False),
+    (2, 3, 2, 8,'steps', "incremental", "cdf", True, "spn", True, 2, False, False, 0, False, None, None, None, False),
+    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, False, 0, False, None, None, None, False),
+    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, False, 0, False, "bps", None, None, False),
     # Test the case where the radar image contains no rain.
-    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, True, False, 0, False, None, None, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, False, 0, False, None, None, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, False, 0, True, None, None, None),
+    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, True, False, 0, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, False, 0, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, False, 0, True, None, None, None, False),
     # Test the case where the NWP fields contain no rain.
-    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, True, 0, False, None, None, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, False, True, 0, True, None, None, None),
+    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, True, 0, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, False, True, 0, True, None, None, None, False),
     # Test the case where both the radar image and the NWP fields contain no rain.
-    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, True, True, 0, False, None, None, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, True, 0, False, None, None, None),
-    (5, 3, 5, 6,'steps', "obs", "mean", True, "spn", True, 5, True, True, 0, False, None, None, None),
+    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, True, True, 0, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, True, 0, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "obs", "mean", True, "spn", True, 5, True, True, 0, False, None, None, None, False),
     # Test cases where we apply timestep_start_full_nwp_weight
-    (1, 10, 2, 6,'steps', "incremental", "cdf", False, "bps", False, 2, False, False, 0, True, None, None, 5),
-    (1, 10, 2, 6,'steps', "incremental", "cdf", False, "spn", False, 2, False, False, 0, False, None, None, 5),
+    (1, 10, 2, 6,'steps', "incremental", "cdf", False, "bps", False, 2, False, False, 0, True, None, None, 5, False),
+    (1, 10, 2, 6,'steps', "incremental", "cdf", False, "spn", False, 2, False, False, 0, False, None, None, 5, False),
     # Test for smooth radar mask
-    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, False, 80, False, None, None, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, False, False, 80, False, None, None, None),
-    (5, 3, 5, 6,'steps', "obs", "mean", False, "spn", False, 5, False, False, 80, False, None, None, None),
-    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, True, 80, False, None, None, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, False, 80, True, None, None, None),
-    (5, 3, 5, 6,'steps', "obs", "mean", False, "spn", False, 5, True, True, 80, False, None, None, None),
-    (5, [1, 2, 3], 5, 6,'steps', "obs", "mean", False, "spn", False, 5, True, True, 80, False, None, None, None),
-    (5, [1, 3], 5, 6,'steps', "obs", "mean", False, "spn", False, 5, True, True, 80, False, None, None, None),
+    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, False, 80, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, False, False, 80, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "obs", "mean", False, "spn", False, 5, False, False, 80, False, None, None, None, False),
+    (1, 3, 6, 8,'steps', None, None, False, "spn", True, 6, False, True, 80, False, None, None, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "spn", False, 5, True, False, 80, True, None, None, None, False),
+    (5, 3, 5, 6,'steps', "obs", "mean", False, "spn", False, 5, True, True, 80, False, None, None, None, False),
+    (5, [1, 2, 3], 5, 6,'steps', "obs", "mean", False, "spn", False, 5, True, True, 80, False, None, None, None, False),
+    (5, [1, 3], 5, 6,'steps', "obs", "mean", False, "spn", False, 5, True, True, 80, False, None, None, None, False),
     # Test the usage of a max_mask_rim in the mask_kwargs
-    (1, 3, 6, 8,'steps', None, None, False, "bps", True, 6, False, False, 80, False, None, 40, None),
-    (5, 3, 5, 6,'steps', "obs", "mean", False, "bps", False, 5, False, False, 80, False, None, 40, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 25, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 40, None),
-    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 60, None),
+    (1, 3, 6, 8,'steps', None, None, False, "bps", True, 6, False, False, 80, False, None, 40, None, False),
+    (5, 3, 5, 6,'steps', "obs", "mean", False, "bps", False, 5, False, False, 80, False, None, 40, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 25, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 40, None, False),
+    (5, 3, 5, 6,'steps', "incremental", "cdf", False, "bps", False, 5, False, False, 80, False, None, 60, None, False),
     #Test the externally provided nowcast
-    (1, 10, 1, 8,'external_nowcast_det', None, None, False, "spn", True, 1, False, False, 0, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 1, False, False, 80, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, True, False, 0, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 1, False, True, 0, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, True, True, 0, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", "cdf", False, "spn", True, 1, False, False, 0, True, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", "obs", False, "bps", True, 1, False, False, 0, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None, 5),
-    (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None, None),
-    (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None, None),
-    (1, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None, None),
-    (1, 10, 1, 8,'external_nowcast_ens', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None, None),
-    (5, 10, 1, 8,'external_nowcast_ens', "incremental", "obs", False, "spn", True, 5, False, False, 0, False, None, None, None),
-    (1, 10, 5, 8,'external_nowcast_ens', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None, 5)
+    (1, 10, 1, 8,'external_nowcast_det', None, None, False, "spn", True, 1, False, False, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 1, False, False, 80, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, True, False, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "spn", True, 1, False, True, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, True, True, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", "cdf", False, "spn", True, 1, False, False, 0, True, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", "obs", False, "bps", True, 1, False, False, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_det', "incremental", None, False, "bps", True, 1, False, False, 0, False, None, None, 5, False),
+    (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None, None, False),
+    (5, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None, None, False),
+    (1, 10, 5, 8,'external_nowcast_ens', "incremental", None, False, "spn", True, 5, False, False, 0, False, None, None, None, False),
+    (1, 10, 1, 8,'external_nowcast_ens', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None, None, False),
+    (5, 10, 1, 8,'external_nowcast_ens', "incremental", "obs", False, "spn", True, 5, False, False, 0, False, None, None, None, False),
+    (1, 10, 5, 8,'external_nowcast_ens', "incremental", "cdf", False, "bps", True, 5, False, False, 0, False, None, None, 5, False),
+    # Regression test for #579: with conditional=False and a low fraction of rainy pixels,
+    # the noise adjustment coefficients exploded and so did the forecast values.
+    (1, 3, 4, 8,'steps', None, None, False, "spn", True, 4, False, False, 0, False, None, None, None, True),
+    (1, 3, 4, 8,'steps', "incremental", None, False, "bps", True, 4, False, False, 0, False, None, None, None, True)
 ]
 
 # fmt:on
 
 
 def run_and_assert_forecast(
-    precip, forecast_kwargs, expected_n_ens_members, n_timesteps, converter, metadata
+    precip,
+    forecast_kwargs,
+    expected_n_ens_members,
+    n_timesteps,
+    converter,
+    metadata,
+    max_precip=None,
 ):
     """Run a blended nowcast and assert the output has the expected shape."""
     precip_forecast = blending.steps.forecast(precip=precip, **forecast_kwargs)
@@ -109,6 +119,12 @@ def run_and_assert_forecast(
         precip_forecast.shape[1] == n_timesteps
     ), "Wrong amount of output time steps in converted forecast output"
 
+    #
+    if max_precip is not None:
+        assert (
+            np.nanmax(precip_forecast) < max_precip
+        ), "Forecast precipitation values exploded (see #579)"
+
 
 steps_arg_names = (
     "n_models",
@@ -129,6 +145,7 @@ steps_arg_names = (
     "vel_pert_method",
     "max_mask_rim",
     "timestep_start_full_nwp_weight",
+    "low_rain_fraction",
 )
 
 
@@ -152,6 +169,7 @@ def test_steps_blending(
     vel_pert_method,
     max_mask_rim,
     timestep_start_full_nwp_weight,
+    low_rain_fraction,
 ):
     pytest.importorskip("cv2")
 
@@ -213,6 +231,11 @@ def test_steps_blending(
         radar_precip[2, 30:155, 39 + 1 * 2] = 1.0
         radar_precip[2, 30:155, 40 + 1 * 3] = 0.5
         radar_precip[2, 30:155, 41 + 1 * 3] = 0.1
+
+    if low_rain_fraction:
+        # Keep only a thin strip of the rain band: ~0.15% of the domain is rainy
+        radar_precip[:, :100, :] = 0.0
+        radar_precip[:, 105:, :] = 0.0
 
     precip_nowcast = np.zeros((n_ens_members, last_timestep + 1, 200, 200))
 
@@ -420,7 +443,7 @@ def test_steps_blending(
         smooth_radar_mask_range=smooth_radar_mask_range,
         callback=None,
         return_output=True,
-        seed=None,
+        seed=42,
         num_workers=1,
         fft_method="numpy",
         domain="spatial",
@@ -445,6 +468,7 @@ def test_steps_blending(
         n_timesteps,
         converter,
         metadata,
+        max_precip=1000.0 if low_rain_fraction else None,
     )
 
 

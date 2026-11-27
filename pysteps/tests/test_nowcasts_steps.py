@@ -209,7 +209,9 @@ def run_and_assert_forecast(
     ), "Wrong amount of output time steps in forecast output"
 
     # Transform the data back into mm/h
-    precip_forecast, _ = converter(precip_forecast, metadata)
+    precip_forecast, metadata = converter(
+        precip_forecast, metadata
+    )  # have to catch unit in metadata at last use of converter
 
     assert (
         precip_forecast.ndim == 4
@@ -220,6 +222,12 @@ def run_and_assert_forecast(
     assert (
         precip_forecast.shape[1] == n_timesteps
     ), "Wrong amount of output time steps in converted forecast output"
+
+    assert (
+        np.nanmax(precip_forecast) < 1000.0
+    ), f"Forecast precipitation values exploded (see #579): max value = {np.nanmax(precip_forecast)}"
+
+    return precip_forecast
 
 
 @pytest.mark.parametrize(steps_arg_names, steps_arg_values)
@@ -295,11 +303,15 @@ def test_steps_nowcast(
 
     # convert the data
     converter = utils.get_method("mm/h")
-    radar_precip, _ = converter(radar_precip, metadata)
+    radar_precip, metadata = converter(
+        radar_precip, metadata
+    )  # have to catch unit in metadata at last use of converter
 
     # transform the data
     transformer = utils.get_method(metadata["transformation"])
-    radar_precip, _ = transformer(radar_precip, metadata)
+    radar_precip, metadata = transformer(
+        radar_precip, metadata
+    )  # have to catch metadata for further processing
 
     # set NaN equal to zero
     radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
@@ -337,7 +349,7 @@ def test_steps_nowcast(
         mask_method=mask_method,
         callback=None,
         return_output=True,
-        seed=None,
+        seed=42,
         num_workers=1,
         fft_method="numpy",
         domain=domain,
@@ -394,9 +406,13 @@ def test_steps_nowcast_partial_zero_radar(ar_order):
     # Threshold, convert and transform
     radar_precip[radar_precip < metadata["threshold"]] = 0.0
     converter = utils.get_method("mm/h")
-    radar_precip, _ = converter(radar_precip, metadata)
+    radar_precip, metadata = converter(
+        radar_precip, metadata
+    )  # have to catch unit in metadata at last use of converter
     transformer = utils.get_method(metadata["transformation"])
-    radar_precip, _ = transformer(radar_precip, metadata)
+    radar_precip, metadata = transformer(
+        radar_precip, metadata
+    )  # have to catch metadata for further processing
     radar_precip[~np.isfinite(radar_precip)] = metadata["zerovalue"]
 
     # Velocity fields
