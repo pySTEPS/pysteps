@@ -46,86 +46,43 @@ Other optional dependencies include:
 But, if you want to contribute to pysteps or edit the package, you need to install
 pysteps in development mode: :ref:`Contributing to pysteps <contributor_guidelines>`.
 
-Install with conda/mamba (recommended)
---------------------------------------
+Install with uv (recommended)
+-----------------------------
 
-`Conda <https://docs.conda.io/>`_ is an open-source package management system and environment
-management system that runs on Windows, macOS, and Linux.
-`Mamba <https://mamba.readthedocs.io/>`_ is a drop-in replacement for conda offering
-better performances and more reliable environment
-solutions. Mamba quickly installs, runs, and updates packages and their dependencies.
-It also allows you to easily create, save, load, or switch between different
-environments on your local computer.
+`uv <https://docs.astral.sh/uv/>`_ is a fast Python package and project manager
+that runs on Windows, macOS, and Linux. It takes care of installing the right Python
+version, creating a virtual environment, and installing all the dependencies.
 
-Since version 1.0, pysteps is available on `conda-forge <https://conda-forge.org/>`_,
-a community-driven package repository for conda packages.
+First, install uv by following the
+`uv installation instructions <https://docs.astral.sh/uv/getting-started/installation/>`_.
+macOS users also need a compiler with OpenMP support, see :ref:`install_osx_users`.
 
-To install pysteps with mamba in a new environment, run in a terminal::
+Then, get a copy of pysteps and install it with all its dependencies::
 
-    mamba create -n pysteps python=3.11
-    mamba activate pysteps
+    git clone https://github.com/pySTEPS/pysteps
+    cd pysteps
+    uv sync
 
-This will create and activate the new python environment called 'pysteps' using python 3.11.
-The next step is to add the conda-forge channel where the pysteps package is located::
+This creates a virtual environment in the **.venv** folder inside the pysteps
+directory. To also install most of the optional dependencies listed above
+(all except pygrib and gdal), run instead::
 
-    conda config --env --prepend channels conda-forge
+    uv sync --extra optional
 
-Let's set this channel as the priority one::
+To use pysteps in your own uv project instead, add it as a dependency from your
+project's folder::
 
-    conda config --env --set channel_priority strict
+    uv add git+https://github.com/pySTEPS/pysteps
 
-The latter step is not strictly necessary but is recommended since
-the conda-forge and the default conda channels are not 100% compatible.
+Install from source with pip
+----------------------------
 
-Finally, to install pysteps and all its dependencies run::
-
-    mamba install pysteps
-
-Install pysteps on Apple Silicon Macs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-On conda-forge, pysteps is currently compiled for Mac computers with Intel processors (osx-64).
-However, thanks to `Rosetta 2 <https://support.apple.com/en-us/HT211861>`_ it is
-possible to install the same package on a Mac computers with an Apple Silicon processor
-(arm-64).
-
-First, make sure that Rosetta 2 is installed::
-
-    softwareupdate --install-rosetta
-
-Use mamba to create a new environment called 'pysteps' for intel packages with python 3.11::
-
-    CONDA_SUBDIR=osx-64 mamba create -n pysteps python=3.11
-    mamba activate pysteps
-
-Make sure that conda/mamba commands in this environment use intel packages::
-
-    conda config --env --set subdir osx-64
-
-Verify that the correct platform is being used::
-
-    python -c "import platform;print(platform.machine())"  # Should print "x86_64"
-
-Finally, run the same pysteps install instructions as given above::
-
-    conda config --env --prepend channels conda-forge
-    conda config --env --set channel_priority strict
-    mamba install pysteps
-
-We can now verify that pysteps loads correctly::
-
-    python -c "import pysteps"
-
-Note that the first time that pysteps is imported will typically take longer, as Rosetta 2
-needs to translate the binary code for the Apple Silicon processor.
-
-Install from source
--------------------
-
-The recommended way to install pysteps from the source is using ``pip``
+Alternatively, pysteps can be installed from the source using ``pip``
 to adhere to the `PEP517 standards <https://www.python.org/dev/peps/pep-0517/>`_.
 Using ``pip`` instead of ``setup.py`` guarantees that all the package dependencies
 are properly handled during the installation process.
+
+.. _install_osx_users:
 
 OSX users: gcc compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -182,7 +139,7 @@ Or, from a local copy of the repo::
     cd pysteps
     pip install .
 
-The above commands install the latest version of the **master** branch,
+The above commands install the latest version of the **main** branch,
 which is continuously under development.
 
 .. warning::
@@ -211,11 +168,10 @@ that can be accessed as attributes or as items.
 Final test: import pysteps in Python
 ------------------------------------
 
-Activate the pysteps environment::
+From the pysteps folder (or your own uv project), run::
 
-    conda activate pysteps
+    uv run python -c "import pysteps"
 
-Launch Python and import pysteps::
-
-    python
-    >>> import pysteps
+``uv run`` runs a command inside the project's virtual environment. If you prefer
+to activate the environment yourself, run ``source .venv/bin/activate``
+(Linux/macOS) or ``.venv\Scripts\activate`` (Windows) and use ``python`` as usual.

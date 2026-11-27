@@ -132,7 +132,7 @@ html_title = ""
 html_context = {
     "github_user": "pySTEPS",
     "github_repo": "pysteps",
-    "github_version": "master",
+    "github_version": "main",
     "doc_path": "doc",
 }
 
@@ -142,7 +142,7 @@ html_context = {
 #
 html_theme_options = {
     "repository_url": "https://github.com/pySTEPS/pysteps",
-    "repository_branch": "master",
+    "repository_branch": "main",
     "path_to_docs": "doc/source",
     "use_edit_page_button": True,
     "use_repository_button": True,
@@ -182,7 +182,7 @@ htmlhelp_basename = "pystepsdoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
-# This hack is taken from numpy (https://github.com/numpy/numpy/blob/master/doc/source/conf.py).
+# This hack is taken from numpy (https://github.com/numpy/numpy/blob/main/doc/source/conf.py).
 latex_preamble = r"""
     \usepackage{amsmath}
     \DeclareUnicodeCharacter{00A0}{\nobreakspace}
